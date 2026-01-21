@@ -6,6 +6,9 @@
 
 <h1>Список фільмів з Supabase</h1>
 
+<a asp-action="Create">+ Додати фільм</a>
+<hr />
+
 @if (Model == null || !Model.Any())
 {
     <div class="alert alert-warning">Підключення є, але в таблиці Movies поки немає даних.</div>

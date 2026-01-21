@@ -1,0 +1,35 @@
+@model Cinema.Infrastructure.Entities.Movie
+
+<h1>Додати фільм</h1>
+
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+
+    <div>
+        <label>Назва</label><br />
+        <input asp-for="Title" />
+        <span asp-validation-for="Title" style="color:red"></span>
+    </div>
+
+    <div>
+        <label>Опис</label><br />
+        <textarea asp-for="Description"></textarea>
+    </div>
+
+    <div>
+        <label>Тривалість (хв)</label><br />
+        <input asp-for="Duration" type="number" />
+        <span asp-validation-for="Duration" style="color:red"></span>
+    </div>
+
+    <div>
+        <label>Рейтинг</label><br />
+        <input asp-for="Rating" step="0.1" />
+    </div>
+
+    <br />
+    <button type="submit">Зберегти</button>
+</form>
+
+<br />
+<a asp-action="Index">← Назад до списку</a>

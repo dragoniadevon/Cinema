@@ -30,4 +30,31 @@ public class MoviesController : Controller
         return View(movie);
     }
 
+    // GET: Movies/Create
+    public IActionResult Create()
+    {
+        return View();
+    }
+
+    // POST: Movies/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(Movie movie)
+    {
+        // Серверна валідація тривалості
+        if (movie.Duration.HasValue && movie.Duration <= 0)
+        {
+            ModelState.AddModelError(nameof(movie.Duration), "Тривалість має бути більшою за 0.");
+        }
+
+        if (ModelState.IsValid)
+        {
+            _context.Movies.Add(movie);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        return View(movie);
+    }
+
 }
