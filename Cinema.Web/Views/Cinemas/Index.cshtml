@@ -1,0 +1,38 @@
+﻿@model IEnumerable<Cinema.Infrastructure.Entities.Cinema>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Наші кінотеатри</h1>
+        <a asp-action="Create" class="btn btn-success">Додати кінотеатр</a>
+    </div>
+
+    @foreach (var cinema in Model)
+    {
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-dark text-white d-flex justify-content-between">
+                <h5 class="mb-0">@cinema.Name (@cinema.City)</h5>
+                <a asp-controller="Halls" asp-action="Create" asp-route-cinemaId="@cinema.Id" class="btn btn-sm btn-outline-light">+ Додати зал</a>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Адреса: @cinema.Address</p>
+                <h6>Зали:</h6>
+                @if (cinema.Halls != null && cinema.Halls.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var hall in cinema.Halls)
+                        {
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>@hall.Name (Рядів: @hall.Rows)</span>
+                                <a asp-controller="Halls" asp-action="Details" asp-route-id="@hall.Id" class="btn btn-sm btn-info ms-2">Схема</a>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-warning">У цьому кінотеатрі ще немає залів.</p>
+                }
+            </div>
+        </div>
+    }
+</div>

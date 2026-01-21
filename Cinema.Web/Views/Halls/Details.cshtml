@@ -1,0 +1,38 @@
+﻿@model Cinema.Infrastructure.Entities.Hall
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Cinemas" asp-action="Index">Кінотеатри</a></li>
+            <li class="breadcrumb-item active">Схема залу: @Model.Name</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white text-center">
+            <h3 class="mb-0">Екран</h3>
+        </div>
+        <div class="card-body bg-light">
+            <div class="d-flex flex-column align-items-center">
+                @* Групуємо місця за номерами рядів *@
+                @foreach (var rowGroup in Model.Seats.OrderBy(s => s.Rownumber).GroupBy(s => s.Rownumber))
+                {
+                    <div class="d-flex mb-2 align-items-center">
+                        <strong class="me-3">Ряд @rowGroup.Key</strong>
+                        @foreach (var seat in rowGroup.OrderBy(s => s.Seatnumber))
+                        {
+                            <div class="text-center m-1" 
+                                 style="width: 35px; height: 35px; background-color: #6c757d; color: white; border-radius: 5px; font-size: 0.8rem; line-height: 35px;"
+                                 title="Ряд: @seat.Rownumber, Місце: @seat.Seatnumber">
+                                @seat.Seatnumber
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="card-footer text-muted">
+            Всього місць у залі: @(Model.Rows * Model.Seatsperrow)
+        </div>
+    </div>
+</div>
