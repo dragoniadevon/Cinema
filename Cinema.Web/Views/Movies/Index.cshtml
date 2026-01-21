@@ -14,11 +14,20 @@ else
 {
     <table class="table">
         <thead>
-            <tr><th>Назва фільму</th></tr>
+            <tr>
+                <th>Назва фільму</th>
+            </tr>
         </thead>
         <tbody>
-            @foreach (var item in Model) {
-                <tr><td>@item.Title</td></tr>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.Id">
+                            @item.Title
+                        </a>
+                    </td>
+                </tr>
             }
         </tbody>
     </table>

@@ -15,6 +15,47 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 
+// =======================
+// SEED TEST DATA (Movies)
+// =======================
+// using (var scope = app.Services.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+//     if (!context.Movies.Any())
+//     {
+//         context.Movies.AddRange(
+//             new Movie
+//             {
+//                 Title = "Interstellar",
+//                 Description = "Science fiction film about space and time.",
+//                 Duration = 169,
+//                 Rating = 8.6m,
+//                 Releasedate = new DateOnly(2014, 11, 7),
+//                 Languagecode = "EN",
+//                 Countrycode = "US",
+//                 Isactive = true
+//             },
+//             new Movie
+//             {
+//                 Title = "Inception",
+//                 Description = "A mind-bending thriller about dreams within dreams.",
+//                 Duration = 148,
+//                 Rating = 8.8m,
+//                 Releasedate = new DateOnly(2010, 7, 16),
+//                 Languagecode = "EN",
+//                 Countrycode = "US",
+//                 Isactive = true
+//             }
+//         );
+
+//         context.SaveChanges();
+//     }
+// }
+// =======================
+// END SEED
+// =======================
+
 // Налаштування конвеєра запитів (Middleware)
 if (!app.Environment.IsDevelopment())
 {

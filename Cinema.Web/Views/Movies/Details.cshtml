@@ -1,0 +1,41 @@
+@model Cinema.Infrastructure.Entities.Movie
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<h1>@Model.Title</h1>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <p>@Model.Description</p>
+}
+
+<ul>
+    @if (Model.Duration.HasValue)
+    {
+        <li><strong>Тривалість:</strong> @Model.Duration хв</li>
+    }
+
+    @if (Model.Rating.HasValue)
+    {
+        <li><strong>Рейтинг:</strong> @Model.Rating</li>
+    }
+
+    @if (Model.Releasedate.HasValue)
+    {
+        <li><strong>Дата релізу:</strong> @Model.Releasedate</li>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.Languagecode))
+    {
+        <li><strong>Мова:</strong> @Model.Languagecode</li>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.Countrycode))
+    {
+        <li><strong>Країна:</strong> @Model.Countrycode</li>
+    }
+</ul>
+
+<a asp-action="Index">← Назад до списку</a>

@@ -17,4 +17,17 @@ public class MoviesController : Controller
         var movies = await _context.Movies.ToListAsync();
         return View(movies);
     }
+
+    public async Task<IActionResult> Details(int id)
+    {
+        var movie = await _context.Movies.FirstOrDefaultAsync(m => m.Id == id);
+
+        if (movie == null)
+        {
+            return NotFound();
+        }
+
+        return View(movie);
+    }
+
 }
