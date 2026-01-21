@@ -11,7 +11,18 @@ builder.Services.AddAuthorization();
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(
+        connectionString,
+        npgsqlOptions =>
+        {
+            npgsqlOptions.CommandTimeout(30);
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorCodesToAdd: null
+            );
+        }));
+
 
 var app = builder.Build();
 
@@ -21,6 +32,10 @@ var app = builder.Build();
 // using (var scope = app.Services.CreateScope())
 // {
 //     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+//     // Wake up Supabase connection
+//     context.Database.OpenConnection();
+//     context.Database.CloseConnection();
 
 //     if (!context.Movies.Any())
 //     {
