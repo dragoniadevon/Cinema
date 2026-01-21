@@ -1,0 +1,25 @@
+﻿@model IEnumerable<Cinema.Infrastructure.Entities.Movie>
+
+@{
+    ViewData["Title"] = "Перевірка бази";
+}
+
+<h1>Список фільмів з Supabase</h1>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-warning">Підключення є, але в таблиці Movies поки немає даних.</div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr><th>Назва фільму</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model) {
+                <tr><td>@item.Title</td></tr>
+            }
+        </tbody>
+    </table>
+}
