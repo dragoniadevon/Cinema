@@ -35,5 +35,6 @@ public partial class Movie
 
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
 
-    public virtual ICollection<Genre> Genres { get; set; } = new List<Genre>();
+    public virtual ICollection<Moviegenre> MovieGenres { get; set; }
+    = new List<Moviegenre>();
 }
