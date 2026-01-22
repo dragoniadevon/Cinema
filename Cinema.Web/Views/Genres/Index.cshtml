@@ -1,0 +1,20 @@
+@model IEnumerable<Cinema.Infrastructure.Entities.Genre>
+
+<h1>Жанри</h1>
+
+<a asp-action="Create">+ Додати жанр</a>
+<hr />
+
+@if (!Model.Any())
+{
+    <p>Жанрів поки немає.</p>
+}
+else
+{
+    <ul>
+        @foreach (var genre in Model)
+        {
+            <li>@genre.Name</li>
+        }
+    </ul>
+}

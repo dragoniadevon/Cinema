@@ -33,6 +33,7 @@ public class MoviesController : Controller
     // GET: Movies/Create
     public IActionResult Create()
     {
+        ViewBag.Genres = _context.Genres.ToList();
         return View();
     }
 

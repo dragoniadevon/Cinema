@@ -27,6 +27,20 @@
         <input asp-for="Rating" step="0.1" />
     </div>
 
+    <hr />
+    <h3>Жанри</h3>
+
+    @if (ViewBag.Genres != null)
+    {
+        foreach (var genre in ViewBag.Genres)
+        {
+            <div>
+                <input type="checkbox" name="selectedGenres" value="@genre.Id" />
+                <label>@genre.Name</label>
+            </div>
+        }
+    }
+
     <br />
     <button type="submit">Зберегти</button>
 </form>

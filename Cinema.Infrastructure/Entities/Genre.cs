@@ -11,5 +11,6 @@ public partial class Genre
 
     public virtual ICollection<Usergenrepreference> Usergenrepreferences { get; set; } = new List<Usergenrepreference>();
 
-    public virtual ICollection<Movie> Movies { get; set; } = new List<Movie>();
+    public virtual ICollection<Moviegenre> MovieGenres { get; set; }
+    = new List<Moviegenre>();
 }
