@@ -22,7 +22,7 @@ public class HallsController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var hall = await _context.Halls
-            .Include(h => h.Seats) // Завантажуємо місця, які ви згенерували
+            .Include(h => h.Seats)
             .FirstOrDefaultAsync(h => h.Id == id);
 
         if (hall == null)
@@ -44,7 +44,7 @@ public class HallsController : Controller
 
             for (short r = 1; r <= hall.Rows; r++)
             {
-                var rowSeats = new List<Seat>(); // Список для одного ряду
+                var rowSeats = new List<Seat>();
                 for (short s = 1; s <= hall.Seatsperrow; s++)
                 {
                     rowSeats.Add(new Seat
@@ -54,11 +54,11 @@ public class HallsController : Controller
                         Seatnumber = s
                     });
                 }
-                _context.Seats.AddRange(rowSeats); // Додаємо весь ряд разом
+                _context.Seats.AddRange(rowSeats);
                 await _context.SaveChangesAsync();
             }
 
-            TempData["Success"] = $"Зал '{hall.Name}' та місця успішно створені!"; // Повідомлення
+            TempData["Success"] = $"Зал '{hall.Name}' та {hall.Rows * hall.Seatsperrow} місць успішно створені!";
             return RedirectToAction("Index", "Cinemas");
         }
         return View(hall);
