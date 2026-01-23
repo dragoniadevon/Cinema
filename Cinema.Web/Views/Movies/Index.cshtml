@@ -4,7 +4,7 @@
     ViewData["Title"] = "Перевірка бази";
 }
 
-<h1>Список фільмів з Supabase</h1>
+<h1>Список фільмів</h1>
 
 <a asp-action="Create">+ Додати фільм</a>
 <hr />
@@ -29,6 +29,7 @@ else
                         <a asp-action="Details" asp-route-id="@item.Id">
                             @item.Title
                         </a>
+                        <a asp-action="Edit" asp-route-id="@item.Id">✏️ Редагувати</a>
                     </td>
                 </tr>
             }

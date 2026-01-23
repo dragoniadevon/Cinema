@@ -6,49 +6,76 @@
 
 <h1>@Model.Title</h1>
 
-@if (!string.IsNullOrWhiteSpace(Model.Description))
-{
-    <p>@Model.Description</p>
-}
+<div class="row mt-4">
 
-<ul>
-    @if (Model.MovieGenres.Any())
-    {
-        <li>
-            <strong>Жанри:</strong>
-            @string.Join(", ", Model.MovieGenres.Select(mg => mg.Genre.Name))
-        </li>
-    }
+    <!-- 🔹 ПОСТЕР -->
+    <div class="col-md-4">
+        @if (!string.IsNullOrWhiteSpace(Model.Posterurl))
+        {
+            <img src="@Model.Posterurl" alt="Постер @Model.Title" class="img-fluid rounded shadow"
+                style="max-width:300px;" />
+        }
+    </div>
 
-    @if (Model.Duration.HasValue)
-    {
-        <li><strong>Тривалість:</strong> @Model.Duration хв</li>
-    }
+    <!-- 🔹 ІНФОРМАЦІЯ -->
+    <div class="col-md-8">
 
-    @if (Model.Agerating.HasValue)
-    {
-        <li><strong>Віковий рейтинг:</strong> @Model.Agerating</li>
-    }
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <p>@Model.Description</p>
+        }
 
-    @if (Model.Rating.HasValue)
-    {
-        <li><strong>Рейтинг:</strong> @Model.Rating</li>
-    }
+        <ul>
+            @if (Model.MovieGenres.Any())
+            {
+                <li>
+                    <strong>Жанри:</strong>
+                    @string.Join(", ", Model.MovieGenres.Select(mg => mg.Genre.Name))
+                </li>
+            }
 
-    @if (Model.Releasedate.HasValue)
-    {
-        <li><strong>Дата релізу:</strong> @Model.Releasedate</li>
-    }
+            @if (Model.Duration.HasValue)
+            {
+                <li><strong>Тривалість:</strong> @Model.Duration хв</li>
+            }
 
-    @if (Model.Languagecode.HasValue)
-    {
-        <li><strong>Мова:</strong> @Model.Languagecode</li>
-    }
+            @if (Model.Agerating.HasValue)
+            {
+                <li><strong>Віковий рейтинг:</strong> @Model.Agerating</li>
+            }
 
-    @if (Model.Countrycode.HasValue)
-    {
-        <li><strong>Країна:</strong> @Model.Countrycode</li>
-    }
-</ul>
+            @if (Model.Rating.HasValue)
+            {
+                <li><strong>Рейтинг:</strong> @Model.Rating</li>
+            }
 
-<a asp-action="Index">← Назад до списку</a>
+            @if (Model.Releasedate.HasValue)
+            {
+                <li>
+                    <strong>Дата релізу:</strong>
+                    @Model.Releasedate.Value.ToString("dd.MM.yyyy")
+                </li>
+            }
+
+            @if (Model.Languagecode.HasValue)
+            {
+                <li><strong>Мова:</strong> @Model.Languagecode</li>
+            }
+
+            @if (Model.Countrycode.HasValue)
+            {
+                <li><strong>Країна:</strong> @Model.Countrycode</li>
+            }
+        </ul>
+
+        <!-- ▶ ТРЕЙЛЕР -->
+        @if (!string.IsNullOrWhiteSpace(Model.Trailerurl))
+        {
+            <a href="@Model.Trailerurl" target="_blank" class="btn btn-danger mt-3">
+                Дивитися трейлер
+            </a>
+        }
+    </div>
+</div>
+
+<a asp-action="Index" class="d-block mt-4">← Назад до списку</a>
