@@ -37,6 +37,19 @@ public class AppDbContext : DbContext
             .Property(m => m.Rating)
             .HasPrecision(3, 1);
 
+        modelBuilder.Entity<Movie>()
+        .Property(m => m.Agerating)
+        .HasConversion<short>();
+
+        modelBuilder.Entity<Movie>()
+            .Property(m => m.Languagecode)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Movie>()
+            .Property(m => m.Countrycode)
+            .HasConversion<string>();
+
+
         // Payment
         modelBuilder.Entity<Payment>()
             .Property(p => p.Amount)

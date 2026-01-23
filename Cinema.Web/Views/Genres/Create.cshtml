@@ -1,0 +1,22 @@
+@model Cinema.Infrastructure.Entities.Genre
+
+<h1>Додати жанр</h1>
+
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+
+    <div>
+        <label>Назва жанру</label><br />
+        <input asp-for="Name" />
+        <span asp-validation-for="Name" style="color:red"></span>
+    </div>
+
+    <br />
+    <button type="button" onclick="this.disabled=true; this.innerText='Збереження...'; this.form.submit();">
+        Зберегти
+    </button>
+
+</form>
+
+<br />
+<a asp-action="Index">← Назад до списку</a>
