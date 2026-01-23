@@ -25,6 +25,11 @@
         <li><strong>Тривалість:</strong> @Model.Duration хв</li>
     }
 
+    @if (Model.Agerating.HasValue)
+    {
+        <li><strong>Віковий рейтинг:</strong> @Model.Agerating</li>
+    }
+
     @if (Model.Rating.HasValue)
     {
         <li><strong>Рейтинг:</strong> @Model.Rating</li>
@@ -35,12 +40,12 @@
         <li><strong>Дата релізу:</strong> @Model.Releasedate</li>
     }
 
-    @if (!string.IsNullOrWhiteSpace(Model.Languagecode))
+    @if (Model.Languagecode.HasValue)
     {
         <li><strong>Мова:</strong> @Model.Languagecode</li>
     }
 
-    @if (!string.IsNullOrWhiteSpace(Model.Countrycode))
+    @if (Model.Countrycode.HasValue)
     {
         <li><strong>Країна:</strong> @Model.Countrycode</li>
     }

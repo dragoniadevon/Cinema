@@ -1,14 +1,15 @@
+@using Cinema.Infrastructure.Entities.Enums
 @model Cinema.Web.Models.CreateMovieViewModel
 
 <h1>Додати фільм</h1>
 
 <form asp-action="Create" method="post">
     @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true, "", new { style = "color:red" })
 
     <div>
         <label>Назва</label><br />
-        <input asp-for="Title" />
-        <span asp-validation-for="Title" style="color:red"></span>
+        <input asp-for="Title" required />
     </div>
 
     <div>
@@ -22,23 +23,69 @@
     </div>
 
     <div>
+        <label>Дата релізу</label><br />
+        <input asp-for="ReleaseDate" type="date" />
+    </div>
+
+    <div>
         <label>Рейтинг</label><br />
         <input asp-for="Rating" step="0.1" />
     </div>
 
-    <hr />
-    <h3>Жанри</h3>
+    <div>
+        <label>Постер (URL)</label><br />
+        <input asp-for="PosterUrl" />
+    </div>
 
-    @foreach (var genre in ViewBag.Genres)
-    {
-        <div>
-            <input type="checkbox" name="SelectedGenres" value="@genre.Id" />
-            <label>@genre.Name</label>
-        </div>
-    }
+    <div>
+        <label>Трейлер (URL)</label><br />
+        <input asp-for="TrailerUrl" />
+    </div>
+
+    <div>
+        <label>Віковий рейтинг</label><br />
+        <select asp-for="AgeRating" asp-items="Html.GetEnumSelectList<AgeRating>()">
+            <option value="">— оберіть —</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Мова</label><br />
+        <select asp-for="LanguageCode" asp-items="Html.GetEnumSelectList<LanguageCode>()">
+            <option value="">— оберіть —</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Країна</label><br />
+        <select asp-for="CountryCode" asp-items="Html.GetEnumSelectList<CountryCode>()">
+            <option value="">— оберіть —</option>
+        </select>
+    </div>
+
+
+    <div>
+        <label>Жанри</label><br />
+        <select asp-for="SelectedGenres" asp-items="@(new MultiSelectList(ViewBag.Genres, "Id", "Name"))" multiple
+            id="genres-select">
+        </select>
+    </div>
 
     <br />
     <button type="submit">Зберегти</button>
 </form>
 
 <a asp-action="Index">← Назад до списку</a>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#genres-select').select2({
+                placeholder: "Почніть вводити жанр",
+                allowClear: true,
+                closeOnSelect: false,
+                width: '100%'
+            });
+        });
+    </script>
+}

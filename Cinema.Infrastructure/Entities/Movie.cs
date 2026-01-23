@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-
+﻿using Cinema.Infrastructure.Entities.Enums;
 namespace Cinema.Infrastructure.Entities;
 
-public partial class Movie
+
+public class Movie
 {
     public int Id { get; set; }
 
@@ -21,20 +20,15 @@ public partial class Movie
 
     public string? Trailerurl { get; set; }
 
-    public short? Agerating { get; set; }
+    // 👇 ENUM-и
+    public AgeRating? Agerating { get; set; }
 
-    public string? Languagecode { get; set; }
+    public LanguageCode? Languagecode { get; set; }
 
-    public string? Countrycode { get; set; }
+    public CountryCode? Countrycode { get; set; }
 
-    public bool? Isactive { get; set; }
+    public bool Isactive { get; set; } = true;
 
-    public virtual ICollection<Movieperson> Moviepeople { get; set; } = new List<Movieperson>();
-
-    public virtual ICollection<Recommendation> Recommendations { get; set; } = new List<Recommendation>();
-
-    public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
-
-    public virtual ICollection<Moviegenre> MovieGenres { get; set; }
-    = new List<Moviegenre>();
+    // Навігація
+    public ICollection<Moviegenre> MovieGenres { get; set; } = new List<Moviegenre>();
 }

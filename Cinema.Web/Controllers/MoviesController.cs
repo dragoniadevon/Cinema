@@ -40,8 +40,15 @@ public class MoviesController : Controller
     // GET: Movies/Create
     public IActionResult Create()
     {
-        ViewBag.Genres = _context.Genres.ToList();
-        return View();
+        ViewBag.Genres = _context.Genres
+            .Select(g => new
+            {
+                g.Id,
+                g.Name
+            })
+            .ToList();
+
+        return View(new CreateMovieViewModel());
     }
 
 
@@ -67,7 +74,13 @@ public class MoviesController : Controller
             Title = model.Title,
             Description = model.Description,
             Duration = model.Duration,
+            Releasedate = model.ReleaseDate,
             Rating = model.Rating,
+            Posterurl = model.PosterUrl,
+            Trailerurl = model.TrailerUrl,
+            Agerating = model.AgeRating,
+            Languagecode = model.LanguageCode,
+            Countrycode = model.CountryCode,
             Isactive = true
         };
 
