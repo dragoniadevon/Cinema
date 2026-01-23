@@ -1,0 +1,21 @@
+@model IEnumerable<Cinema.Infrastructure.Entities.Pricecategory>
+
+@{
+    ViewData["Title"] = "Цінові категорії";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Цінові категорії</h1>
+        <a asp-action="Create" class="btn btn-success">+ Додати категорію</a>
+    </div>
+
+    @foreach (var category in Model)
+    {
+        <div class="card mb-2 shadow-sm">
+            <div class="card-body">
+                <strong>@category.Name</strong>
+            </div>
+        </div>
+    }
+</div>

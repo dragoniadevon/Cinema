@@ -21,8 +21,11 @@
                         <strong class="me-3">Ряд @rowGroup.Key</strong>
                         @foreach (var seat in rowGroup.OrderBy(s => s.Seatnumber))
                         {
-                            <div class="text-center m-1" 
-                                 style="width: 35px; height: 35px; background-color: #6c757d; color: white; border-radius: 5px; font-size: 0.8rem; line-height: 35px;"
+                            @* Якщо Halltype == 2 (VIP), робимо крісла золотистими, інакше сірими *@
+                            var seatColor = Model.Halltype == 2 ? "#ffc107" : "#6c757d"; 
+    
+                            <div class="text-center m-1 shadow-sm" 
+                                 style="width: 35px; height: 35px; background-color: @seatColor; color: white; border-radius: 5px; font-size: 0.8rem; line-height: 35px; cursor: default;"
                                  title="Ряд: @seat.Rownumber, Місце: @seat.Seatnumber">
                                 @seat.Seatnumber
                             </div>
@@ -33,6 +36,10 @@
         </div>
         <div class="card-footer text-muted">
             Всього місць у залі: @(Model.Rows * Model.Seatsperrow)
+        </div>
+        <div class="mt-3">
+            <span class="badge" style="background-color: #6c757d;">&nbsp;</span> Стандартне місце
+            <span class="badge ms-3" style="background-color: #ffc107;">&nbsp;</span> VIP місце
         </div>
     </div>
 </div>

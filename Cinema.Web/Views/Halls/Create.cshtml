@@ -7,15 +7,15 @@
     
     <div class="form-group">
         <label>Назва залу</label>
-        <input asp-for="Name" class="form-control" placeholder="Наприклад: IMAX Hall" />
+        <input asp-for="Name" class="form-control" />
     </div>
 
     <div class="form-group">
-        <label>Тип залу</label>
+        <label>Тип комфорту залу</label>
         <select asp-for="Halltype" class="form-control">
-            <option value="1">2D</option>
-            <option value="2">3D</option>
-            <option value="3">IMAX</option>
+            <option value="1">Стандарт (Звичайний)</option>
+            <option value="2">VIP (Підвищений комфорт)</option>
+            <option value="3">Основний (Великий зал)</option>
         </select>
     </div>
 
