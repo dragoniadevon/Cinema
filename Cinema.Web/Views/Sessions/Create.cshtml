@@ -1,0 +1,52 @@
+@model Cinema.Infrastructure.Entities.Session
+
+@{
+    ViewData["Title"] = "Створити сеанс";
+}
+
+<div class="container mt-4">
+    <h2>Створити новий сеанс</h2>
+    <hr />
+    <div class="row">
+        <div class="col-md-6">
+            <form asp-action="Create">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="mb-3">
+                    <label class="form-label">Фільм</label>
+                    <select asp-for="Movieid" class="form-control">
+                        @foreach (var m in ViewBag.Movies)
+                        {
+                            <option value="@m.Id">@m.Title</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Зал</label>
+                    <select asp-for="Hallid" class="form-control">
+                        @foreach (var h in ViewBag.Halls)
+                        {
+                            <option value="@h.Id">@h.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Starttime" class="form-label">Час початку</label>
+                    <input asp-for="Starttime" type="datetime-local" class="form-control" />
+                    <span asp-validation-for="Starttime" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success">Зберегти</button>
+                    <a asp-action="Index" class="btn btn-secondary">Назад</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
