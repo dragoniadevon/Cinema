@@ -1,0 +1,26 @@
+@model IEnumerable<Cinema.Infrastructure.Entities.Session>
+
+@{
+    ViewData["Title"] = "Розклад сеансів";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Розклад сеансів</h1>
+        <a asp-action="Create" class="btn btn-success">+ Додати сеанс</a>
+    </div>
+
+    @foreach (var session in Model)
+    {
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <strong>@session.Movie?.Title</strong>
+            </div>
+            <div class="card-body">
+                <p><strong>Зал:</strong> @session.Hall?.Name</p>
+                <p><strong>Початок:</strong> @session.Starttime</p>
+                <p><strong>Кінець:</strong> @session.Endtime</p>
+            </div>
+        </div>
+    }
+</div>
