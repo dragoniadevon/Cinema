@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
+using Cinema.Web.Models;
 
 public class MoviesController : Controller
 {
@@ -13,14 +14,20 @@ public class MoviesController : Controller
 
     public async Task<IActionResult> Index()
     {
-        // Цей рядок просто намагається отримати список фільмів з бази
-        var movies = await _context.Movies.ToListAsync();
+        var movies = await _context.Movies
+            .Include(m => m.MovieGenres)
+                .ThenInclude(mg => mg.Genre)
+            .ToListAsync();
+
         return View(movies);
     }
 
     public async Task<IActionResult> Details(int id)
     {
-        var movie = await _context.Movies.FirstOrDefaultAsync(m => m.Id == id);
+        var movie = await _context.Movies
+            .Include(m => m.MovieGenres)
+                .ThenInclude(mg => mg.Genre)
+            .FirstOrDefaultAsync(m => m.Id == id);
 
         if (movie == null)
         {
@@ -37,25 +44,47 @@ public class MoviesController : Controller
         return View();
     }
 
+
     // POST: Movies/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Movie movie)
+    public async Task<IActionResult> Create(CreateMovieViewModel model)
     {
-        // Серверна валідація тривалості
-        if (movie.Duration.HasValue && movie.Duration <= 0)
+        if (model.Duration.HasValue && model.Duration <= 0)
         {
-            ModelState.AddModelError(nameof(movie.Duration), "Тривалість має бути більшою за 0.");
+            ModelState.AddModelError(nameof(model.Duration),
+                "Тривалість має бути більшою за 0.");
         }
 
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
         {
-            _context.Movies.Add(movie);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            ViewBag.Genres = _context.Genres.ToList();
+            return View(model);
         }
 
-        return View(movie);
+        var movie = new Movie
+        {
+            Title = model.Title,
+            Description = model.Description,
+            Duration = model.Duration,
+            Rating = model.Rating,
+            Isactive = true
+        };
+
+        _context.Movies.Add(movie);
+        await _context.SaveChangesAsync();
+
+        foreach (var genreId in model.SelectedGenres)
+        {
+            _context.Moviegenres.Add(new Moviegenre
+            {
+                Movieid = movie.Id,
+                Genreid = genreId
+            });
+        }
+
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Index));
     }
-
 }

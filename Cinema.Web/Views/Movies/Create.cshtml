@@ -1,4 +1,4 @@
-@model Cinema.Infrastructure.Entities.Movie
+@model Cinema.Web.Models.CreateMovieViewModel
 
 <h1>Додати фільм</h1>
 
@@ -19,7 +19,6 @@
     <div>
         <label>Тривалість (хв)</label><br />
         <input asp-for="Duration" type="number" />
-        <span asp-validation-for="Duration" style="color:red"></span>
     </div>
 
     <div>
@@ -30,20 +29,16 @@
     <hr />
     <h3>Жанри</h3>
 
-    @if (ViewBag.Genres != null)
+    @foreach (var genre in ViewBag.Genres)
     {
-        foreach (var genre in ViewBag.Genres)
-        {
-            <div>
-                <input type="checkbox" name="selectedGenres" value="@genre.Id" />
-                <label>@genre.Name</label>
-            </div>
-        }
+        <div>
+            <input type="checkbox" name="SelectedGenres" value="@genre.Id" />
+            <label>@genre.Name</label>
+        </div>
     }
 
     <br />
     <button type="submit">Зберегти</button>
 </form>
 
-<br />
 <a asp-action="Index">← Назад до списку</a>

@@ -12,6 +12,14 @@
 }
 
 <ul>
+    @if (Model.MovieGenres.Any())
+    {
+        <li>
+            <strong>Жанри:</strong>
+            @string.Join(", ", Model.MovieGenres.Select(mg => mg.Genre.Name))
+        </li>
+    }
+
     @if (Model.Duration.HasValue)
     {
         <li><strong>Тривалість:</strong> @Model.Duration хв</li>
