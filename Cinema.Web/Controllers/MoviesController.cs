@@ -180,4 +180,23 @@ public class MoviesController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var movie = await _context.Movies
+            .Include(m => m.MovieGenres)
+            .FirstOrDefaultAsync(m => m.Id == id);
+
+        if (movie == null)
+            return NotFound();
+
+        _context.Moviegenres.RemoveRange(movie.MovieGenres);
+        _context.Movies.Remove(movie);
+
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Index));
+    }
 }

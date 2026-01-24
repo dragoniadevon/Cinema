@@ -1,20 +1,99 @@
 @model IEnumerable<Cinema.Infrastructure.Entities.Genre>
 
-<h1>Жанри</h1>
+@{
+    ViewData["Title"] = "Жанри";
+}
 
-<a asp-action="Create">+ Додати жанр</a>
-<hr />
+<h1 class="mb-4">🎭 Жанри</h1>
+
+<a asp-action="Create" class="btn btn-primary mb-3">
+    + Додати жанр
+</a>
 
 @if (!Model.Any())
 {
-    <p>Жанрів поки немає.</p>
+    <div class="alert alert-warning">
+        Жанрів поки немає.
+    </div>
 }
 else
 {
-    <ul>
-        @foreach (var genre in Model)
-        {
-            <li>@genre.Name</li>
-        }
-    </ul>
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Назва жанру</th>
+                <th style="width:150px">Дії</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var genre in Model)
+            {
+                <tr>
+                    <td>
+                        <strong>@genre.Name</strong>
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@genre.Id" class="btn btn-sm btn-outline-primary">
+                            ✏️
+                        </a>
+
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteGenreModal"
+                            data-id="@genre.Id" data-name="@genre.Name">
+                            🗑️
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Delete Genre Modal -->
+    <div class="modal fade" id="deleteGenreModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Видалити жанр</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    Ви впевнені, що хочете видалити жанр
+                    <strong id="genreName"></strong>?
+                </div>
+
+                <div class="modal-footer">
+                    <form id="deleteGenreForm" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">
+                            Видалити
+                        </button>
+                    </form>
+
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Скасувати
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            const deleteGenreModal = document.getElementById('deleteGenreModal');
+
+            deleteGenreModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+
+                const genreId = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name');
+
+                document.getElementById('genreName').innerText = name;
+                document.getElementById('deleteGenreForm').action = '/Genres/Delete/' + genreId;
+            });
+        </script>
+    }
+
+
 }

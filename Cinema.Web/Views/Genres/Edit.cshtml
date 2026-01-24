@@ -1,16 +1,17 @@
 @model Cinema.Infrastructure.Entities.Genre
 
 @{
-    ViewData["Title"] = "Додати жанр";
+    ViewData["Title"] = "Редагувати жанр";
 }
 
-<h1 class="mb-4">➕ Додати жанр</h1>
+<h1 class="mb-4">✏️ Редагувати жанр</h1>
 
-<div class="card shadow-sm" style="max-width: 500px;">
+<div class="card shadow-sm">
     <div class="card-body">
 
-        <form asp-action="Create" method="post">
+        <form asp-action="Edit" method="post">
             @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
 
             <div class="mb-3">
                 <label asp-for="Name" class="form-label">

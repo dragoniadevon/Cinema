@@ -1,38 +1,132 @@
 ﻿@model IEnumerable<Cinema.Infrastructure.Entities.Movie>
 
 @{
-    ViewData["Title"] = "Перевірка бази";
+    ViewData["Title"] = "Фільми";
 }
 
-<h1>Список фільмів</h1>
+<h1 class="mb-4">🎬 Фільми</h1>
 
-<a asp-action="Create">+ Додати фільм</a>
-<hr />
+<a asp-action="Create" class="btn btn-primary mb-4">
+    + Додати фільм
+</a>
 
-@if (Model == null || !Model.Any())
+@if (!Model.Any())
 {
-    <div class="alert alert-warning">Підключення є, але в таблиці Movies поки немає даних.</div>
+    <div class="alert alert-warning">
+        Фільмів поки немає.
+    </div>
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Назва фільму</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model)
-            {
-                <tr>
-                    <td>
-                        <a asp-action="Details" asp-route-id="@item.Id">
-                            @item.Title
-                        </a>
-                        <a asp-action="Edit" asp-route-id="@item.Id">✏️ Редагувати</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="row g-4">
+        @foreach (var movie in Model)
+        {
+            <div class="col-sm-6 col-md-4 col-lg-3">
+
+                <div class="card h-100 shadow-sm">
+
+                    <!-- 🎞 ПОСТЕР -->
+                    @if (!string.IsNullOrWhiteSpace(movie.Posterurl))
+                    {
+                        <img src="@movie.Posterurl" class="card-img-top" alt="Постер @movie.Title"
+                            style="height: 420px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center justify-content-center bg-light text-muted" style="height: 420px;">
+                            Постер відсутній
+                        </div>
+                    }
+
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- 🎬 НАЗВА -->
+                        <h6 class="card-title text-truncate" title="@movie.Title">
+                            @movie.Title
+                        </h6>
+
+                        <!-- 🎭 ЖАНРИ -->
+                        <p class="card-text small text-muted mb-3">
+                            @if (movie.MovieGenres.Any())
+                            {
+                                @string.Join(", ", movie.MovieGenres.Select(mg => mg.Genre.Name))
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </p>
+
+                        <!-- 🔘 ДІЇ -->
+                        <div class="mt-auto d-flex gap-2">
+
+                            <a asp-action="Details" asp-route-id="@movie.Id" class="btn btn-sm btn-outline-secondary w-100"
+                                title="Деталі">
+                                👁
+                            </a>
+
+                            <a asp-action="Edit" asp-route-id="@movie.Id" class="btn btn-sm btn-outline-primary w-100"
+                                title="Редагувати">
+                                ✏️
+                            </a>
+
+                            <button class="btn btn-sm btn-outline-danger w-100" data-bs-toggle="modal"
+                                data-bs-target="#deleteModal" data-id="@movie.Id" data-title="@movie.Title" title="Видалити">
+                                🗑️
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Видалити фільм</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    Ви впевнені, що хочете видалити фільм
+                    <strong id="movieTitle"></strong>?
+                </div>
+
+                <div class="modal-footer">
+                    <form id="deleteForm" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">
+                            Видалити
+                        </button>
+                    </form>
+
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Скасувати
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            const deleteModal = document.getElementById('deleteModal');
+
+            deleteModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+
+                const movieId = button.getAttribute('data-id');
+                const title = button.getAttribute('data-title');
+
+                document.getElementById('movieTitle').innerText = title;
+                document.getElementById('deleteForm').action = '/Movies/Delete/' + movieId;
+            });
+        </script>
+    }
 }
