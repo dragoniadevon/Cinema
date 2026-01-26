@@ -73,10 +73,18 @@
                     <input asp-for="TrailerUrl" class="form-control" />
                 </div>
 
-                <div class="col-12">
+                <div class="col-md-6">
                     <label class="form-label">Жанри</label>
                     <select asp-for="SelectedGenres" asp-items="@(new MultiSelectList(ViewBag.Genres, "Id", "Name"))"
                         multiple id="genres-select" class="form-select">
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Актори</label>
+                    <select asp-for="SelectedActors"
+                        asp-items="@(new MultiSelectList(ViewBag.Actors, "Id", "Fullname"))" multiple id="actors-select"
+                        class="form-select">
                     </select>
                 </div>
             </div>
@@ -97,7 +105,13 @@
     <script>
         $(function () {
             $('#genres-select').select2({
-                placeholder: "Почніть вводити жанр",
+                placeholder: "Оберіть жанри",
+                closeOnSelect: false,
+                width: '100%'
+            });
+
+            $('#actors-select').select2({
+                placeholder: "Оберіть акторів",
                 closeOnSelect: false,
                 width: '100%'
             });

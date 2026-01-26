@@ -1,10 +1,10 @@
-@model Cinema.Infrastructure.Entities.Genre
+@model Cinema.Infrastructure.Entities.Actor
 
 @{
-    ViewData["Title"] = "Додати жанр";
+    ViewData["Title"] = "Додати актора";
 }
 
-<h1 class="mb-4">➕ Додати жанр</h1>
+<h1 class="mb-4">➕ Додати актора</h1>
 
 <div class="card shadow-sm">
     <div class="card-body">
@@ -13,11 +13,11 @@
             @Html.AntiForgeryToken()
 
             <div class="mb-3">
-                <label asp-for="Name" class="form-label">
-                    Назва жанру
+                <label asp-for="Fullname" class="form-label">
+                    Імʼя актора
                 </label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+                <input asp-for="Fullname" class="form-control" />
+                <span asp-validation-for="Fullname" class="text-danger"></span>
             </div>
 
             <div class="d-flex gap-2">

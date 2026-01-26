@@ -43,4 +43,8 @@ public class CreateMovieViewModel
 
     // 🔽 жанри
     public List<int> SelectedGenres { get; set; } = new();
+
+    // 🔽 актори
+    public List<int> SelectedActors { get; set; } = new();
+
 }
