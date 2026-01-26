@@ -19,12 +19,12 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
+    public DbSet<Actor> Actors => Set<Actor>();
+    public DbSet<Movieactor> Movieactors => Set<Movieactor>();
     public DbSet<Pricecategory> Pricecategories => Set<Pricecategory>();
     public DbSet<Sessionprice> Sessionprices => Set<Sessionprice>();
     public DbSet<Usergenrepreference> Usergenrepreferences => Set<Usergenrepreference>();
-    public DbSet<Person> Persons => Set<Person>();
-    public DbSet<Personrole> Personroles => Set<Personrole>();
-    public DbSet<Movieperson> Moviepersons => Set<Movieperson>();
+
     public DbSet<Recommendation> Recommendations => Set<Recommendation>();
     public DbSet<Moviegenre> Moviegenres => Set<Moviegenre>();
 
@@ -93,8 +93,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Usergenrepreference>()
             .HasKey(x => new { x.Userid, x.Genreid });
 
-        // Movie ↔ Person ↔ Role
-        modelBuilder.Entity<Movieperson>()
-            .HasKey(x => new { x.Movieid, x.Personid, x.Roleid });
+        modelBuilder.Entity<Movieactor>()
+            .HasKey(ma => new { ma.Movieid, ma.Actorid });
+
+        modelBuilder.Entity<Movieactor>()
+            .HasOne(ma => ma.Movie)
+            .WithMany(m => m.MovieActors)
+            .HasForeignKey(ma => ma.Movieid);
+
+        modelBuilder.Entity<Movieactor>()
+            .HasOne(ma => ma.Actor)
+            .WithMany(a => a.Movieactors)
+            .HasForeignKey(ma => ma.Actorid);
+
     }
 }
