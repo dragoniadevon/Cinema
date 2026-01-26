@@ -31,4 +31,5 @@ public class Movie
 
     // Навігація
     public ICollection<Moviegenre> MovieGenres { get; set; } = new List<Moviegenre>();
+    public ICollection<Movieactor> MovieActors { get; set; } = new List<Movieactor>();
 }
