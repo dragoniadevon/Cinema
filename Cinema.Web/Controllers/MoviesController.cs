@@ -17,6 +17,9 @@ public class MoviesController : Controller
         var movies = await _context.Movies
             .Include(m => m.MovieGenres)
                 .ThenInclude(mg => mg.Genre)
+            .Include(m => m.MovieActors)
+                .ThenInclude(ma => ma.Actor)
+
             .ToListAsync();
 
         return View(movies);
@@ -27,6 +30,8 @@ public class MoviesController : Controller
         var movie = await _context.Movies
             .Include(m => m.MovieGenres)
                 .ThenInclude(mg => mg.Genre)
+            .Include(m => m.MovieActors)
+                .ThenInclude(ma => ma.Actor)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (movie == null)
@@ -46,7 +51,15 @@ public class MoviesController : Controller
                 g.Id,
                 g.Name
             })
-            .ToList();
+        .ToList();
+
+        ViewBag.Actors = _context.Actors
+            .Select(a => new
+            {
+                a.Id,
+                a.Fullname
+            })
+        .ToList();
 
         return View(new CreateMovieViewModel());
     }
@@ -65,7 +78,13 @@ public class MoviesController : Controller
 
         if (!ModelState.IsValid)
         {
-            ViewBag.Genres = _context.Genres.ToList();
+            ViewBag.Genres = _context.Genres
+                .Select(g => new { g.Id, g.Name })
+                .ToList();
+
+            ViewBag.Actors = _context.Actors
+                .Select(a => new { a.Id, a.Fullname })
+                .ToList();
             return View(model);
         }
 
@@ -87,6 +106,7 @@ public class MoviesController : Controller
         _context.Movies.Add(movie);
         await _context.SaveChangesAsync();
 
+        // жанри
         foreach (var genreId in model.SelectedGenres)
         {
             _context.Moviegenres.Add(new Moviegenre
@@ -96,7 +116,18 @@ public class MoviesController : Controller
             });
         }
 
+        // актори
+        foreach (var actorId in model.SelectedActors)
+        {
+            _context.Movieactors.Add(new Movieactor
+            {
+                Movieid = movie.Id,
+                Actorid = actorId
+            });
+        }
+
         await _context.SaveChangesAsync();
+
 
         return RedirectToAction(nameof(Index));
     }
@@ -105,6 +136,7 @@ public class MoviesController : Controller
     {
         var movie = await _context.Movies
             .Include(m => m.MovieGenres)
+            .Include(m => m.MovieActors)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (movie == null)
@@ -124,11 +156,18 @@ public class MoviesController : Controller
             CountryCode = movie.Countrycode,
             SelectedGenres = movie.MovieGenres
                 .Select(mg => mg.Genreid)
+                .ToList(),
+            SelectedActors = movie.MovieActors
+                .Select(ma => ma.Actorid)
                 .ToList()
         };
 
         ViewBag.Genres = _context.Genres
             .Select(g => new { g.Id, g.Name })
+            .ToList();
+
+        ViewBag.Actors = _context.Actors
+            .Select(a => new { a.Id, a.Fullname })
             .ToList();
 
         return View(model);
@@ -140,12 +179,19 @@ public class MoviesController : Controller
     {
         if (!ModelState.IsValid)
         {
-            ViewBag.Genres = _context.Genres.ToList();
+            ViewBag.Genres = _context.Genres
+                .Select(g => new { g.Id, g.Name })
+                .ToList();
+
+            ViewBag.Actors = _context.Actors
+                .Select(a => new { a.Id, a.Fullname })
+                .ToList();
             return View(model);
         }
 
         var movie = await _context.Movies
             .Include(m => m.MovieGenres)
+            .Include(m => m.MovieActors)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (movie == null)
@@ -166,6 +212,9 @@ public class MoviesController : Controller
         // 🧹 видаляємо старі жанри
         _context.Moviegenres.RemoveRange(movie.MovieGenres);
 
+        _context.Movieactors.RemoveRange(movie.MovieActors);
+
+
         // ➕ додаємо нові
         foreach (var genreId in model.SelectedGenres)
         {
@@ -175,6 +224,16 @@ public class MoviesController : Controller
                 Genreid = genreId
             });
         }
+
+        foreach (var actorId in model.SelectedActors)
+        {
+            movie.MovieActors.Add(new Movieactor
+            {
+                Movieid = movie.Id,
+                Actorid = actorId
+            });
+        }
+
 
         await _context.SaveChangesAsync();
 
@@ -187,12 +246,14 @@ public class MoviesController : Controller
     {
         var movie = await _context.Movies
             .Include(m => m.MovieGenres)
+            .Include(m => m.MovieActors)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (movie == null)
             return NotFound();
 
         _context.Moviegenres.RemoveRange(movie.MovieGenres);
+        _context.Movieactors.RemoveRange(movie.MovieActors);
         _context.Movies.Remove(movie);
 
         await _context.SaveChangesAsync();

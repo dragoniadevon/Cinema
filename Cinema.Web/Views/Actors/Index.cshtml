@@ -1,0 +1,98 @@
+@model IEnumerable<Cinema.Infrastructure.Entities.Actor>
+
+@{
+    ViewData["Title"] = "Актори";
+}
+
+<h1 class="mb-4">🎭 Актори</h1>
+
+<a asp-action="Create" class="btn btn-primary mb-3">
+    + Додати актора
+</a>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning">
+        Акторів поки немає.
+    </div>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Імʼя актора</th>
+                <th style="width:150px">Дії</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var actor in Model)
+            {
+                <tr>
+                    <td>
+                        <strong>@actor.Fullname</strong>
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@actor.Id" class="btn btn-sm btn-outline-primary">
+                            ✏️
+                        </a>
+
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteActorModal"
+                            data-id="@actor.Id" data-name="@actor.Fullname">
+                            🗑️
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Delete Actor Modal -->
+    <div class="modal fade" id="deleteActorModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Видалити актора</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    Ви впевнені, що хочете видалити актора
+                    <strong id="actorName"></strong>?
+                </div>
+
+                <div class="modal-footer">
+                    <form id="deleteActorForm" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">
+                            Видалити
+                        </button>
+                    </form>
+
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Скасувати
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            const deleteActorModal = document.getElementById('deleteActorModal');
+
+            deleteActorModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+
+                const actorId = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name');
+
+                document.getElementById('actorName').innerText = name;
+                document.getElementById('deleteActorForm').action =
+                    '/Actors/Delete/' + actorId;
+            });
+        </script>
+    }
+}

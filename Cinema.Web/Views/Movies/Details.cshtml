@@ -102,6 +102,15 @@
                             <strong>Країна:</strong> @Model.Countrycode
                         </li>
                     }
+
+                    @if (Model.MovieActors.Any())
+                    {
+                        <li class="list-group-item">
+                            <strong>В головних ролях:</strong>
+                            @string.Join(", ", Model.MovieActors.Select(ma => ma.Actor.Fullname))
+                        </li>
+                    }
+
                 </ul>
 
             </div>
