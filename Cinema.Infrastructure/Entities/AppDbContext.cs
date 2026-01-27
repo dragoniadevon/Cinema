@@ -106,5 +106,10 @@ public class AppDbContext : DbContext
             .WithMany(a => a.Movieactors)
             .HasForeignKey(ma => ma.Actorid);
 
-    }
+        modelBuilder.Entity<Ticket>()
+            .HasIndex(t => new { t.Sessionid, t.Seatid })
+            .IsUnique();
+        }
+
+    
 }

@@ -1,0 +1,37 @@
+@model Cinema.Web.Models.Tickets.BookTicketVm
+using Cinema.Web.Models.Tickets;
+<h2>Вибір місця</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div style="color:red">@TempData["Error"]</div>
+}
+
+<form asp-action="Book" method="post">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" name="SessionId" value="@Model.SessionId" />
+
+    <div style="display:flex; flex-wrap:wrap; gap:8px; max-width:520px;">
+        @foreach (var s in Model.Seats)
+        {
+            if (s.IsTaken)
+            {
+                <button type="button"
+                        disabled
+                        style="width:60px;height:40px;opacity:0.5;">
+                    @s.Row-@s.Number
+                </button>
+            }
+            else
+            {
+                <button type="submit"
+                        name="SeatId"
+                        value="@s.SeatId"
+                        style="width:60px;height:40px;">
+                    @s.Row-@s.Number
+                </button>
+            }
+        }
+     </div>
+</form> 

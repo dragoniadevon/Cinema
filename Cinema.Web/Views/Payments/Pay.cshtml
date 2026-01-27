@@ -1,0 +1,17 @@
+@model Cinema.Infrastructure.Entities.Ticket
+
+<h2>Оплата квитка 💳</h2>
+
+@if (TempData["Info"] != null)
+{
+    <div style="color:green">@TempData["Info"]</div>
+}
+
+<p>Квиток: @Model.Id</p>
+<p>Сума: @Model.Price</p>
+
+<form asp-action="PayConfirm" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="ticketId" value="@Model.Id" />
+    <button type="submit">Оплатити ✅</button>
+</form>
