@@ -62,6 +62,13 @@ namespace Cinema.Web.Controllers
             }
 
             _context.Sessions.Add(session);
+
+            // АКТИВУЄМО ФІЛЬМ
+            if (!movie.Isactive)
+            {
+                movie.Isactive = true;
+            }
+
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
