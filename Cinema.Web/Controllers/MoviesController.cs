@@ -99,8 +99,7 @@ public class MoviesController : Controller
             Trailerurl = model.TrailerUrl,
             Agerating = model.AgeRating,
             Languagecode = model.LanguageCode,
-            Countrycode = model.CountryCode,
-            Isactive = true
+            Countrycode = model.CountryCode
         };
 
         _context.Movies.Add(movie);

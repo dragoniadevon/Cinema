@@ -27,7 +27,7 @@ public class Movie
 
     public CountryCode? Countrycode { get; set; }
 
-    public bool Isactive { get; set; } = true;
+    public bool Isactive { get; set; } = false;
 
     // Навігація
     public ICollection<Moviegenre> MovieGenres { get; set; } = new List<Moviegenre>();
