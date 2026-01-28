@@ -13,6 +13,10 @@ public partial class Seat
 
     public short? Seatnumber { get; set; }
 
+    public int? Pricecategoryid { get; set; }
+
+    public virtual Pricecategory? Pricecategory { get; set; }
+
     public virtual Hall? Hall { get; set; }
 
     public virtual ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
