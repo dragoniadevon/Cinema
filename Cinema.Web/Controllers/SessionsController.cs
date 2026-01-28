@@ -38,6 +38,10 @@ namespace Cinema.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Session session)
         {
+            // ⚠️ Всегда заполняем списки перед возвратом View(session)
+            ViewBag.Movies = _context.Movies.ToList();
+            ViewBag.Halls = _context.Halls.ToList();
+
             var movie = await _context.Movies.FindAsync(session.Movieid);
             if (movie == null)
             {
@@ -56,8 +60,6 @@ namespace Cinema.Web.Controllers
             if (isOverlapping)
             {
                 ModelState.AddModelError("", "У цьому залі вже є сеанс у вибраний час");
-                ViewBag.Movies = _context.Movies.ToList();
-                ViewBag.Halls = _context.Halls.ToList();
                 return View(session);
             }
 

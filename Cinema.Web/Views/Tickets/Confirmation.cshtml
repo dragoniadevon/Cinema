@@ -1,0 +1,45 @@
+@model Cinema.Infrastructure.Entities.Ticket
+
+<h2>Бронювання успішне ✅</h2>
+
+<p><b>Квиток №:</b> @Model.Id</p>
+
+<p>
+    <b>Фільм:</b>
+    @Model.Session?.Movie?.Title
+</p>
+
+<p>
+    <b>Сеанс:</b>
+    @Model.Session?.Starttime
+</p>
+
+<p>
+    <b>Місце:</b>
+    Ряд @Model.Seat?.Rownumber,
+    Місце @Model.Seat?.Seatnumber
+</p>
+
+<p>
+    <b>Ціна:</b> @Model.Price ₴
+</p>
+
+<p>
+    <b>Статус:</b>
+    @(Model.Status == 2 ? "Оплачено ✅" : "Заброньовано ⏳")
+</p>
+
+@if (Model.Status != 2)
+{
+    <a asp-controller="Payments"
+       asp-action="Pay"
+       asp-route-ticketId="@Model.Id">
+        👉 Перейти до оплати 💳
+    </a>
+}
+else
+{
+    <p style="color:green;">
+        Квиток вже оплачено 🎉
+    </p>
+}
