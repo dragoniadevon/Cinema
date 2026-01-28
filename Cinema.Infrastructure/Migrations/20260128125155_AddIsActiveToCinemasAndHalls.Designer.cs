@@ -4,6 +4,7 @@ using Cinema.Infrastructure.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Cinema.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260128125155_AddIsActiveToCinemasAndHalls")]
+    partial class AddIsActiveToCinemasAndHalls
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -273,9 +276,6 @@ namespace Cinema.Infrastructure.Migrations
                     b.Property<int?>("Hallid")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Pricecategoryid")
-                        .HasColumnType("int");
-
                     b.Property<short?>("Rownumber")
                         .HasColumnType("smallint");
 
@@ -283,8 +283,6 @@ namespace Cinema.Infrastructure.Migrations
                         .HasColumnType("smallint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Pricecategoryid");
 
                     b.HasIndex("Hallid", "Rownumber", "Seatnumber")
                         .IsUnique()
@@ -312,6 +310,9 @@ namespace Cinema.Infrastructure.Migrations
 
                     b.Property<bool?>("Isactive")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Language")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Movieid")
                         .HasColumnType("int");
@@ -491,13 +492,7 @@ namespace Cinema.Infrastructure.Migrations
                         .WithMany("Seats")
                         .HasForeignKey("Hallid");
 
-                    b.HasOne("Cinema.Infrastructure.Entities.Pricecategory", "Pricecategory")
-                        .WithMany()
-                        .HasForeignKey("Pricecategoryid");
-
                     b.Navigation("Hall");
-
-                    b.Navigation("Pricecategory");
                 });
 
             modelBuilder.Entity("Cinema.Infrastructure.Entities.Session", b =>

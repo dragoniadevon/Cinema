@@ -17,6 +17,8 @@ public partial class Hall
 
     public short? Halltype { get; set; }
 
+    public bool Isactive { get; set; } = true;
+
     public virtual Cinema? Cinema { get; set; }
 
     public virtual ICollection<Seat> Seats { get; set; } = new List<Seat>();

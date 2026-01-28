@@ -13,5 +13,7 @@ public partial class Cinema
 
     public string? Address { get; set; }
 
+    public bool Isactive { get; set; } = true;
+
     public virtual ICollection<Hall> Halls { get; set; } = new List<Hall>();
 }
