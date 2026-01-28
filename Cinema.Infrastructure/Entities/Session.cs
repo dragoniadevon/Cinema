@@ -15,8 +15,6 @@ public partial class Session
 
     public DateTime Endtime { get; set; }
 
-    public string? Language { get; set; }
-
     public short? Format { get; set; }
 
     public bool? Isactive { get; set; }

@@ -23,9 +23,6 @@ public class AppDbContext : DbContext
     public DbSet<Movieactor> Movieactors => Set<Movieactor>();
     public DbSet<Pricecategory> Pricecategories => Set<Pricecategory>();
     public DbSet<Sessionprice> Sessionprices => Set<Sessionprice>();
-    public DbSet<Usergenrepreference> Usergenrepreferences => Set<Usergenrepreference>();
-
-    public DbSet<Recommendation> Recommendations => Set<Recommendation>();
     public DbSet<Moviegenre> Moviegenres => Set<Moviegenre>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -89,10 +86,6 @@ public class AppDbContext : DbContext
             .HasIndex(t => new { t.Sessionid, t.Seatid })
             .IsUnique();
 
-        // User ↔ Genre preferences
-        modelBuilder.Entity<Usergenrepreference>()
-            .HasKey(x => new { x.Userid, x.Genreid });
-
         modelBuilder.Entity<Movieactor>()
             .HasKey(ma => new { ma.Movieid, ma.Actorid });
 
@@ -109,7 +102,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Ticket>()
             .HasIndex(t => new { t.Sessionid, t.Seatid })
             .IsUnique();
-        }
 
-    
+        modelBuilder.Entity<Cinema>()
+            .Property(c => c.Isactive)
+            .HasDefaultValue(true);
+
+        modelBuilder.Entity<Hall>()
+            .Property(h => h.Isactive)
+            .HasDefaultValue(true);
+
+        modelBuilder.Entity<Seat>()
+            .HasOne(s => s.Pricecategory)
+            .WithMany()
+            .HasForeignKey(s => s.Pricecategoryid);
+    }
 }

@@ -19,11 +19,7 @@ public partial class User
 
     public DateTime? Createdat { get; set; }
 
-    public virtual ICollection<Recommendation> Recommendations { get; set; } = new List<Recommendation>();
-
     public virtual Role? Role { get; set; }
 
     public virtual ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
-
-    public virtual ICollection<Usergenrepreference> Usergenrepreferences { get; set; } = new List<Usergenrepreference>();
 }
