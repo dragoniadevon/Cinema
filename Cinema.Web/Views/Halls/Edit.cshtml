@@ -1,16 +1,22 @@
 ﻿@model Cinema.Infrastructure.Entities.Hall
 
 @{
-    ViewData["Title"] = "➕ Додати новий зал";
+    ViewData["Title"] = "✏️ Редагувати зал";
 }
 
-<h1 class="mb-4">➕ Додати новий зал</h1>
+<h1 class="mb-4">✏️ Редагувати зал: @Model.Name</h1>
+
+<div class="alert alert-warning shadow-sm mb-4">
+    <i class="bi bi-exclamation-triangle-fill"></i> 
+    <strong>Увага!</strong> Зміна кількості рядів або місць призведе до повної перегенерації схеми залу.
+</div>
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <form asp-action="Create" method="post">
+        <form asp-action="Edit" method="post">
             @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="Cinemaid" value="@ViewBag.CinemaId" />
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="Cinemaid" />
             @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
 
             <div class="row g-3">
@@ -21,11 +27,11 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label asp-for="Halltype" class="form-label">Тип комфорту залу</label>
+                    <label asp-for="Halltype" class="form-label">Тип комфорту</label>
                     <select asp-for="Halltype" class="form-select">
-                        <option value="1">Стандарт (Звичайний)</option>
-                        <option value="2">VIP (Підвищений комфорт)</option>
-                        <option value="3">Основний (Великий зал)</option>
+                        <option value="1">Стандарт</option>
+                        <option value="2">VIP</option>
+                        <option value="3">Основний</option>
                     </select>
                 </div>
 
@@ -43,7 +49,7 @@
             </div>
 
             <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Створити та згенерувати місця</button>
+                <button type="submit" class="btn btn-primary">Зберегти та перегенерувати</button>
                 <a asp-controller="Cinemas" asp-action="Index" class="btn btn-outline-secondary">Скасувати</a>
             </div>
         </form>

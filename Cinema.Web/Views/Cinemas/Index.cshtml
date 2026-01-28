@@ -1,38 +1,63 @@
 ﻿@model IEnumerable<Cinema.Infrastructure.Entities.Cinema>
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Наші кінотеатри</h1>
-        <a asp-action="Create" class="btn btn-success">Додати кінотеатр</a>
-    </div>
-
-    @foreach (var cinema in Model)
+    @if (TempData["Error"] != null)
     {
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-dark text-white d-flex justify-content-between">
-                <h5 class="mb-0">@cinema.Name (@cinema.City)</h5>
-                <a asp-controller="Halls" asp-action="Create" asp-route-cinemaId="@cinema.Id" class="btn btn-sm btn-outline-light">+ Додати зал</a>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Адреса: @cinema.Address</p>
-                <h6>Зали:</h6>
-                @if (cinema.Halls != null && cinema.Halls.Any())
-                {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var hall in cinema.Halls)
-                        {
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>@hall.Name (Рядів: @hall.Rows)</span>
-                                <a asp-controller="Halls" asp-action="Details" asp-route-id="@hall.Id" class="btn btn-sm btn-info ms-2">Схема</a>
-                            </li>
-                        }
-                    </ul>
-                }
-                else
-                {
-                    <p class="text-warning">У цьому кінотеатрі ще немає залів.</p>
-                }
-            </div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
+
+    <div class="d-flex align-items-center mb-3">
+        <span style="font-size: 2.5rem; margin-right: 15px;">🏢</span>
+        <h1 class="mb-0 fw-bold">Кінотеатри</h1>
+    </div>
+
+    <div class="mb-4">
+        <a asp-action="Create" class="btn btn-primary px-4 py-2 shadow-sm">
+            + Додати кінотеатр
+        </a>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        @foreach (var cinema in Model)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0" style="border-radius: 12px;">
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">@cinema.Name</h5>
+                        <div class="d-flex gap-1">
+                            <a asp-controller="Halls" asp-action="Create" asp-route-cinemaId="@cinema.Id" class="btn btn-sm btn-outline-success shadow-sm">+ залу</a>
+                            <a asp-action="Edit" asp-route-id="@cinema.Id" class="btn btn-sm btn-outline-primary w-38" title="Редагувати">✏️</a>
+                            <form asp-action="Delete" asp-route-id="@cinema.Id" method="post" onsubmit="return confirm('Видалити кінотеатр?')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-38">🗑️</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3"><strong>@cinema.City</strong>, @cinema.Address</p>
+                        <h6 class="small fw-bold text-uppercase text-secondary mb-2">Зали:</h6>
+                        <div class="list-group list-group-flush">
+                            @foreach (var hall in cinema.Halls)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 bg-transparent">
+                                    <span class="small">@hall.Name</span>
+                                    <div class="d-flex gap-1">
+                                        <a asp-controller="Halls" asp-action="Details" asp-route-id="@hall.Id" class="btn btn-sm btn-outline-secondary w-38">👁️</a>
+                                        <a asp-controller="Halls" asp-action="Edit" asp-route-id="@hall.Id" class="btn btn-sm btn-outline-primary w-38">✏️</a>
+                                        <form asp-controller="Halls" asp-action="Delete" asp-route-id="@hall.Id" method="post" onsubmit="return confirm('Видалити зал?')">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger w-38">🗑️</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 </div>
