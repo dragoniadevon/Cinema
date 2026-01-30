@@ -1,14 +1,16 @@
 ﻿@model Cinema.Infrastructure.Entities.Hall
+@using Cinema.Infrastructure.Entities.Enums
 
 @{
     ViewData["Title"] = "✏️ Редагувати зал";
 }
 
 <h1 class="mb-4">✏️ Редагувати зал: @Model.Name</h1>
+<div asp-validation-summary="All" class="text-danger mb-4"></div>
 
 <div class="alert alert-warning shadow-sm mb-4">
     <i class="bi bi-exclamation-triangle-fill"></i> 
-    <strong>Увага!</strong> Зміна кількості рядів або місць призведе до повної перегенерації схеми залу.
+    <strong>Увага!</strong> Будь-яка зміна кількості рядів або місць призведе до повної перегенерації схеми місць.
 </div>
 
 <div class="card shadow-sm">
@@ -17,7 +19,6 @@
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="Cinemaid" />
-            @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
 
             <div class="row g-3">
                 <div class="col-md-6">
@@ -27,24 +28,38 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label asp-for="Halltype" class="form-label">Тип комфорту</label>
-                    <select asp-for="Halltype" class="form-select">
-                        <option value="1">Стандарт</option>
-                        <option value="2">VIP</option>
-                        <option value="3">Основний</option>
+                    <label asp-for="Halltype" class="form-label">Тип залу</label>
+                    <select asp-for="Halltype" id="editHallType" class="form-select">
+                        <option value="@((short)HallType.Standard)">Стандарт</option>
+                        <option value="@((short)HallType.VIP)">VIP</option>
+                        <option value="@((short)HallType.Mixed)">Змішаний (VIP останній ряд)</option>
                     </select>
                 </div>
 
                 <div class="col-md-6">
                     <label asp-for="Rows" class="form-label">Кількість рядів</label>
-                    <input asp-for="Rows" type="number" class="form-control" />
+                    <input asp-for="Rows" type="number" class="form-control" min="1" max="50" />
                     <span asp-validation-for="Rows" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-6">
-                    <label asp-for="Seatsperrow" class="form-label">Місць у ряду</label>
-                    <input asp-for="Seatsperrow" type="number" class="form-control" />
+                    <label asp-for="Seatsperrow" class="form-label">Місць у звичайному ряду</label>
+                    <input asp-for="Seatsperrow" id="editStandardSeats" type="number" class="form-control" min="1" max="30" />
                     <span asp-validation-for="Seatsperrow" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-12" id="editVipContainer" style="display: none;">
+                    <div class="p-3 border rounded border-warning bg-light">
+                        <label class="form-label fw-bold text-warning">💎 VIP місць в останньому ряду</label>
+                        @{
+                            var currentVipCount = Model.Seats
+                                .Where(s => s.Rownumber == Model.Rows && s.Pricecategoryid == (int)SeatCategory.VIP)
+                                .Count();
+                            string displayValue = currentVipCount > 0 ? currentVipCount.ToString() : "";
+                        }
+                        <input name="vipSeats" id="editVipInput" type="number" class="form-control border-warning" placeholder="Введіть кількість..." value="@displayValue" min="1" />
+                        <span class="text-danger" data-valmsg-for="vipSeats"></span>
+                    </div>
                 </div>
             </div>
 
@@ -55,3 +70,27 @@
         </form>
     </div>
 </div>
+
+<script>
+    const typeSelect = document.getElementById('editHallType');
+    const container = document.getElementById('editVipContainer');
+    const vipInput = document.getElementById('editVipInput');
+    const stdInput = document.getElementById('editStandardSeats');
+
+    function syncEditUI() {
+        if (typeSelect.value == "3") {
+            container.style.display = 'block';
+            vipInput.removeAttribute('disabled');
+        } else {
+            container.style.display = 'none';
+            vipInput.value = "";
+            vipInput.setAttribute('disabled', 'disabled');
+        }
+        
+        vipInput.max = stdInput.value;
+    }
+
+    typeSelect.addEventListener('change', syncEditUI);
+    stdInput.addEventListener('input', syncEditUI);
+    syncEditUI();
+</script>

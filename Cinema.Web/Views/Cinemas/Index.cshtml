@@ -20,44 +20,141 @@
         </a>
     </div>
 
+    @{ bool showedArchiveHeader = false; }
+
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        @foreach (var cinema in Model)
+    @foreach (var cinema in Model)
+    {
+        @if (!cinema.Isactive && !showedArchiveHeader)
         {
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0" style="border-radius: 12px;">
-                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold">@cinema.Name</h5>
-                        <div class="d-flex gap-1">
-                            <a asp-controller="Halls" asp-action="Create" asp-route-cinemaId="@cinema.Id" class="btn btn-sm btn-outline-success shadow-sm">+ залу</a>
-                            <a asp-action="Edit" asp-route-id="@cinema.Id" class="btn btn-sm btn-outline-primary w-38" title="Редагувати">✏️</a>
-                            <form asp-action="Delete" asp-route-id="@cinema.Id" method="post" onsubmit="return confirm('Видалити кінотеатр?')">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-outline-danger w-38">🗑️</button>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-3"><strong>@cinema.City</strong>, @cinema.Address</p>
-                        <h6 class="small fw-bold text-uppercase text-secondary mb-2">Зали:</h6>
-                        <div class="list-group list-group-flush">
-                            @foreach (var hall in cinema.Halls)
-                            {
-                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 bg-transparent">
-                                    <span class="small">@hall.Name</span>
-                                    <div class="d-flex gap-1">
-                                        <a asp-controller="Halls" asp-action="Details" asp-route-id="@hall.Id" class="btn btn-sm btn-outline-secondary w-38">👁️</a>
-                                        <a asp-controller="Halls" asp-action="Edit" asp-route-id="@hall.Id" class="btn btn-sm btn-outline-primary w-38">✏️</a>
-                                        <form asp-controller="Halls" asp-action="Delete" asp-route-id="@hall.Id" method="post" onsubmit="return confirm('Видалити зал?')">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-danger w-38">🗑️</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
+            showedArchiveHeader = true;
+            <div class="archive-divider-container">
+                <div class="archive-divider text-muted fw-bold text-uppercase small" style="letter-spacing: 2px;">
+                    📦 Архівні об'єкти
                 </div>
             </div>
         }
-    </div>
+
+        var isInactive = !cinema.Isactive;
+        var cardClass = isInactive ? "cinema-inactive" : "";
+
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0 @cardClass" style="border-radius: 12px; transition: all 0.3s ease;">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center" style="background-color: transparent !important;">
+                    <div>
+                        <h5 class="mb-0 fw-bold d-inline">@cinema.Name</h5>
+                        @if (isInactive)
+                        {
+                            <span class="badge bg-secondary status-badge">Архів</span>
+                        }
+                    </div>
+                    <div class="d-flex gap-1">
+                        <a asp-controller="Halls" asp-action="Create" asp-route-cinemaId="@cinema.Id" 
+                           class="btn btn-sm btn-outline-success shadow-sm @(isInactive ? "disabled" : "")">+ залу</a>
+                        
+                        <a asp-action="Edit" asp-route-id="@cinema.Id" 
+                           class="btn btn-sm btn-outline-primary w-38 @(isInactive ? "disabled" : "")" title="Редагувати">✏️</a>
+                        
+                        <form asp-action="Archive" asp-route-id="@cinema.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-secondary w-38" 
+                                    title="@(cinema.Isactive ? "Архівувати" : "Відновити")">
+                                <span style="color: @(cinema.Isactive ? "#6c757d" : "#198754");">
+                                    @(cinema.Isactive ? "📥" : "📤")
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3"><strong>@cinema.City</strong>, @cinema.Address</p>
+                    <h6 class="small fw-bold text-uppercase text-secondary mb-2">Зали:</h6>
+                    <div class="list-group list-group-flush">
+                        @foreach (var hall in cinema.Halls.Where(h => h.Isactive))
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 bg-transparent">
+                                <span class="small">@hall.Name</span>
+                                <div class="d-flex gap-1">
+                                    <a asp-controller="Halls" asp-action="Details" asp-route-id="@hall.Id" 
+                                       class="btn btn-sm btn-outline-secondary w-32 @(isInactive ? "disabled" : "")">👁️</a>
+                                    
+                                    <a asp-controller="Halls" asp-action="Edit" asp-route-id="@hall.Id" 
+                                       class="btn btn-sm btn-outline-primary w-32 @(isInactive ? "disabled" : "")">✏️</a>
+                                    
+                                    <form asp-controller="Halls" asp-action="ArchiveHall" asp-route-id="@hall.Id" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary w-32 @(isInactive ? "disabled" : "")" title="В архів">📥</button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+
+                        @{ var archivedHalls = cinema.Halls.Where(h => !h.Isactive).ToList(); }
+                        @if (archivedHalls.Any())
+                        {
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-link p-0 text-decoration-none text-muted" 
+                                        type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#archivedHalls-@cinema.Id">
+                                    <small>📦 Показати архівні зали (@archivedHalls.Count)</small>
+                                </button>
+                                
+                                <div class="collapse" id="archivedHalls-@cinema.Id">
+                                    @foreach (var hall in archivedHalls)
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 bg-transparent border-0 opacity-75">
+                                            <span class="small text-muted text-decoration-line-through">@hall.Name</span>
+                                            <form asp-controller="Halls" asp-action="ArchiveHall" asp-route-id="@hall.Id" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-link p-0 text-success @(isInactive ? "disabled" : "")" title="Відновити">📤</button>
+                                            </form>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
+</div>
+
+<style>
+    .cinema-inactive {
+        background-color: #f8f9fa !important;
+        opacity: 0.65;
+        filter: grayscale(80%);
+        border: 1px dashed #dee2e6 !important;
+    }
+    .status-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        vertical-align: middle;
+        margin-left: 5px;
+    }
+    .hall-archived {
+        text-decoration: line-through;
+        color: #adb5bd;
+    }
+    .archive-divider-container {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+    .archive-divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+        margin: 3rem 0 2rem 0;
+    }
+    .archive-divider::before, .archive-divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .archive-divider:not(:empty)::before { margin-right: 1.5rem; }
+    .archive-divider:not(:empty)::after { margin-left: 1.5rem; }
+</style>
