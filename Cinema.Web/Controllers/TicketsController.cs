@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
+using Cinema.Web.Models.Tickets;
 
 namespace Cinema.Web.Controllers;
 
@@ -20,7 +21,8 @@ public class TicketsController : Controller
             .Include(s => s.Hall)
             .FirstOrDefaultAsync(s => s.Id == sessionId);
 
-        if (session == null) return NotFound();
+        if (session == null)
+            return NotFound();
 
         var seats = await _db.Seats
             .Where(x => x.Hallid == session.Hallid)
@@ -29,7 +31,7 @@ public class TicketsController : Controller
             .ToListAsync();
 
         var takenSeatIds = await _db.Tickets
-            .Where(t => t.Sessionid == sessionId)
+            .Where(t => t.Sessionid == sessionId && t.Seatid != null)
             .Select(t => t.Seatid!.Value)
             .ToListAsync();
 
@@ -48,11 +50,15 @@ public class TicketsController : Controller
         return View(vm);
     }
 
+    // POST: /Tickets/Book
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Book(BookTicketRequest request)
     {
+        // если у вас ещё нет авторизации — пусть будет null
         int? userId = null;
+
+        // временно фиксированная цена (потом можно подтянуть из PriceCategories)
         decimal price = 200m;
 
         var ticket = new Ticket
@@ -80,6 +86,7 @@ public class TicketsController : Controller
         return RedirectToAction(nameof(Confirmation), new { id = ticket.Id });
     }
 
+    // GET: /Tickets/Confirmation?id=123
     public async Task<IActionResult> Confirmation(int id)
     {
         var ticket = await _db.Tickets
@@ -87,28 +94,9 @@ public class TicketsController : Controller
             .Include(t => t.Session)
             .FirstOrDefaultAsync(t => t.Id == id);
 
-        if (ticket == null) return NotFound();
+        if (ticket == null)
+            return NotFound();
 
         return View(ticket);
     }
-}
-
-public class BookTicketRequest
-{
-    public int SessionId { get; set; }
-    public int SeatId { get; set; }
-}
-
-public class BookTicketVm
-{
-    public int SessionId { get; set; }
-    public List<SeatVm> Seats { get; set; } = new();
-}
-
-public class SeatVm
-{
-    public int SeatId { get; set; }
-    public int Row { get; set; }
-    public int Number { get; set; }
-    public bool IsTaken { get; set; }
 }
