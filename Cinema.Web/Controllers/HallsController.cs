@@ -72,8 +72,11 @@ public class HallsController : Controller
 
     public async Task<IActionResult> Edit(int id)
     {
-        var hall = await _context.Halls.FindAsync(id);
+        var hall = await _context.Halls.Include(h => h.Seats).FirstOrDefaultAsync(h => h.Id == id);
         if (hall == null) return NotFound();
+
+        ViewBag.HasSessions = await _context.Sessions.AnyAsync(s => s.Hallid == id);
+
         return View(hall);
     }
 
@@ -83,10 +86,28 @@ public class HallsController : Controller
     {
         if (id != hall.Id) return NotFound();
 
+        // 1. Отримуємо поточний стан залу з бази БЕЗ відстеження (AsNoTracking)
+        var dbHall = await _context.Halls.AsNoTracking().FirstOrDefaultAsync(h => h.Id == id);
+        if (dbHall == null) return NotFound();
+
+        // 2. Перевірка унікальності назви
         bool nameExists = await _context.Halls.AnyAsync(h =>
             h.Id != id && h.Name.ToLower() == hall.Name.ToLower() && h.Cinemaid == hall.Cinemaid);
         if (nameExists) ModelState.AddModelError("Name", "Назва вже зайнята.");
 
+        // 3. Перевірка: чи змінилося щось, що вимагає перегенерації місць?
+        // Включаємо Halltype, бо зміна типу теж міняє категорію місць
+        bool structureChanged = dbHall.Rows != hall.Rows ||
+                                dbHall.Seatsperrow != hall.Seatsperrow ||
+                                dbHall.Halltype != hall.Halltype;
+
+        // 4. Якщо структура змінилася, перевіряємо наявність сеансів
+        if (structureChanged && await _context.Sessions.AnyAsync(s => s.Hallid == id))
+        {
+            ModelState.AddModelError("", "Неможливо змінити структуру або тип залу: для нього вже створено сеанси в розкладі.");
+        }
+
+        // 5. Валідація VIP-місць для змішаного типу
         if (hall.Halltype == (short)HallType.Mixed)
         {
             if (!vipSeats.HasValue || vipSeats <= 0)
@@ -97,20 +118,35 @@ public class HallsController : Controller
 
         if (ModelState.IsValid)
         {
-            _context.Update(hall);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Update(hall);
+                await _context.SaveChangesAsync();
 
-            var oldSeats = _context.Seats.Where(s => s.Hallid == hall.Id);
-            _context.Seats.RemoveRange(oldSeats);
+                // Перегенеруємо місця ТІЛЬКИ якщо змінилася структура
+                // Це захищає від випадкового видалення, якщо ви змінили лише назву залу
+                if (structureChanged || (hall.Halltype == (short)HallType.Mixed && vipSeats.HasValue))
+                {
+                    var oldSeats = _context.Seats.Where(s => s.Hallid == hall.Id);
+                    _context.Seats.RemoveRange(oldSeats);
 
-            short seatsForMixedRow = vipSeats ?? 0;
-            var newSeats = GenerateSeatsList(hall, seatsForMixedRow);
+                    short seatsForMixedRow = vipSeats ?? 0;
+                    var newSeats = GenerateSeatsList(hall, seatsForMixedRow);
 
-            _context.Seats.AddRange(newSeats);
-            await _context.SaveChangesAsync();
+                    _context.Seats.AddRange(newSeats);
+                    await _context.SaveChangesAsync();
+                }
 
-            return RedirectToAction("Index", "Cinemas");
+                TempData["Success"] = "Зал оновлено!";
+                return RedirectToAction("Index", "Cinemas");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Halls.Any(e => e.Id == hall.Id)) return NotFound();
+                else throw;
+            }
         }
+
         return View(hall);
     }
 

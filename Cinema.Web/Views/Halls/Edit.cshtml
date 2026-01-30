@@ -3,15 +3,26 @@
 
 @{
     ViewData["Title"] = "✏️ Редагувати зал";
+    bool hasSessions = ViewBag.HasSessions ?? false;
 }
 
 <h1 class="mb-4">✏️ Редагувати зал: @Model.Name</h1>
 <div asp-validation-summary="All" class="text-danger mb-4"></div>
 
-<div class="alert alert-warning shadow-sm mb-4">
-    <i class="bi bi-exclamation-triangle-fill"></i> 
-    <strong>Увага!</strong> Будь-яка зміна кількості рядів або місць призведе до повної перегенерації схеми місць.
-</div>
+@if (hasSessions)
+{
+    <div class="alert alert-danger shadow-sm mb-4">
+        <i class="bi bi-lock-fill"></i> 
+        <strong>Увага!</strong> Редагування структури (тип, ряди, місця) заблоковано, оскільки для залу вже створено сеанси. Ви можете змінити лише назву.
+    </div>
+}
+else
+{
+    <div class="alert alert-warning shadow-sm mb-4">
+        <i class="bi bi-exclamation-triangle-fill"></i> 
+        <strong>Увага!</strong> Будь-яка зміна параметрів призведе до повної перегенерації схеми місць.
+    </div>
+}
 
 <div class="card shadow-sm">
     <div class="card-body">
@@ -29,22 +40,36 @@
 
                 <div class="col-md-6">
                     <label asp-for="Halltype" class="form-label">Тип залу</label>
-                    <select asp-for="Halltype" id="editHallType" class="form-select">
-                        <option value="@((short)HallType.Standard)">Стандарт</option>
-                        <option value="@((short)HallType.VIP)">VIP</option>
-                        <option value="@((short)HallType.Mixed)">Змішаний (VIP останній ряд)</option>
-                    </select>
+                    @if (hasSessions)
+                    {
+                        <input type="hidden" asp-for="Halltype" />
+                        <select class="form-select" disabled>
+                            <option value="@((short)HallType.Standard)" selected="@(Model.Halltype == (short)HallType.Standard)">Стандарт</option>
+                            <option value="@((short)HallType.VIP)" selected="@(Model.Halltype == (short)HallType.VIP)">VIP</option>
+                            <option value="@((short)HallType.Mixed)" selected="@(Model.Halltype == (short)HallType.Mixed)">Змішаний</option>
+                        </select>
+                    }
+                    else
+                    {
+                        <select asp-for="Halltype" id="editHallType" class="form-select">
+                            <option value="@((short)HallType.Standard)">Стандарт</option>
+                            <option value="@((short)HallType.VIP)">VIP</option>
+                            <option value="@((short)HallType.Mixed)">Змішаний (VIP останній ряд)</option>
+                        </select>
+                    }
                 </div>
 
                 <div class="col-md-6">
                     <label asp-for="Rows" class="form-label">Кількість рядів</label>
-                    <input asp-for="Rows" type="number" class="form-control" min="1" max="50" />
+                    <input asp-for="Rows" type="number" class="form-control" min="1" max="50" 
+                           readonly="@(hasSessions ? "readonly" : null)" />
                     <span asp-validation-for="Rows" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-6">
                     <label asp-for="Seatsperrow" class="form-label">Місць у звичайному ряду</label>
-                    <input asp-for="Seatsperrow" id="editStandardSeats" type="number" class="form-control" min="1" max="30" />
+                    <input asp-for="Seatsperrow" id="editStandardSeats" type="number" class="form-control" min="1" max="30" 
+                           readonly="@(hasSessions ? "readonly" : null)" />
                     <span asp-validation-for="Seatsperrow" class="text-danger"></span>
                 </div>
 
@@ -57,14 +82,16 @@
                                 .Count();
                             string displayValue = currentVipCount > 0 ? currentVipCount.ToString() : "";
                         }
-                        <input name="vipSeats" id="editVipInput" type="number" class="form-control border-warning" placeholder="Введіть кількість..." value="@displayValue" min="1" />
+                        <input name="vipSeats" id="editVipInput" type="number" class="form-control border-warning" 
+                               placeholder="Введіть кількість..." value="@displayValue" min="1"
+                               readonly="@(hasSessions ? "readonly" : null)" />
                         <span class="text-danger" data-valmsg-for="vipSeats"></span>
                     </div>
                 </div>
             </div>
 
             <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Зберегти та перегенерувати</button>
+                <button type="submit" class="btn btn-primary">Зберегти зміни</button>
                 <a asp-controller="Cinemas" asp-action="Index" class="btn btn-outline-secondary">Скасувати</a>
             </div>
         </form>
@@ -76,21 +103,30 @@
     const container = document.getElementById('editVipContainer');
     const vipInput = document.getElementById('editVipInput');
     const stdInput = document.getElementById('editStandardSeats');
+    const hasSessions = @hasSessions.ToString().ToLower();
 
     function syncEditUI() {
+        if (!typeSelect) return;
+
         if (typeSelect.value == "3") {
             container.style.display = 'block';
-            vipInput.removeAttribute('disabled');
+            if (!hasSessions) vipInput.removeAttribute('disabled');
         } else {
             container.style.display = 'none';
-            vipInput.value = "";
-            vipInput.setAttribute('disabled', 'disabled');
+            if (!hasSessions) {
+                vipInput.value = "";
+                vipInput.setAttribute('disabled', 'disabled');
+            }
         }
         
         vipInput.max = stdInput.value;
     }
 
-    typeSelect.addEventListener('change', syncEditUI);
-    stdInput.addEventListener('input', syncEditUI);
-    syncEditUI();
+    if (typeSelect) {
+        typeSelect.addEventListener('change', syncEditUI);
+        stdInput.addEventListener('input', syncEditUI);
+        syncEditUI();
+    } else if (hasSessions && "@Model.Halltype" == "3") {
+        container.style.display = 'block';
+    }
 </script>
