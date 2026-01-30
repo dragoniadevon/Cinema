@@ -1,45 +1,127 @@
 ﻿@model Cinema.Infrastructure.Entities.Hall
+@using Cinema.Infrastructure.Entities.Enums
 
-<div class="container mt-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-controller="Cinemas" asp-action="Index">Кінотеатри</a></li>
-            <li class="breadcrumb-item active">Схема залу: @Model.Name</li>
-        </ol>
-    </nav>
+<div class="container mt-5">
+    <div class="card shadow-sm border-0">
+        <div class="card-body hall-scheme">
+            <div class="text-center small text-muted mb-2 fw-bold text-uppercase" style="letter-spacing: 2px;">Екран</div>
+            <div class="screen-line"></div>
 
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white text-center">
-            <h3 class="mb-0">Екран</h3>
-        </div>
-        <div class="card-body bg-light">
-            <div class="d-flex flex-column align-items-center">
-                @* Групуємо місця за номерами рядів *@
+            <div class="rows-stack">
                 @foreach (var rowGroup in Model.Seats.OrderBy(s => s.Rownumber).GroupBy(s => s.Rownumber))
                 {
-                    <div class="d-flex mb-2 align-items-center">
-                        <strong class="me-3">Ряд @rowGroup.Key</strong>
-                        @foreach (var seat in rowGroup.OrderBy(s => s.Seatnumber))
-                        {
-                            @* Якщо Halltype == 2 (VIP), робимо крісла золотистими, інакше сірими *@
-                            var seatColor = Model.Halltype == 2 ? "#ffc107" : "#6c757d"; 
-    
-                            <div class="text-center m-1 shadow-sm" 
-                                 style="width: 35px; height: 35px; background-color: @seatColor; color: white; border-radius: 5px; font-size: 0.8rem; line-height: 35px; cursor: default;"
-                                 title="Ряд: @seat.Rownumber, Місце: @seat.Seatnumber">
-                                @seat.Seatnumber
-                            </div>
-                        }
+                    var seatsInThisRow = rowGroup.Count();
+                    var totalPossible = Model.Seatsperrow ?? 1;
+
+                    <div class="row-container">
+                        <div class="row-name">Ряд @rowGroup.Key</div>
+
+                        <div class="seats-grid">
+                            @{
+                                int offset = (totalPossible - seatsInThisRow) / 2;
+                            }
+                            
+                            @for (int i = 0; i < offset; i++) { <div class="seat-unit vip-offset"></div> }
+
+                            @foreach (var seat in rowGroup.OrderBy(s => s.Seatnumber))
+                            {
+                                var isVip = seat.Pricecategoryid == (int)SeatCategory.VIP;
+                                var seatClass = isVip ? "st-vip" : "st-standard";
+
+                                <div class="seat-unit @seatClass" title="Місце @seat.Seatnumber">
+                                    @seat.Seatnumber
+                                </div>
+                            }
+                        </div>
+
+                        <div class="row-name text-end">Ряд @rowGroup.Key</div>
                     </div>
                 }
             </div>
-        </div>
-        <div class="card-footer text-muted">
-            Всього місць у залі: @(Model.Rows * Model.Seatsperrow)
-        </div>
-        <div class="mt-3">
-            <span class="badge" style="background-color: #6c757d;">&nbsp;</span> Стандартне місце
-            <span class="badge ms-3" style="background-color: #ffc107;">&nbsp;</span> VIP місце
+
+            <div class="mt-5 d-flex justify-content-center gap-4 border-top pt-4">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:16px; height:16px; background:#6c757d; border-radius:3px;"></div>
+                    <span class="small text-muted">Стандарт</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:16px; height:16px; background:#ffc107; border-radius:3px;"></div>
+                    <span class="small text-muted">VIP</span>
+                </div>
+                <div class="small text-muted ms-auto">Всього: <strong>@Model.Seats.Count</strong></div>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .hall-scheme {
+        --max-seats: @(Model.Seatsperrow ?? 1);
+        --gap: 6px;
+        
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        background: #ffffff;
+        border-radius: 8px;
+    }
+
+    .screen-line {
+        width: 100%;
+        height: 4px;
+        background: #e9ecef;
+        margin-bottom: 50px;
+        position: relative;
+    }
+
+    .row-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+        width: 100%;
+    }
+
+    .row-name {
+        width: 60px;
+        font-size: 0.75rem;
+        color: #adb5bd;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+
+    .seats-grid {
+        display: grid;
+        grid-template-columns: repeat(var(--max-seats), 1fr);
+        gap: var(--gap);
+        flex-grow: 1;
+        justify-items: center;
+    }
+
+    .seat-unit {
+        width: 100%;
+        max-width: 45px;
+        aspect-ratio: 1 / 1;
+        
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        color: white;
+        font-weight: 600;
+        font-size: clamp(0.6rem, 1.1vw, 0.85rem);
+        cursor: default;
+        transition: transform 0.1s ease;
+    }
+
+    .seat-unit:hover { transform: scale(1.05); }
+
+    .st-standard { background-color: #6c757d; }
+    .st-vip { 
+        background-color: #ffc107; 
+        box-shadow: 0 2px 4px rgba(255,193,7,0.2);
+    }
+
+    .vip-offset {
+        visibility: hidden;
+    }
+</style>
