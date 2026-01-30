@@ -1,52 +1,89 @@
 @model Cinema.Infrastructure.Entities.Session
 
 @{
-    ViewData["Title"] = "Створити сеанс";
+    ViewData["Title"] = "Додати сеанс";
 }
 
 <div class="container mt-4">
-    <h2>Створити новий сеанс</h2>
+    <h2>Додати сеанс</h2>
     <hr />
-    <div class="row">
-        <div class="col-md-6">
-            <form asp-action="Create">
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-                <div class="mb-3">
-                    <label class="form-label">Фільм</label>
-                    <select asp-for="Movieid" class="form-control">
-                        @foreach (var m in ViewBag.Movies)
-                        {
-                            <option value="@m.Id">@m.Title</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Зал</label>
-                    <select asp-for="Hallid" class="form-control">
-                        @foreach (var h in ViewBag.Halls)
-                        {
-                            <option value="@h.Id">@h.Name</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="Starttime" class="form-label">Час початку</label>
-                    <input asp-for="Starttime" type="datetime-local" class="form-control" />
-                    <span asp-validation-for="Starttime" class="text-danger"></span>
-                </div>
-
-                <div class="form-group">
-                    <button type="submit" class="btn btn-success">Зберегти</button>
-                    <a asp-action="Index" class="btn btn-secondary">Назад</a>
-                </div>
-            </form>
+    <form asp-action="Create">
+        <div class="mb-3">
+            <label>Фільм</label>
+            <select asp-for="Movieid" class="form-control">
+                <option value="">-- Оберіть фільм --</option>
+                @foreach (var movie in ViewBag.Movies)
+                {
+                    <option value="@movie.Id">@movie.Title</option>
+                }
+            </select>
         </div>
-    </div>
+
+        <div class="mb-3">
+            <label>Кінотеатр</label>
+            <select id="cinemaSelect" class="form-control">
+                <option value="">-- Оберіть кінотеатр --</option>
+                @foreach (var cinema in ViewBag.Cinemas)
+                {
+                    <option value="@cinema.Id">@cinema.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Зал</label>
+            <select asp-for="Hallid" id="hallSelect" class="form-control">
+                <option value="">-- Спочатку оберіть кінотеатр --</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Час початку</label>
+            <input asp-for="Starttime" type="datetime-local" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Ціна</label>
+            <input asp-for="Sessionprices" id="priceInput" class="form-control" readonly />
+        </div>
+
+        <button type="submit" class="btn btn-success">Зберегти</button>
+        <a asp-action="Index" class="btn btn-secondary">Назад</a>
+    </form>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+    document.getElementById("cinemaSelect").addEventListener("change", function () {
+        let cinemaId = this.value;
+        let hallSelect = document.getElementById("hallSelect");
+
+        hallSelect.innerHTML = '<option>Завантаження...</option>';
+
+        fetch('/Sessions/GetHallsByCinema?cinemaId=' + cinemaId)
+            .then(res => res.json())
+            .then(data => {
+                hallSelect.innerHTML = '<option value="">-- Оберіть зал --</option>';
+                data.forEach(hall => {
+    hallSelect.innerHTML += `<option value="${hall.id}" data-type="${hall.halltype}">${hall.name}</option>`;
+});
+
+            });
+    });
+
+    document.getElementById("hallSelect").addEventListener("change", function () {
+        let selected = this.options[this.selectedIndex];
+        let type = selected.getAttribute("data-type");
+
+if (type == 2) priceInput.value = 180; // 3D
+else priceInput.value = 150;              // звичайний
+
+        let priceInput = document.getElementById("priceInput");
+
+        if (format == "IMAX") priceInput.value = 250;
+        else if (format == "ThreeD") priceInput.value = 180;
+        else priceInput.value = 150;
+    });
+</script>
 }

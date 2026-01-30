@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Cinema.Infrastructure.Entities.Enums;
 
 namespace Cinema.Infrastructure.Entities;
 
