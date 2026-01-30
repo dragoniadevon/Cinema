@@ -94,100 +94,83 @@
 </div>
 
 @section Scripts {
-
-    <script>
-        $(document).ready(function () {
-            $('.js-movie-select').select2({
-                placeholder: 'Почніть вводити назву фільму',
-                allowClear: true,
-                width: '100%'
-            });
-        });
-    </script>
-
     <script>
         const hallSelect = document.getElementById("hallSelect");
+        const cinemaSelect = document.getElementById("cinemaSelect");
         const submitBtn = document.getElementById("submitBtn");
 
-        document.getElementById("cinemaSelect").addEventListener("change", function () {
-            const cinemaId = this.value;
+        function updatePriceVisibility() {
+            const selected = hallSelect.options[hallSelect.selectedIndex];
+            const hallType = parseInt(selected?.dataset?.hallType);
 
-            hallSelect.disabled = true;
-            submitBtn.disabled = true;
-            hallSelect.innerHTML = '<option>Завантаження...</option>';
-
-            if (!cinemaId) {
-                hallSelect.innerHTML = '<option>— Спочатку оберіть кінотеатр —</option>';
+            if (!hallType) {
+                document.querySelectorAll(".price-row").forEach(r => r.style.display = "none");
                 return;
             }
+
+            document.querySelectorAll(".price-row").forEach(row => {
+                const category = row.dataset.category;
+                let show = false;
+
+                if (hallType === 1) show = (category === "Standard");
+                else if (hallType === 2) show = (category === "VIP");
+                else if (hallType === 3) show = (category === "Standard" || category === "VIP");
+
+                row.style.display = show ? "flex" : "none";
+            });
+            
+            validatePrices();
+        }
+
+        function validatePrices() {
+            const visibleInputs = [...document.querySelectorAll(".price-row")]
+                .filter(row => row.style.display === "flex")
+                .map(row => row.querySelector(".price-input"));
+
+            if (visibleInputs.length === 0) {
+                submitBtn.disabled = (hallSelect.value !== "");
+                return;
+            }
+
+            let allValid = visibleInputs.every(input => {
+                const val = parseFloat(input.value);
+                return !isNaN(val) && val > 0;
+            });
+
+            submitBtn.disabled = (hallSelect.value === "") || !allValid;
+        }
+
+
+        cinemaSelect.addEventListener("change", function () {
+            const cinemaId = this.value;
+            hallSelect.disabled = true;
+            submitBtn.disabled = true;
+            hallSelect.innerHTML = '<option value="">Завантаження...</option>';
 
             fetch(`/Sessions/GetHallsByCinema?cinemaId=${cinemaId}`)
                 .then(r => r.json())
                 .then(data => {
                     hallSelect.disabled = false;
                     hallSelect.innerHTML = '<option value="">— Оберіть зал —</option>';
-
                     data.forEach(h => {
-                        hallSelect.innerHTML +=
-                            `<option value="${h.id}" data-hall-type="${h.halltype}">
-                                                    ${h.name}
-                                                 </option>`;
+                        hallSelect.innerHTML += `<option value="${h.id}" data-hall-type="${h.halltype}">${h.name}</option>`;
                     });
+                    updatePriceVisibility();
                 });
         });
-    </script>
 
-    <script>
-        function validatePricesAndToggleSubmit() {
-            const visibleRows = [...document.querySelectorAll(".price-row")]
-                .filter(r => r.style.display !== "none");
-
-            if (visibleRows.length === 0) {
-                submitBtn.disabled = true;
-                return;
-            }
-
-            let allValid = true;
-
-            visibleRows.forEach(row => {
-                const input = row.querySelector("input[type=number]");
-                const value = parseFloat(input.value);
-
-                if (isNaN(value) || value <= 0) {
-                    allValid = false;
-                }
-            });
-
-            // 🔥 ОЦЕГО РЯДКА НЕ ВИСТАЧАЛО
-            submitBtn.disabled = !allValid;
-        }
-
-
-        hallSelect.addEventListener("change", function () {
-            submitBtn.disabled = false;
-            const selected = this.options[this.selectedIndex];
-            const hallType = parseInt(selected?.dataset?.hallType);
-
-            document.querySelectorAll(".price-row").forEach(row => {
-                const category = row.dataset.category;
-                let show = false;
-
-                if (hallType === 1) show = category === "Standard";
-                if (hallType === 2) show = category === "VIP";
-                if (hallType === 3) show = category === "Standard" || category === "VIP";
-
-                row.style.display = show ? "flex" : "none";
-
-                if (!show) {
-                    row.querySelector("input[type=number]").value = "";
-                }
-            });
-
-            validatePricesAndToggleSubmit();
-        });
+        hallSelect.addEventListener("change", updatePriceVisibility);
 
         document.querySelectorAll(".price-input").forEach(input => {
-            input.addEventListener("input", validatePricesAndToggleSubmit);
+            input.addEventListener("input", validatePrices);
+        });
+
+        $(document).ready(function() {
+            $('.js-movie-select').select2({ width: '100%' });
+            
+            if (hallSelect.value) {
+                updatePriceVisibility();
+            }
         });
     </script>
 }
