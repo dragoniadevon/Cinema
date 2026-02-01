@@ -77,7 +77,8 @@
                     @if (Model.Agerating.HasValue)
                     {
                         <li class="list-group-item">
-                            <strong>Віковий рейтинг:</strong> @Model.Agerating
+                            <strong>Віковий рейтинг:</strong>
+                            @Html.DisplayFor(m => m.Agerating)
                         </li>
                     }
 
@@ -92,14 +93,16 @@
                     @if (Model.Languagecode.HasValue)
                     {
                         <li class="list-group-item">
-                            <strong>Мова:</strong> @Model.Languagecode
+                            <strong>Мова:</strong>
+                            @Html.DisplayFor(m => m.Languagecode)
                         </li>
                     }
 
                     @if (Model.Countrycode.HasValue)
                     {
                         <li class="list-group-item">
-                            <strong>Країна:</strong> @Model.Countrycode
+                            <strong>Країна:</strong>
+                            @Html.DisplayFor(m => m.Countrycode)
                         </li>
                     }
 

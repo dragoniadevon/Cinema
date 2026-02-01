@@ -5,8 +5,11 @@ namespace Cinema.Web.Models;
 
 public class CreateMovieViewModel
 {
-    [Required]
+
+    [Required(ErrorMessage = "Вкажіть назву фільму")]
+    [StringLength(200, ErrorMessage = "Назва не може бути довшою за 200 символів")]
     [Display(Name = "Назва")]
+
     public string Title { get; set; } = null!;
 
     [Display(Name = "Опис")]

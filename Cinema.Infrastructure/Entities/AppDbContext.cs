@@ -115,5 +115,15 @@ public class AppDbContext : DbContext
             .HasOne(s => s.Pricecategory)
             .WithMany()
             .HasForeignKey(s => s.Pricecategoryid);
+
+        modelBuilder.Entity<Genre>()
+            .HasIndex(g => g.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<Actor>()
+            .HasIndex(a => a.Fullname)
+            .IsUnique();
+
+
     }
 }

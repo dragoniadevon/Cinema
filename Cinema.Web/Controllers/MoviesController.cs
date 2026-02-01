@@ -12,6 +12,40 @@ public class MoviesController : Controller
         _context = context;
     }
 
+    // ================== HELPERS ==================
+
+    private void FillMovieViewBags()
+    {
+        ViewBag.Genres = _context.Genres
+            .Select(g => new { g.Id, g.Name })
+            .ToList();
+
+        ViewBag.Actors = _context.Actors
+            .Select(a => new { a.Id, a.Fullname })
+            .ToList();
+    }
+
+    private void ValidateMovie(CreateMovieViewModel model)
+    {
+        if (model.Duration.HasValue && model.Duration <= 0)
+        {
+            ModelState.AddModelError(
+                nameof(model.Duration),
+                "Тривалість має бути більшою за 0."
+            );
+        }
+
+        if (model.Rating.HasValue && (model.Rating < 0 || model.Rating > 10))
+        {
+            ModelState.AddModelError(
+                nameof(model.Rating),
+                "Рейтинг має бути в межах від 0 до 10."
+            );
+        }
+    }
+
+    // ================== INDEX ==================
+
     public async Task<IActionResult> Index()
     {
         var movies = await _context.Movies
@@ -19,11 +53,12 @@ public class MoviesController : Controller
                 .ThenInclude(mg => mg.Genre)
             .Include(m => m.MovieActors)
                 .ThenInclude(ma => ma.Actor)
-
             .ToListAsync();
 
         return View(movies);
     }
+
+    // ================== DETAILS ==================
 
     public async Task<IActionResult> Details(int id)
     {
@@ -35,56 +70,30 @@ public class MoviesController : Controller
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (movie == null)
-        {
             return NotFound();
-        }
 
         return View(movie);
     }
 
-    // GET: Movies/Create
+    // ================== CREATE (GET) ==================
+
     public IActionResult Create()
     {
-        ViewBag.Genres = _context.Genres
-            .Select(g => new
-            {
-                g.Id,
-                g.Name
-            })
-        .ToList();
-
-        ViewBag.Actors = _context.Actors
-            .Select(a => new
-            {
-                a.Id,
-                a.Fullname
-            })
-        .ToList();
-
+        FillMovieViewBags();
         return View(new CreateMovieViewModel());
     }
 
+    // ================== CREATE (POST) ==================
 
-    // POST: Movies/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateMovieViewModel model)
     {
-        if (model.Duration.HasValue && model.Duration <= 0)
-        {
-            ModelState.AddModelError(nameof(model.Duration),
-                "Тривалість має бути більшою за 0.");
-        }
+        ValidateMovie(model);
 
         if (!ModelState.IsValid)
         {
-            ViewBag.Genres = _context.Genres
-                .Select(g => new { g.Id, g.Name })
-                .ToList();
-
-            ViewBag.Actors = _context.Actors
-                .Select(a => new { a.Id, a.Fullname })
-                .ToList();
+            FillMovieViewBags();
             return View(model);
         }
 
@@ -105,7 +114,6 @@ public class MoviesController : Controller
         _context.Movies.Add(movie);
         await _context.SaveChangesAsync();
 
-        // жанри
         foreach (var genreId in model.SelectedGenres)
         {
             _context.Moviegenres.Add(new Moviegenre
@@ -115,7 +123,6 @@ public class MoviesController : Controller
             });
         }
 
-        // актори
         foreach (var actorId in model.SelectedActors)
         {
             _context.Movieactors.Add(new Movieactor
@@ -127,9 +134,10 @@ public class MoviesController : Controller
 
         await _context.SaveChangesAsync();
 
-
         return RedirectToAction(nameof(Index));
     }
+
+    // ================== EDIT (GET) ==================
 
     public async Task<IActionResult> Edit(int id)
     {
@@ -153,38 +161,25 @@ public class MoviesController : Controller
             AgeRating = movie.Agerating,
             LanguageCode = movie.Languagecode,
             CountryCode = movie.Countrycode,
-            SelectedGenres = movie.MovieGenres
-                .Select(mg => mg.Genreid)
-                .ToList(),
-            SelectedActors = movie.MovieActors
-                .Select(ma => ma.Actorid)
-                .ToList()
+            SelectedGenres = movie.MovieGenres.Select(mg => mg.Genreid).ToList(),
+            SelectedActors = movie.MovieActors.Select(ma => ma.Actorid).ToList()
         };
 
-        ViewBag.Genres = _context.Genres
-            .Select(g => new { g.Id, g.Name })
-            .ToList();
-
-        ViewBag.Actors = _context.Actors
-            .Select(a => new { a.Id, a.Fullname })
-            .ToList();
-
+        FillMovieViewBags();
         return View(model);
     }
+
+    // ================== EDIT (POST) ==================
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, CreateMovieViewModel model)
     {
+        ValidateMovie(model);
+
         if (!ModelState.IsValid)
         {
-            ViewBag.Genres = _context.Genres
-                .Select(g => new { g.Id, g.Name })
-                .ToList();
-
-            ViewBag.Actors = _context.Actors
-                .Select(a => new { a.Id, a.Fullname })
-                .ToList();
+            FillMovieViewBags();
             return View(model);
         }
 
@@ -196,7 +191,6 @@ public class MoviesController : Controller
         if (movie == null)
             return NotFound();
 
-        // 🔁 оновлюємо поля
         movie.Title = model.Title;
         movie.Description = model.Description;
         movie.Duration = model.Duration;
@@ -208,13 +202,9 @@ public class MoviesController : Controller
         movie.Languagecode = model.LanguageCode;
         movie.Countrycode = model.CountryCode;
 
-        // 🧹 видаляємо старі жанри
         _context.Moviegenres.RemoveRange(movie.MovieGenres);
-
         _context.Movieactors.RemoveRange(movie.MovieActors);
 
-
-        // ➕ додаємо нові
         foreach (var genreId in model.SelectedGenres)
         {
             movie.MovieGenres.Add(new Moviegenre
@@ -233,11 +223,12 @@ public class MoviesController : Controller
             });
         }
 
-
         await _context.SaveChangesAsync();
 
         return RedirectToAction(nameof(Index));
     }
+
+    // ================== DELETE ==================
 
     [HttpPost]
     [ValidateAntiForgeryToken]
