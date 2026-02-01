@@ -1,43 +1,17 @@
-@model Ticket
+@model Cinema.Infrastructure.Entities.Ticket
 
-@{
-    ViewData["Title"] = "Оплата квитка";
+<h2>Оплата квитка 💳</h2>
+
+@if (TempData["Info"] != null)
+{
+    <div style="color:green">@TempData["Info"]</div>
 }
 
-<div class="container mt-4">
+<p>Квиток: @Model.Id</p>
+<p>Сума: @Model.Price</p>
 
-    <div class="mb-3 d-flex gap-2 flex-wrap">
-        <a asp-controller="Tickets"
-           asp-action="Confirmation"
-           asp-route-id="@Model.Id"
-           class="btn btn-outline-secondary">
-            ⬅️ Назад до підтвердження
-        </a>
-
-        <a asp-controller="Sessions" asp-action="Index" class="btn btn-outline-dark">
-            🗓 До сеансів
-        </a>
-    </div>
-
-    <h2 class="mb-3">Оплата квитка 💳</h2>
-
-    @if (TempData["Info"] != null)
-    {
-        <div class="alert alert-success">@TempData["Info"]</div>
-    }
-
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <p><b>Квиток:</b> @Model.Id</p>
-            <p><b>Фільм:</b> @(Model.Session?.Movie?.Title ?? "—")</p>
-            <p><b>Сума:</b> @Model.Price</p>
-
-            <form asp-action="PayConfirm" method="post" class="mt-3">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="ticketId" value="@Model.Id" />
-                <button type="submit" class="btn btn-success">Оплатити ✅</button>
-            </form>
-        </div>
-    </div>
-
-</div>
+<form asp-action="PayConfirm" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="ticketId" value="@Model.Id" />
+    <button type="submit">Оплатити ✅</button>
+</form>

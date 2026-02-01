@@ -1,72 +1,45 @@
-@model Ticket
+@model Cinema.Infrastructure.Entities.Ticket
 
-@{
-    ViewData["Title"] = "Підтвердження квитка";
-    var isPaid = Model.Status == 2; // 2 = Paid
+<h2>Бронювання успішне ✅</h2>
+
+<p><b>Квиток №:</b> @Model.Id</p>
+
+<p>
+    <b>Фільм:</b>
+    @Model.Session?.Movie?.Title
+</p>
+
+<p>
+    <b>Сеанс:</b>
+    @Model.Session?.Starttime
+</p>
+
+<p>
+    <b>Місце:</b>
+    Ряд @Model.Seat?.Rownumber,
+    Місце @Model.Seat?.Seatnumber
+</p>
+
+<p>
+    <b>Ціна:</b> @Model.Price ₴
+</p>
+
+<p>
+    <b>Статус:</b>
+    @(Model.Status == 2 ? "Оплачено ✅" : "Заброньовано ⏳")
+</p>
+
+@if (Model.Status != 2)
+{
+    <a asp-controller="Payments"
+       asp-action="Pay"
+       asp-route-ticketId="@Model.Id">
+        👉 Перейти до оплати 💳
+    </a>
 }
-
-<div class="container mt-4">
-
-    <div class="mb-3 d-flex gap-2 flex-wrap">
-        <a asp-controller="Sessions" asp-action="Index" class="btn btn-outline-secondary">
-            ⬅️ Назад до сеансів
-        </a>
-
-        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-dark">
-            🏠 На головну
-        </a>
-
-        @* Якщо квиток ще НЕ оплачено — можна повернутись до вибору місця *@
-        @if (!isPaid)
-        {
-            <a asp-controller="Tickets"
-               asp-action="Book"
-               asp-route-sessionId="@Model.Sessionid"
-               class="btn btn-outline-primary">
-                🎟 Змінити місце
-            </a>
-        }
-    </div>
-
-    <h2 class="mb-3">
-        @(isPaid ? "Квиток оплачено ✅" : "Бронювання успішне ✅")
-    </h2>
-
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <p><b>Ticket ID:</b> @Model.Id</p>
-
-            <p>
-                <b>Фільм:</b>
-                @(Model.Session?.Movie?.Title ?? "—")
-            </p>
-
-            <p><b>Сеанс ID:</b> @Model.Sessionid</p>
-
-            <p>
-                <b>Місце:</b>
-                Ряд @(Model.Seat?.Rownumber ?? 0), Місце @(Model.Seat?.Seatnumber ?? 0)
-            </p>
-
-            <p><b>Ціна:</b> @Model.Price</p>
-
-            <p><b>Статус:</b> @(isPaid ? "Оплачено" : "Заброньовано")</p>
-
-            <div class="mt-3">
-                @if (!isPaid)
-                {
-                    <a asp-controller="Payments"
-                       asp-action="Pay"
-                       asp-route-ticketId="@Model.Id"
-                       class="btn btn-success">
-                        Перейти до оплати 💳
-                    </a>
-                }
-                else
-                {
-                    <span class="badge bg-success p-2">Оплату підтверджено</span>
-                }
-            </div>
-        </div>
-    </div>
-</div>
+else
+{
+    <p style="color:green;">
+        Квиток вже оплачено 🎉
+    </p>
+}

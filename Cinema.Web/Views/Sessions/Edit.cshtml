@@ -1,5 +1,5 @@
-﻿@model Session
-
+﻿@model Cinema.Infrastructure.Entities.Session
+@using Cinema.Infrastructure.Entities.Enums
 
 @{
     ViewData["Title"] = "✏️ Редагувати сеанс";
@@ -22,7 +22,7 @@
                         <div class="col-12">
                             <label class="form-label fw-bold">Фільм</label>
                             <select asp-for="Movieid" class="form-select js-movie-select" required>
-                                @foreach (var movie in (IEnumerable<Movie>)ViewBag.Movies)
+                                @foreach (var movie in (List<Cinema.Infrastructure.Entities.Movie>)ViewBag.Movies)
                                 {
                                     <option value="@movie.Id">@movie.Title</option>
                                 }
@@ -45,12 +45,10 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Зал</label>
                             <select asp-for="Hallid" id="hallSelect" class="form-select" required>
-                                @foreach (var hall in (IEnumerable<Hall>)ViewBag.Halls)
-                        {
-                                    <option value="@hall.Id">
-                                 @hall.Name
-                                            </option>
-                        }
+                                @foreach (var hall in (List<Cinema.Infrastructure.Entities.Hall>)ViewBag.Halls)
+                                {
+                                    <option value="@hall.Id" data-hall-type="@hall.Halltype" selected="@(hall.Id == Model.Hallid)">@hall.Name</option>
+                                }
                             </select>
                             <span asp-validation-for="Hallid" class="text-danger"></span>
                         </div>
@@ -74,8 +72,8 @@
                     <h5 class="mb-3 text-primary"><i class="bi bi-cash-stack"></i> Ціни на квитки</h5>
                     
                     <div id="pricesContainer" class="p-3 bg-light rounded border mb-4">
-                        @foreach (var category in (IEnumerable<Pricecategory>)ViewBag.PriceCategories)
-{
+                        @foreach (var category in (List<Cinema.Infrastructure.Entities.Pricecategory>)ViewBag.PriceCategories)
+                        {
                             var existingPrice = Model.Sessionprices?.FirstOrDefault(sp => sp.Categoryid == category.Id);
                             <div class="row mb-3 price-row align-items-center" data-category="@category.Name" style="display:none">
                                 <div class="col-sm-5">

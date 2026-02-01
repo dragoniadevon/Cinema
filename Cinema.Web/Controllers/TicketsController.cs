@@ -55,32 +55,11 @@ public class TicketsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Book(BookTicketRequest request)
     {
+        // если у вас ещё нет авторизации — пусть будет null
         int? userId = null;
 
-        // 1) Достаём сеанс + зал
-        var session = await _db.Sessions
-            .Include(s => s.Hall)
-            .FirstOrDefaultAsync(s => s.Id == request.SessionId);
-
-        if (session == null)
-            return NotFound();
-
-        // 2) Определяем категорию цены (1=Standard, 2=VIP)
-        var categoryId = session.Hall?.Halltype == 2 ? 2 : 1;
-
-        // 3) Берём цену из Sessionprices
-        var sessionPrice = await _db.Sessionprices
-            .FirstOrDefaultAsync(sp =>
-                sp.Sessionid == request.SessionId &&
-                sp.Categoryid == categoryId);
-
-        if (sessionPrice == null)
-        {
-            TempData["Error"] = "Для цього сеансу не задана ціна 😿 (таблиця Sessionprices порожня).";
-            return RedirectToAction(nameof(Book), new { sessionId = request.SessionId });
-        }
-
-        decimal price = sessionPrice.Price;
+        // временно фиксированная цена (потом можно подтянуть из PriceCategories)
+        decimal price = 200m;
 
         var ticket = new Ticket
         {
@@ -88,7 +67,7 @@ public class TicketsController : Controller
             Sessionid = request.SessionId,
             Seatid = request.SeatId,
             Price = price,
-            Status = 1, // Reserved
+            Status = 1,
             Bookingtime = DateTime.UtcNow
         };
 
@@ -96,7 +75,7 @@ public class TicketsController : Controller
 
         try
         {
-            await _db.SaveChangesAsync(); // UNIQUE(SessionId, SeatId) ловит двойную покупку
+            await _db.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
@@ -113,7 +92,6 @@ public class TicketsController : Controller
         var ticket = await _db.Tickets
             .Include(t => t.Seat)
             .Include(t => t.Session)
-                .ThenInclude(s => s.Movie)
             .FirstOrDefaultAsync(t => t.Id == id);
 
         if (ticket == null)
