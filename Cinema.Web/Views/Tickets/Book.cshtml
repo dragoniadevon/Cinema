@@ -1,10 +1,24 @@
-@model Cinema.Web.Models.Tickets.BookTicketVm
-using Cinema.Web.Models.Tickets;
+@model BookTicketVm
+
+@{
+    ViewData["Title"] = "Вибір місця";
+}
+
+<div class="mb-3 d-flex gap-2">
+    <a asp-controller="Sessions"
+       asp-action="Index"
+       class="btn btn-outline-secondary">
+        ⬅️ Назад до сеансів
+    </a>
+</div>
+
 <h2>Вибір місця</h2>
 
 @if (TempData["Error"] != null)
 {
-    <div style="color:red">@TempData["Error"]</div>
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
 }
 
 <form asp-action="Book" method="post">
@@ -19,7 +33,8 @@ using Cinema.Web.Models.Tickets;
             {
                 <button type="button"
                         disabled
-                        style="width:60px;height:40px;opacity:0.5;">
+                        style="width:60px;height:40px;opacity:0.5;"
+                        class="btn btn-secondary">
                     @s.Row-@s.Number
                 </button>
             }
@@ -28,10 +43,11 @@ using Cinema.Web.Models.Tickets;
                 <button type="submit"
                         name="SeatId"
                         value="@s.SeatId"
-                        style="width:60px;height:40px;">
+                        style="width:60px;height:40px;"
+                        class="btn btn-success">
                     @s.Row-@s.Number
                 </button>
             }
         }
-     </div>
-</form> 
+    </div>
+</form>

@@ -1,0 +1,82 @@
+@model IEnumerable<Session>
+
+@{
+    ViewData["Title"] = "Деталі сеансу (вибір)";
+
+    // Для удобства: выбранные фильтры (чтобы не терялись при переходах)
+    int? selectedCinema = ViewBag.SelectedCinema as int?;
+    string? selectedDate = ViewBag.SelectedDate as string; // "yyyy-MM-dd"
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>🎬 Деталі сеансу — вибір</h2>
+        <a asp-controller="Sessions" asp-action="Index" class="btn btn-outline-secondary">
+            ⬅️ До розкладу
+        </a>
+    </div>
+
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+            <form method="get" asp-action="DetailsHub" class="row g-3 align-items-end">
+
+                <div class="col-md-5">
+                    <label class="form-label fw-bold small">Кінотеатр</label>
+                    <select name="cinemaId" class="form-select">
+                        <option value="">Всі кінотеатри</option>
+
+                        @foreach (var c in (IEnumerable<Cinema>)ViewBag.Cinemas)
+                        {
+                            <option value="@c.Id" selected="@(selectedCinema.HasValue && selectedCinema.Value == c.Id)">
+                                @c.Name
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small">Дата</label>
+                    <input type="date" name="date" class="form-control" value="@selectedDate" />
+                </div>
+
+                <div class="col-md-3 d-flex gap-2">
+                    <button class="btn btn-primary w-100" type="submit">Показати</button>
+                    <a class="btn btn-outline-secondary w-100" asp-action="DetailsHub">Скинути</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-light border text-center py-5">
+            Сеансів не знайдено за фільтрами 😿
+        </div>
+    }
+    else
+    {
+        <div class="list-group shadow-sm">
+            @foreach (var s in Model)
+            {
+                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                   asp-controller="Sessions"
+                   asp-action="Details"
+                   asp-route-id="@s.Id"
+                   asp-route-cinemaId="@selectedCinema"
+                   asp-route-date="@selectedDate">
+
+                    <div>
+                        <div class="fw-bold">@((s.Movie?.Title) ?? "—")</div>
+                        <div class="small text-muted">
+                            @s.Starttime.ToString("dd.MM.yyyy HH:mm")
+                            • Зал: @((s.Hall?.Name) ?? "—")
+                            • Кінотеатр: @((s.Hall?.Cinema?.Name) ?? "—")
+                        </div>
+                    </div>
+
+                    <span class="badge bg-primary rounded-pill">Деталі</span>
+                </a>
+            }
+        </div>
+    }
+</div>
