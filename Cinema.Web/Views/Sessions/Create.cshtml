@@ -2,95 +2,118 @@
 @using Cinema.Infrastructure.Entities.Enums
 
 @{
-    ViewData["Title"] = "Додати сеанс";
+    ViewData["Title"] = "➕ Додати сеанс";
 }
 
-<div class="container mt-4">
-    <h2>Додати сеанс</h2>
-    <hr />
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-6">
+        
+        <h1 class="mb-4 text-center">➕ Додати новий сеанс</h1>
 
-    <form asp-action="Create" method="post" id="createSessionForm">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post" id="createSessionForm">
+                    @Html.AntiForgeryToken()
+                    
+                    @* Використовуємо ValidationSummary як у кінотеатрі *@
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
 
-        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Фільм</label>
+                            <select asp-for="MovieId" class="form-select js-movie-select" required>
+                                <option value="">— Почніть вводити назву фільму —</option>
+                                @foreach (var movie in ViewBag.Movies)
+                                {
+                                    <option value="@movie.Id">@movie.Title</option>
+                                }
+                            </select>
+                            <span asp-validation-for="MovieId" class="text-danger"></span>
+                        </div>
 
-        <!-- ФІЛЬМ -->
-        <div class="mb-3">
-            <label class="form-label">Фільм</label>
-            <select asp-for="MovieId" class="form-select js-movie-select" required>
-                <option value="">— Оберіть фільм —</option>
-                @foreach (var movie in ViewBag.Movies)
-                {
-                    <option value="@movie.Id">@movie.Title</option>
-                }
-            </select>
-            <span asp-validation-for="MovieId" class="text-danger"></span>
-        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Кінотеатр</label>
+                            <select asp-for="CinemaId" id="cinemaSelect" class="form-select" required>
+                                <option value="">— Оберіть кінотеатр —</option>
+                                @foreach (var cinema in ViewBag.Cinemas)
+                                {
+                                    <option value="@cinema.Id">@(cinema.Name) (@(cinema.City))</option>
+                                }
+                            </select>
+                            <span asp-validation-for="CinemaId" class="text-danger"></span>
+                        </div>
 
-        <!-- КІНОТЕАТР -->
-        <div class="mb-3">
-            <label class="form-label">Кінотеатр</label>
-            <select asp-for="CinemaId" id="cinemaSelect" class="form-select" required>
-                <option value="">— Оберіть кінотеатр —</option>
-                @foreach (var cinema in ViewBag.Cinemas)
-                {
-                    <option value="@cinema.Id">@cinema.Name</option>
-                }
-            </select>
-            <span asp-validation-for="CinemaId" class="text-danger"></span>
-        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Зал</label>
+                            <select asp-for="HallId" id="hallSelect" class="form-select" required>
+                                <option value="">— Спочатку оберіть кінотеатр —</option>
+                            </select>
+                            <span asp-validation-for="HallId" class="text-danger"></span>
+                        </div>
 
-        <!-- ЗАЛ -->
-        <div class="mb-3">
-            <label class="form-label">Зал</label>
-            <select asp-for="HallId" id="hallSelect" class="form-select" required>
-                <option value="">— Спочатку оберіть кінотеатр —</option>
-            </select>
-            <span asp-validation-for="HallId" class="text-danger"></span>
-        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Час початку</label>
+                            <input asp-for="StartTime" type="datetime-local" class="form-control" required
+                                   value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
+                            <span asp-validation-for="StartTime" class="text-danger"></span>
+                        </div>
 
-        <!-- ЧАС -->
-        <div class="mb-3">
-            <label class="form-label">Час початку</label>
-            <input asp-for="StartTime" type="datetime-local" class="form-control" required
-                value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
-            <span asp-validation-for="StartTime" class="text-danger"></span>
-        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Формат</label>
+                            <select asp-for="Format" class="form-select" asp-items="Html.GetEnumSelectList<SessionFormat>()" required>
+                            </select>
+                            <span asp-validation-for="Format" class="text-danger"></span>
+                        </div>
 
-        <!-- ФОРМАТ -->
-        <div class="mb-3">
-            <label class="form-label">Формат</label>
-            <select asp-for="Format" class="form-select" asp-items="Html.GetEnumSelectList<SessionFormat>()" required>
-            </select>
-            <span asp-validation-for="Format" class="text-danger"></span>
-        </div>
+                        @* Вставте це перед блоком цін *@
+                        <div class="mb-4">
+                            <div class="form-check form-switch p-3 bg-light rounded border shadow-sm">
+                                <input class="form-check-input ms-0 me-3" type="checkbox" asp-for="RepeatDaily" id="repeatSwitch">
+                                <label class="form-check-label fw-bold" for="repeatSwitch">
+                                    🔁 Повторювати цей розклад щодня на наступні 7 днів
+                                </label>
+                                <div class="small text-muted ms-5">Це автоматично створить окремі сеанси на той самий час для кожного дня тижня.</div>
+                            </div>
+                        </div>
+                    </div>
 
-        <!-- ЦІНИ -->
-        <h5 class="mt-4">Ціни на квитки</h5>
+                    <hr class="my-4" />
 
-        @for (int i = 0; i < Model.Prices.Count; i++)
-        {
-            <div class="row mb-2 price-row" data-category="@Model.Prices[i].CategoryName" style="display:none">
+                    <h5 class="mb-3 text-primary"><i class="bi bi-cash-stack"></i> Ціни на квитки</h5>
 
-                <div class="col-md-4">
-                    <label class="form-label">@Model.Prices[i].CategoryName</label>
-                    <input type="hidden" asp-for="Prices[i].PriceCategoryId" />
-                    <input type="hidden" asp-for="Prices[i].CategoryName" />
-                </div>
+                    <div id="pricesContainer" class="p-3 bg-light rounded border mb-4">
+                        @for (int i = 0; i < Model.Prices.Count; i++)
+                        {
+                            <div class="row mb-3 price-row align-items-center" data-category="@Model.Prices[i].CategoryName" style="display:none">
+                                <div class="col-sm-5">
+                                    <label class="form-label mb-0">@Model.Prices[i].CategoryName</label>
+                                    <input type="hidden" asp-for="Prices[i].PriceCategoryId" />
+                                    <input type="hidden" asp-for="Prices[i].CategoryName" />
+                                </div>
 
-                <div class="col-md-4">
-                    <input asp-for="Prices[i].Price" class="form-control price-input" type="number" step="0.01" min="0" />
-                    <span asp-validation-for="Prices[i].Price" class="text-danger"></span>
-                </div>
+                                <div class="col-sm-7">
+                                    <div class="input-group">
+                                        <input asp-for="Prices[i].Price" class="form-control price-input text-end" 
+                                               type="text" 
+                                               inputmode="decimal" 
+                                               pattern="[0-9]*[.,]?[0-9]+" 
+                                               placeholder="0.00" />
+                                        <span class="input-group-text">грн</span>
+                                    </div>
+                                    <span asp-validation-for="Prices[i].Price" class="text-danger"></span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4" id="submitBtn">Зберегти</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">Скасувати</a>
+                    </div>
+                </form>
             </div>
-        }
-
-        <div class="mt-4">
-            <button type="submit" class="btn btn-success" id="submitBtn">
-                Зберегти
-            </button>
-            <a asp-action="Index" class="btn btn-secondary">Назад</a>
         </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {
@@ -133,13 +156,12 @@
             }
 
             let allValid = visibleInputs.every(input => {
-                const val = parseFloat(input.value);
+                const val = parseFloat(input.value.replace(',', '.'));
                 return !isNaN(val) && val > 0;
             });
 
             submitBtn.disabled = (hallSelect.value === "") || !allValid;
         }
-
 
         cinemaSelect.addEventListener("change", function () {
             const cinemaId = this.value;
@@ -160,13 +182,14 @@
         });
 
         hallSelect.addEventListener("change", updatePriceVisibility);
-
         document.querySelectorAll(".price-input").forEach(input => {
             input.addEventListener("input", validatePrices);
         });
 
         $(document).ready(function() {
-            $('.js-movie-select').select2({ width: '100%' });
+            if (typeof $.fn.select2 !== 'undefined') {
+                $('.js-movie-select').select2({ width: '100%' });
+            }
             
             if (hallSelect.value) {
                 updatePriceVisibility();

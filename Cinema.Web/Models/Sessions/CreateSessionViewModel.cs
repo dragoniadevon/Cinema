@@ -19,6 +19,7 @@ public class CreateSessionViewModel
 
     [Required(ErrorMessage = "Оберіть формат")]
     public SessionFormat Format { get; set; }
+    public bool RepeatDaily { get; set; }
 
     public List<SessionPriceInput> Prices { get; set; } = new();
 }
