@@ -11,20 +11,9 @@ public class ActorsController : Controller
         _context = context;
     }
 
-    public async Task<IActionResult> Index()
-    {
-        var actors = await _context.Actors.ToListAsync();
-        return View(actors);
-    }
+    // ================== HELPERS ==================
 
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Actor actor)
+    private bool ValidateActor(Actor actor)
     {
         if (actor.Fullname != null)
         {
@@ -33,7 +22,39 @@ public class ActorsController : Controller
 
         if (string.IsNullOrWhiteSpace(actor.Fullname))
         {
-            ModelState.AddModelError(nameof(actor.Fullname), "Імʼя актора обовʼязкове");
+            ModelState.AddModelError(
+                nameof(actor.Fullname),
+                "Імʼя актора обовʼязкове"
+            );
+            return false;
+        }
+
+        return true;
+    }
+
+    // ================== INDEX ==================
+
+    public async Task<IActionResult> Index()
+    {
+        var actors = await _context.Actors.ToListAsync();
+        return View(actors);
+    }
+
+    // ================== CREATE (GET) ==================
+
+    public IActionResult Create()
+    {
+        return View();
+    }
+
+    // ================== CREATE (POST) ==================
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(Actor actor)
+    {
+        if (!ValidateActor(actor))
+        {
             return View(actor);
         }
 
@@ -44,12 +65,17 @@ public class ActorsController : Controller
         }
         catch (DbUpdateException)
         {
-            ModelState.AddModelError(nameof(actor.Fullname), "Такий актор вже існує");
+            ModelState.AddModelError(
+                nameof(actor.Fullname),
+                "Такий актор вже існує"
+            );
             return View(actor);
         }
 
         return RedirectToAction(nameof(Index));
     }
+
+    // ================== EDIT (GET) ==================
 
     public async Task<IActionResult> Edit(int id)
     {
@@ -60,6 +86,8 @@ public class ActorsController : Controller
         return View(actor);
     }
 
+    // ================== EDIT (POST) ==================
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, Actor actor)
@@ -67,14 +95,8 @@ public class ActorsController : Controller
         if (id != actor.Id)
             return BadRequest();
 
-        if (actor.Fullname != null)
+        if (!ValidateActor(actor))
         {
-            actor.Fullname = actor.Fullname.Trim();
-        }
-
-        if (string.IsNullOrWhiteSpace(actor.Fullname))
-        {
-            ModelState.AddModelError(nameof(actor.Fullname), "Імʼя актора обовʼязкове");
             return View(actor);
         }
 
@@ -85,12 +107,17 @@ public class ActorsController : Controller
         }
         catch (DbUpdateException)
         {
-            ModelState.AddModelError(nameof(actor.Fullname), "Такий актор вже існує");
+            ModelState.AddModelError(
+                nameof(actor.Fullname),
+                "Такий актор вже існує"
+            );
             return View(actor);
         }
 
         return RedirectToAction(nameof(Index));
     }
+
+    // ================== DELETE ==================
 
     [HttpPost]
     [ValidateAntiForgeryToken]

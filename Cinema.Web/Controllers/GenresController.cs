@@ -11,25 +11,10 @@ public class GenresController : Controller
         _context = context;
     }
 
-    // GET: Genres
-    public async Task<IActionResult> Index()
-    {
-        var genres = await _context.Genres.ToListAsync();
-        return View(genres);
-    }
+    // ================== HELPERS ==================
 
-    // GET: Genres/Create
-    public IActionResult Create()
+    private bool ValidateGenre(Genre genre)
     {
-        return View();
-    }
-
-    // POST: Genres/Create
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Genre genre)
-    {
-        // 1. Нормалізація
         if (genre.Name != null)
         {
             genre.Name = genre.Name.Trim();
@@ -37,28 +22,61 @@ public class GenresController : Controller
 
         if (string.IsNullOrWhiteSpace(genre.Name))
         {
-            ModelState.AddModelError(nameof(genre.Name), "Назва жанру обовʼязкова");
+            ModelState.AddModelError(
+                nameof(genre.Name),
+                "Назва жанру обовʼязкова"
+            );
+            return false;
+        }
+
+        return true;
+    }
+
+    // ================== INDEX ==================
+
+    public async Task<IActionResult> Index()
+    {
+        var genres = await _context.Genres.ToListAsync();
+        return View(genres);
+    }
+
+    // ================== CREATE (GET) ==================
+
+    public IActionResult Create()
+    {
+        return View();
+    }
+
+    // ================== CREATE (POST) ==================
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(Genre genre)
+    {
+        if (!ValidateGenre(genre))
+        {
             return View(genre);
         }
 
         try
         {
-            // 2. Єдине джерело істини — БД
             _context.Genres.Add(genre);
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
-            // 3. БД сказала: unique violation
-            ModelState.AddModelError(nameof(genre.Name), "Такий жанр вже існує");
+            ModelState.AddModelError(
+                nameof(genre.Name),
+                "Такий жанр вже існує"
+            );
             return View(genre);
         }
 
-        // 4. PRG
         return RedirectToAction(nameof(Index));
     }
 
-    // GET: Genres/Edit/5
+    // ================== EDIT (GET) ==================
+
     public async Task<IActionResult> Edit(int id)
     {
         var genre = await _context.Genres.FindAsync(id);
@@ -68,7 +86,8 @@ public class GenresController : Controller
         return View(genre);
     }
 
-    // POST: Genres/Edit/5
+    // ================== EDIT (POST) ==================
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, Genre genre)
@@ -76,14 +95,8 @@ public class GenresController : Controller
         if (id != genre.Id)
             return BadRequest();
 
-        if (genre.Name != null)
+        if (!ValidateGenre(genre))
         {
-            genre.Name = genre.Name.Trim();
-        }
-
-        if (string.IsNullOrWhiteSpace(genre.Name))
-        {
-            ModelState.AddModelError(nameof(genre.Name), "Назва жанру обовʼязкова");
             return View(genre);
         }
 
@@ -94,12 +107,17 @@ public class GenresController : Controller
         }
         catch (DbUpdateException)
         {
-            ModelState.AddModelError(nameof(genre.Name), "Такий жанр вже існує");
+            ModelState.AddModelError(
+                nameof(genre.Name),
+                "Такий жанр вже існує"
+            );
             return View(genre);
         }
 
         return RedirectToAction(nameof(Index));
     }
+
+    // ================== DELETE ==================
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -114,5 +132,4 @@ public class GenresController : Controller
 
         return RedirectToAction(nameof(Index));
     }
-
 }

@@ -4,11 +4,13 @@
     ViewData["Title"] = "Жанри";
 }
 
-<h1 class="mb-4">🎭 Жанри</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">🎭 Жанри</h1>
 
-<a asp-action="Create" class="btn btn-primary mb-3">
-    + Додати жанр
-</a>
+    <a asp-action="Create" class="btn btn-primary">
+        + Додати жанр
+    </a>
+</div>
 
 @if (!Model.Any())
 {
