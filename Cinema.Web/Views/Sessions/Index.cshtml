@@ -1,4 +1,4 @@
-@model IEnumerable<Cinema.Infrastructure.Entities.Session>
+@model IEnumerable<Cinema.Web.Models.Sessions.SessionsByDateVm>
 
 @{
     ViewData["Title"] = "Розклад сеансів";
@@ -6,44 +6,168 @@
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Розклад сеансів</h1>
-        <a asp-action="Create" class="btn btn-success">+ Додати сеанс</a>
+        <h1>🗓️ Панель керування розкладом</h1>
+        <a asp-action="Create" class="btn btn-success shadow-sm">+ Додати сеанс</a>
     </div>
 
-    @foreach (var session in Model)
-    {
-        <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-dark text-white">
-                <strong>@session.Movie?.Title</strong>
-            </div>
-            <div class="card-body">
-                <p><strong>Зал:</strong> @session.Hall?.Name</p>
-                <p><strong>Початок:</strong> @session.Starttime</p>
-                <p><strong>Кінець:</strong> @session.Endtime</p>
+    <div class="card mb-4 border-0 shadow-sm bg-light">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3 align-items-end">
+                <input type="hidden" name="showArchived" value="@ViewBag.ShowArchived.ToString().ToLower()" />
+                
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Кінотеатр</label>
+                    <select name="cinemaId" class="form-select border-0 shadow-sm">
+                        <option value="">Всі кінотеатри</option>
+                        @foreach (var cinema in ViewBag.Cinemas)
+                        {
+                            <option value="@cinema.Id" selected="@(ViewBag.SelectedCinema == cinema.Id)">
+                                @cinema.Name (@cinema.City)
+                            </option>
+                        }
+                    </select>
+                </div>
 
-                <div class="mt-3 d-flex gap-2">
-                    <!-- 🔥 КНОПКА ПОКУПКИ КВИТКА -->
-                    <a asp-controller="Tickets"
-                       asp-action="Book"
-                       asp-route-sessionId="@session.Id"
-                       class="btn btn-success btn-sm">
-                        Купити квиток 🎟️
-                    </a>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Дата</label>
+                    <input type="date" name="date" class="form-control border-0 shadow-sm" value="@ViewBag.SelectedDate" />
+                </div>
 
-                    <!-- Адмінські кнопки -->
-                    <a asp-action="Edit"
-                       asp-route-id="@session.Id"
-                       class="btn btn-warning btn-sm">
-                        Редагувати
-                    </a>
-
-                    <a asp-action="Delete"
-                       asp-route-id="@session.Id"
-                       class="btn btn-danger btn-sm">
-                        Видалити
+                <div class="col-md-5 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                        <i class="bi bi-filter"></i> Застосувати
+                    </button>
+                    <a asp-action="Index" asp-route-showArchived="@ViewBag.ShowArchived" class="btn btn-outline-secondary shadow-sm">
+                        Скинути
                     </a>
                 </div>
+            </form>
+        </div>
+    </div>
+
+    <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm">
+        <li class="nav-item">
+            <a class="nav-link @(ViewBag.ShowArchived ? "" : "active")" 
+               asp-action="Index" 
+               asp-route-showArchived="false" 
+               asp-route-cinemaId="@ViewBag.SelectedCinema" 
+               asp-route-date="@ViewBag.SelectedDate">Активні сеанси</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(ViewBag.ShowArchived ? "active text-white bg-danger" : "text-danger")" 
+               asp-action="Index" 
+               asp-route-showArchived="true" 
+               asp-route-cinemaId="@ViewBag.SelectedCinema" 
+               asp-route-date="@ViewBag.SelectedDate">Архів / Скасовані</a>
+        </li>
+    </ul>
+
+    @if (!Model.Any())
+{
+    <div class="alert alert-light text-center border py-5 shadow-sm">
+        <i class="bi bi-calendar-x display-4 text-muted"></i>
+        <p class="mt-3 mb-0 text-muted">Сеансів не знайдено за заданими фільтрами.</p>
+    </div>
+}
+else 
+{
+    @foreach (var dateGroup in Model)
+    {
+        <div class="date-section mb-5">
+            <h3 class="sticky-top bg-white py-3 border-bottom shadow-sm px-2" style="z-index: 1020; top: 0;">
+                📅 @dateGroup.Date.ToString("dd MMMM yyyy, dddd")
+            </h3>
+
+            <div class="ps-3 border-start border-4 border-light ms-2">
+                @foreach (var cinema in dateGroup.Cinemas)
+                {
+                    <div class="mt-4 mb-3">
+                        <h5 class="text-primary fw-bold">
+                            <i class="bi bi-geo-alt-fill"></i> @cinema.CinemaName
+                        </h5>
+                        
+                        <div class="row row-cols-1 g-3 mt-2">
+                            @foreach (var movie in cinema.Movies)
+                            {
+                                <div class="col">
+                                    <div class="card shadow-sm border-0">
+                                        <div class="card-body py-3">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-3 col-lg-2 border-end">
+                                                    <h6 class="fw-bold mb-1 text-dark">@movie.Title</h6>
+                                                    <span class="text-muted small">@movie.Duration хв.</span>
+                                                </div>
+
+                                                <div class="col-md-9 col-lg-10">
+                                                    <div class="d-flex flex-wrap gap-2 ps-md-3">
+                                                        @foreach (var session in movie.Sessions)
+                                                        {
+                                                            <div class="dropdown">
+                                                                <button class="btn btn-sm @(session.Tickets.Any() ? "btn-info text-white" : "btn-outline-secondary") dropdown-toggle" 
+                                                                        type="button" data-bs-toggle="dropdown">
+                                                                    <strong>@session.Starttime.ToString("HH:mm")</strong>
+                                                                </button>
+                                                                
+                                                                <ul class="dropdown-menu shadow-lg border-0 p-3" style="min-width: 250px;">
+                                                                    <li class="mb-2">
+                                                                        <div class="small text-muted">Зал: @session.Hall.Name</div>
+                                                                    </li>
+                                                                    <li class="mb-2">
+                                                                        <small class="fw-bold">@session.Tickets.Count квитків продано</small>
+                                                                    </li>
+                                                                    <hr class="dropdown-divider">
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        <a asp-action="Details" asp-route-id="@session.Id" class="btn btn-sm btn-light border">🔍 Схема залу</a>
+                                                                        <div class="d-flex flex-column gap-2">
+                                                                            <a asp-action="Details" asp-route-id="@session.Id"
+                                                                               class="btn btn-sm btn-light border">
+                                                                                🔍 Схема залу
+                                                                            </a>
+
+                                                                            <a asp-action="Edit" asp-route-id="@session.Id"
+                                                                               class="btn btn-sm btn-warning">
+                                                                                ✏️ Редагувати
+                                                                            </a>
+
+                                                                            @if (!session.Tickets.Any())
+                                                                            {
+                                                                                <button type="button"
+                                                                                        class="btn btn-sm btn-danger"
+                                                                                        onclick="document.getElementById('delete-form-@session.Id').submit()">
+                                                                                    🗑️ Видалити
+                                                                                </button>
+                                                                                <a asp-controller="Tickets" asp-action="Book" asp-route-sessionId="@session.Id" class="btn btn-success btn-sm w-100">
+                                                                                                Купити квиток 🎟️
+                                                                                            </a>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <button type="button"
+                                                                                        class="btn btn-sm btn-outline-danger"
+                                                                                        onclick="document.getElementById('cancel-form-@session.Id').submit()">
+                                                                                    🚫 Скасувати
+                                                                                </button>
+                                                                            }
+                                                                        </div>
+
+                                                                    </div>
+                                                                </ul>
+                                                            </div>
+                                                            
+                                                            <form id="delete-form-@session.Id" asp-action="Delete" asp-route-id="@session.Id" method="post" style="display:none">@Html.AntiForgeryToken()</form>
+                                                            <form id="cancel-form-@session.Id" asp-action="Cancel" asp-route-id="@session.Id" method="post" style="display:none">@Html.AntiForgeryToken()</form>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     }
-</div>
+}
