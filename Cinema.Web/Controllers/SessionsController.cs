@@ -98,6 +98,64 @@ public class SessionsController : Controller
     }
 
     // ============================
+    // CREATE (щоб кнопка "+ Додати сеанс" працювала)
+    // ============================
+    // GET: /Sessions/Create
+    [HttpGet]
+    public IActionResult Create()
+    {
+        var model = new CreateSessionViewModel();
+        FillCreateViewBags(model);
+
+        // Якщо хочеш — можна одразу підставити стандартні ціни/категорії,
+        // але поки не чіпаємо, щоб не зламати твою логіку.
+        return View(model);
+    }
+    // POST: /Sessions/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(CreateSessionViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            FillCreateViewBags(model);
+            return View(model);
+        }
+
+        // 1) Перевіряємо, що зал належить вибраному кінотеатру (щоб не було багів)
+        var hall = await _context.Halls
+            .FirstOrDefaultAsync(h => h.Id == model.HallId && h.Cinemaid == model.CinemaId);
+
+        if (hall == null)
+        {
+            ModelState.AddModelError(nameof(model.HallId), "Обраний зал не належить цьому кінотеатру.");
+            FillCreateViewBags(model);
+            return View(model);
+        }
+
+        // 2) Створюємо сеанс
+        var session = new Session
+        {
+            Movieid = model.MovieId,
+            Hallid = model.HallId,
+            Starttime = model.StartTime
+            // ⚠️ Якщо у Session є поле Format/Isactive — скажеш, додам 1:1
+            // Format = model.Format,
+            // Isactive = true,
+        };
+
+        _context.Sessions.Add(session);
+        await _context.SaveChangesAsync();
+
+        // 3) Якщо у вас є введення цін на Create — тут потрібно створити SessionPrices
+        // Але я НЕ роблю цього без твоєї структури SessionPrice/Sessionprices,
+        // бо у тебе там може бути інша назва поля ціни (Price/Amount/Value).
+        // Якщо хочеш — скинь Entity Sessionprice, я додам збереження цін 1:1.
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    // ============================
     // DETAILS HUB (вибір сеансу для деталей)
     // ============================
     // GET: /Sessions/DetailsHub
@@ -111,6 +169,7 @@ public class SessionsController : Controller
 
         ViewBag.SelectedCinema = cinemaId;
         ViewBag.SelectedDate = date?.ToString("yyyy-MM-dd");
+
         var q = _context.Sessions
             .AsNoTracking()
             .Include(s => s.Movie)
@@ -145,24 +204,19 @@ public class SessionsController : Controller
             .Include(s => s.Movie)
             .Include(s => s.Hall)
                 .ThenInclude(h => h.Cinema)
-
-            // ✅ НОВЕ: підтягуємо ціни + категорії
             .Include(s => s.Sessionprices)
                 .ThenInclude(sp => sp.Category)
-
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (session == null)
             return NotFound();
 
-        // місця в залі
         var seats = await _context.Seats
             .Where(s => s.Hallid == session.Hallid)
             .OrderBy(s => s.Rownumber)
             .ThenBy(s => s.Seatnumber)
             .ToListAsync();
 
-        // зайняті місця
         var takenSeatIds = await _context.Tickets
             .Where(t => t.Sessionid == id && t.Seatid != null)
             .Select(t => t.Seatid!.Value)
@@ -181,7 +235,6 @@ public class SessionsController : Controller
             SessionId = session.Id,
             StartTime = start,
             EndTime = end,
-
             CinemaName = cinema?.Name ?? "—",
             HallName = hall?.Name ?? "—",
 
@@ -207,15 +260,14 @@ public class SessionsController : Controller
             Rows = hall?.Rows ?? 0,
             SeatsPerRow = hall?.Seatsperrow ?? 0,
 
-            // ✅ НОВЕ: ціни квитків в деталях
             Prices = session.Sessionprices?
                 .OrderBy(sp => sp.Categoryid)
                 .Select(sp => new SessionPriceVm
-            {
-                CategoryId = sp.Categoryid ?? 0,
-                CategoryName = sp.Category?.Name ?? "—",
-                Price = sp.Price
-            })
+                {
+                    CategoryId = sp.Categoryid ?? 0,
+                    CategoryName = sp.Category?.Name ?? "—",
+                    Price = sp.Price
+                })
                 .ToList() ?? new List<SessionPriceVm>(),
 
             Seats = seats.Select(s => new SeatDetailsVm
@@ -231,6 +283,24 @@ public class SessionsController : Controller
     }
 
     // ============================
+    // CANCEL (кнопка "Скасувати")
+    // ============================
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var session = await _context.Sessions.FirstOrDefaultAsync(s => s.Id == id);
+        if (session == null) return NotFound();
+
+        // Якщо у Session є Isactive — тоді ставимо false.
+        // Якщо нема — скинь модель Session, і зробимо інакше.
+        session.Isactive = false;
+
+        await _context.SaveChangesAsync();
+        return RedirectToAction(nameof(Index), new { showArchived = true });
+    }
+
+    // ============================
     // DELETE SESSION (JSON)
     // ============================
     [HttpPost]
@@ -241,7 +311,8 @@ public class SessionsController : Controller
             .Include(s => s.Tickets)
             .Include(s => s.Sessionprices)
             .FirstOrDefaultAsync(s => s.Id == id);
-            if (session == null)
+
+        if (session == null)
             return Json(new { success = false, message = "Сеанс не знайдено." });
 
         if (session.Tickets.Any())
@@ -274,6 +345,7 @@ public class SessionsController : Controller
     {
         ViewBag.Movies = _context.Movies.ToList();
         ViewBag.Cinemas = _context.Cinemas.Where(c => c.Isactive).ToList();
+
         ViewBag.Halls = model.CinemaId > 0
             ? _context.Halls.Where(h => h.Cinemaid == model.CinemaId && h.Isactive).ToList()
             : new List<Hall>();
