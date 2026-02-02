@@ -1,0 +1,166 @@
+﻿@model Cinema.Web.Models.Sessions.SessionDetailsVm
+@{
+    ViewData["Title"] = "Деталі сеансу";
+}
+
+<div class="container mt-4">
+
+    <!-- Навігація -->
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <!-- ✅ Главная кнопка "Назад" -> возвращает в DetailsHub -->
+        <a asp-controller="Sessions" asp-action="DetailsHub" class="btn btn-outline-secondary">
+            ⬅️ Назад до деталей сеансу
+        </a>
+
+        <!-- ✅ Отдельная кнопка в расписание -->
+        <a asp-controller="Sessions" asp-action="Index" class="btn btn-outline-secondary">
+            🗓 До розкладу
+        </a>
+
+        <!-- ✅ Отдельно на главную -->
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-dark">
+            🏠 На головну
+        </a>
+
+        <!-- ✅ Покупка -->
+        <a asp-controller="Tickets" asp-action="Book" asp-route-sessionId="@Model.SessionId" class="btn btn-success">
+            Купити квиток 🎟
+        </a>
+    </div>
+
+    <h2 class="mb-3">🎬 @Model.MovieTitle</h2>
+
+    <!-- ✅ ВАЖНО: row обязателен, иначе col-lg-* не работают -->
+    <div class="row g-4">
+
+        <!-- ========== ІНФОРМАЦІЯ ПРО СЕАНС ========== -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <h5 class="mb-3">ℹ️ Інформація</h5>
+
+                    <p class="mb-2"><b>Кінотеатр:</b> @Model.CinemaName</p>
+                    <p class="mb-2"><b>Зал:</b> @Model.HallName</p>
+
+                    <hr />
+
+                    <p class="mb-2"><b>Початок:</b> @Model.StartTime.ToString("dd.MM.yyyy HH:mm")</p>
+                    <p class="mb-2"><b>Завершення:</b> @Model.EndTime.ToString("dd.MM.yyyy HH:mm")</p>
+                    <p class="mb-2"><b>Тривалість:</b> @Model.Duration хв.</p>
+
+                    <hr />
+
+                    <p class="mb-2">
+                        <b>Вікові обмеження:</b>
+                        @(string.IsNullOrWhiteSpace(Model.AgeRestriction) ? "—" : Model.AgeRestriction)
+                    </p>
+
+
+                    <p class="mb-0">
+                        <b>Дата релізу:</b>
+                        @(Model.ReleaseDate == null ? "—" : Model.ReleaseDate.Value.ToString("dd.MM.yyyy"))
+                    </p>
+
+                    <hr />
+
+<h6 class="mb-2">💸 Ціни на квитки</h6>
+
+@if (Model.Prices == null || !Model.Prices.Any())
+{
+    <div class="text-muted">Немає цін для цього сеансу.</div>
+}
+else
+{
+    <ul class="list-group list-group-flush">
+        @foreach (var p in Model.Prices)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>@p.CategoryName</span>
+                <span class="fw-bold">@p.Price ₴</span>
+            </li>
+        }
+    </ul>
+}
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== СХЕМА МІСЦЬ ========== -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <h5 class="mb-3 text-center">Схема місць</h5>
+
+                    @if (Model.Seats == null || !Model.Seats.Any())
+                    {
+                        <div class="alert alert-warning mb-0">
+                            Місця для цього залу не знайдені 😿
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center fw-bold mb-3">ЕКРАН</div>
+
+                        <!-- ✅ защита от "съезжания": если ширина не влезла — скролл -->
+                        <div class="w-100" style="overflow-x:auto;">
+                            <div style="min-width: 620px; display:flex; flex-direction:column; gap:12px; align-items:center;">
+
+                                @for (int r = 1; r <= Model.Rows; r++)
+                                {
+                                    <div style="display:flex; align-items:center; gap:8px; white-space:nowrap;">
+                                        <div style="width:60px; text-align:right; opacity:0.7;">
+                                            Ряд @r
+                                        </div>
+
+                                        <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+                                            @for (int n = 1; n <= Model.SeatsPerRow; n++)
+                                            {
+                                                var seat = Model.Seats.FirstOrDefault(x => x.Row == r && x.Number == n);
+                                                if (seat == null)
+                                                {
+                                                    <span style="display:inline-block; width:42px; height:32px; opacity:0.15; border:1px dashed #ccc;"></span>
+                                                }
+                                                else if (seat.IsTaken)
+                                                {
+                                                    <button type="button"
+                                                            disabled
+                                                            title="Зайнято"
+                                                            style="width:42px;height:32px; opacity:0.4; border-radius:6px; border:1px solid #999;">
+                                                        @n
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button"
+                                                            title="Вільне"
+                                                            onclick="location.href='@Url.Action("Book","Tickets", new { sessionId = Model.SessionId })'"
+                                                            style="width:42px;height:32px; border-radius:6px; border:1px solid #333; background:#fff;">
+                                                        @n
+                                                    </button>
+                                                }
+                                            }
+                                        </div>
+
+                                        <div style="width:60px; opacity:0.7;">
+                                            Ряд @r
+                                        </div>
+                                    </div>
+                                }
+
+                            </div>
+                        </div>
+
+                        <div class="mt-3 small text-muted text-center">
+                            ⚪️ Вільні — клікабельні (перехід до покупки) • 🔒 Зайняті — недоступні
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

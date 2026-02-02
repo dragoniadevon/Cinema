@@ -118,21 +118,20 @@ public class CinemasController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Archive(int id)
     {
-        // 1. ВАЖЛИВО: Додаємо Include(s => s.Sessionprices), щоб EF знав про зв'язані ціни
         var cinema = await _context.Cinemas
             .Include(c => c.Halls)
                 .ThenInclude(h => h.Sessions)
                     .ThenInclude(s => s.Tickets)
             .Include(c => c.Halls)
                 .ThenInclude(h => h.Sessions)
-                    .ThenInclude(s => s.Sessionprices) // Додаємо завантаження цін
+                    .ThenInclude(s => s.Sessionprices)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (cinema == null) return NotFound();
 
         cinema.Isactive = !cinema.Isactive;
 
-        if (!cinema.Isactive) // Якщо архівуємо кінотеатр
+        if (!cinema.Isactive)
         {
             foreach (var hall in cinema.Halls)
             {
@@ -144,14 +143,12 @@ public class CinemasController : Controller
                 {
                     if (session.Tickets.Any())
                     {
-                        session.Isactive = false; // Якщо є квитки — тільки скасовуємо
+                        session.Isactive = false;
                     }
                     else
                     {
-                        // 2. Спочатку видаляємо всі ціни, закріплені за цим сеансом
                         _context.Sessionprices.RemoveRange(session.Sessionprices);
 
-                        // 3. Тепер SQL Server дозволить видалити сам сеанс
                         _context.Sessions.Remove(session);
                     }
                 }

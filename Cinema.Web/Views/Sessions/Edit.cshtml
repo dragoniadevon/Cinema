@@ -1,4 +1,4 @@
-﻿@model Cinema.Infrastructure.Entities.Session
+﻿@model Cinema.Web.Models.Sessions.EditSessionViewModel
 @using Cinema.Infrastructure.Entities.Enums
 
 @{
@@ -6,87 +6,101 @@
 }
 
 <div class="row justify-content-center">
-    <div class="col-12 col-lg-8 col-xl-6"> @* Обмежуємо ширину на великих екранах *@
-        
+    <div class="col-12 col-lg-8 col-xl-6">
+
         <h1 class="mb-4 text-center">✏️ Редагувати сеанс</h1>
 
         <div class="card shadow-sm">
-            <div class="card-body p-4"> @* Додано внутрішній відступ p-4 *@
-                <form asp-action="Edit" method="post" id="editSessionForm">
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="Id" />
-                    
-                    @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
+
+                    @Html.ValidationSummary(false, "", new { @class = "text-danger mb-3" })
 
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label fw-bold">Фільм</label>
-                            <select asp-for="Movieid" class="form-select js-movie-select" required>
+                            <select asp-for="MovieId" class="form-select js-movie-select">
                                 @foreach (var movie in (List<Cinema.Infrastructure.Entities.Movie>)ViewBag.Movies)
                                 {
                                     <option value="@movie.Id">@movie.Title</option>
                                 }
                             </select>
-                            <span asp-validation-for="Movieid" class="text-danger"></span>
+                            <span asp-validation-for="MovieId" class="text-danger"></span>
                         </div>
 
-                        <div class="col-md-6"> @* Зроблено на всю ширину для кращого вигляду у вузькій формі *@
+                        <div class="col-md-6">
                             <label class="form-label fw-bold">Кінотеатр</label>
                             <select id="cinemaSelect" class="form-select">
                                 @foreach (var cinema in ViewBag.Cinemas)
                                 {
-                                    <option value="@cinema.Id" selected="@(cinema.Id == Model.Hall?.Cinemaid)">
-                                        @cinema.DisplayName
-                                    </option>
+                                    <option value="@cinema.Id">@cinema.DisplayName</option>
                                 }
                             </select>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Зал</label>
-                            <select asp-for="Hallid" id="hallSelect" class="form-select" required>
+                            <select asp-for="HallId" id="hallSelect" class="form-select">
                                 @foreach (var hall in (List<Cinema.Infrastructure.Entities.Hall>)ViewBag.Halls)
                                 {
-                                    <option value="@hall.Id" data-hall-type="@hall.Halltype" selected="@(hall.Id == Model.Hallid)">@hall.Name</option>
+                                    <option value="@hall.Id" data-hall-type="@hall.Halltype" 
+                                            selected="@(hall.Id == Model.HallId)">
+                                        @hall.Name
+                                    </option>
                                 }
                             </select>
-                            <span asp-validation-for="Hallid" class="text-danger"></span>
+                            <span asp-validation-for="HallId" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Час початку</label>
-                            <input asp-for="Starttime" type="datetime-local" class="form-control" required
-                                   value="@Model.Starttime.ToString("yyyy-MM-ddTHH:mm")" />
-                            <span asp-validation-for="Starttime" class="text-danger"></span>
+                            <input asp-for="StartTime"
+                                   type="datetime-local"
+                                   class="form-control"
+                                   value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
+                            <span asp-validation-for="StartTime" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Формат</label>
-                            <select asp-for="Format" class="form-select" asp-items="Html.GetEnumSelectList<SessionFormat>()"></select>
+                            <select asp-for="Format"
+                                    class="form-select"
+                                    asp-items="Html.GetEnumSelectList<SessionFormat>()">
+                            </select>
                             <span asp-validation-for="Format" class="text-danger"></span>
                         </div>
                     </div>
 
                     <hr class="my-4" />
-                    
-                    <h5 class="mb-3 text-primary"><i class="bi bi-cash-stack"></i> Ціни на квитки</h5>
-                    
-                    <div id="pricesContainer" class="p-3 bg-light rounded border mb-4">
-                        @foreach (var category in (List<Cinema.Infrastructure.Entities.Pricecategory>)ViewBag.PriceCategories)
+
+                    @{
+                        var categories = (List<Cinema.Infrastructure.Entities.Pricecategory>)ViewBag.PriceCategories;
+                    }
+
+                    <h5 class="mb-3 text-primary">💰 Ціни на квитки</h5>
+
+                    <div class="p-3 bg-light rounded border">
+                        @for (int i = 0; i < categories.Count; i++)
                         {
-                            var existingPrice = Model.Sessionprices?.FirstOrDefault(sp => sp.Categoryid == category.Id);
-                            <div class="row mb-3 price-row align-items-center" data-category="@category.Name" style="display:none">
+                            var category = categories[i];
+                            decimal currentPrice = Model.CategoryPrices.Length > i ? Model.CategoryPrices[i] : 0;
+
+                            <div class="row mb-3 price-row align-items-center" data-category="@category.Name">
                                 <div class="col-sm-5">
                                     <label class="form-label mb-0">@category.Name</label>
-                                    <input type="hidden" name="PriceCategoryIds" value="@category.Id" />
+                                    <input type="hidden" name="PriceCategoryIds[@i]" value="@category.Id" />
                                 </div>
                                 <div class="col-sm-7">
                                     <div class="input-group">
-                                        <input name="CategoryPrices" class="form-control price-input text-end" 
-                                               type="text" 
-                                               inputmode="decimal" 
-                                               pattern="[0-9]*[.,]?[0-9]+" 
-                                               value="@(existingPrice?.Price.ToString("F2").Replace(',', '.') ?? "0.00")" />
+                                        <input name="CategoryPrices[@i]" 
+                                               class="form-control price-input text-end" 
+                                               type="number" 
+                                               step="1" 
+                                               min="0"
+                                               inputmode="numeric"
+                                               value="@((int)currentPrice)" />
                                         <span class="input-group-text">грн</span>
                                     </div>
                                 </div>
@@ -94,79 +108,13 @@
                         }
                     </div>
 
-                    <div class="d-grid gap-2 d-md-flex">
-                        <button type="submit" class="btn btn-primary px-5" id="submitBtn">Зберегти зміни</button>
-                        <a asp-action="Index" class="btn btn-outline-secondary px-4">Скасувати</a>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Зберегти</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Скасувати</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
-
-@section Scripts {
-    <script>
-        const hallSelect = document.getElementById("hallSelect");
-        const cinemaSelect = document.getElementById("cinemaSelect");
-        const submitBtn = document.getElementById("submitBtn");
-
-        function updatePriceVisibility() {
-            const selected = hallSelect.options[hallSelect.selectedIndex];
-            const hallType = parseInt(selected?.dataset?.hallType);
-
-            if (!hallType) {
-                document.querySelectorAll(".price-row").forEach(r => r.style.display = "none");
-                return;
-            }
-
-            document.querySelectorAll(".price-row").forEach(row => {
-                const category = row.dataset.category;
-                let show = (hallType === 1 && category === "Standard") ||
-                           (hallType === 2 && category === "VIP") ||
-                           (hallType === 3 && (category === "Standard" || category === "VIP"));
-
-                row.style.display = show ? "flex" : "none";
-            });
-            validatePrices();
-        }
-
-        function validatePrices() {
-            const visibleInputs = [...document.querySelectorAll(".price-row")]
-                .filter(row => row.style.display === "flex")
-                .map(row => row.querySelector(".price-input"));
-
-            let allValid = visibleInputs.length > 0 && visibleInputs.every(input => {
-                const val = parseFloat(input.value.replace(',', '.'));
-                return !isNaN(val) && val > 0;
-            });
-
-            submitBtn.disabled = !allValid;
-        }
-
-        cinemaSelect.addEventListener("change", function () {
-            const cinemaId = this.value;
-            hallSelect.disabled = true;
-            fetch(`/Sessions/GetHallsByCinema?cinemaId=${cinemaId}`)
-                .then(r => r.json())
-                .then(data => {
-                    hallSelect.disabled = false;
-                    hallSelect.innerHTML = '<option value="">— Оберіть зал —</option>';
-                    data.forEach(h => {
-                        hallSelect.innerHTML += `<option value="${h.id}" data-hall-type="${h.halltype}">${h.name}</option>`;
-                    });
-                    updatePriceVisibility();
-                });
-        });
-
-        hallSelect.addEventListener("change", updatePriceVisibility);
-        document.querySelectorAll(".price-input").forEach(i => i.addEventListener("input", validatePrices));
-
-        $(document).ready(function() {
-            if (typeof $.fn.select2 !== 'undefined') {
-                $('.js-movie-select').select2({ width: '100%' });
-            }
-            updatePriceVisibility(); 
-        });
-    </script>
-}

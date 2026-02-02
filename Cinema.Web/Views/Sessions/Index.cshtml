@@ -10,13 +10,11 @@
         <a asp-action="Create" class="btn btn-primary shadow-sm">+ Додати сеанс</a>
     </div>
 
-    @* --- Блок фільтрів --- *@
     <div class="card mb-4 border-0 shadow-sm bg-light">
         <div class="card-body">
             <form method="get" asp-action="Index" class="row g-3 align-items-end">
                 <input type="hidden" name="mode" value="@(ViewBag.CurrentMode ?? "active")" />
                 
-                @* Фільтр по Місту *@
                 <div class="col-md-3">
                     <label class="form-label small fw-bold">Місто</label>
                     <select name="city" class="form-select border-0 shadow-sm">
@@ -28,14 +26,12 @@
                     </select>
                 </div>
 
-                @* Фільтр по Кінотеатру (ОНОВЛЕНО) *@
                 <div class="col-md-3">
                     <label class="form-label small fw-bold">Кінотеатр</label>
                     <select name="cinemaId" class="form-select border-0 shadow-sm">
                         <option value="">Всі кінотеатри</option>
                         @foreach (var cinema in ViewBag.Cinemas)
                         {
-                            @* Додано data-city для JavaScript та прибрано місто з назви *@
                             <option value="@cinema.Id" 
                                     data-city="@cinema.City" 
                                     selected="@(ViewBag.SelectedCinema == cinema.Id)">
@@ -58,7 +54,6 @@
         </div>
     </div>
 
-    @* --- Таби: Активні / Архів / Скасовані --- *@
     <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm">
         <li class="nav-item">
             <a class="nav-link @(ViewBag.CurrentMode == "active" ? "active" : "")" 
@@ -104,7 +99,6 @@
                                         <i class="bi bi-geo-alt-fill"></i> @cinema.CinemaName
                                     </h5>
                                     
-                                    @* Додано місто поряд з назвою кінотеатру *@
                                     <div class="text-muted small mb-3">
                                         @{
                                             var cinemaData = ((IEnumerable<Cinema.Infrastructure.Entities.Cinema>)ViewBag.Cinemas)
@@ -118,11 +112,8 @@
                                         {
                                             <div class="movie-box mb-3 p-2 border rounded bg-light shadow-sm">
                                                 <div class="d-flex align-items-center mb-2">
-                                                    @* --- МАЛЕНЬКИЙ ПОСТЕР ФІЛЬМУ --- *@
                                                     <div class="flex-shrink-0 me-3">
                                                         @{
-                                                            // Отримуємо URL постера з моделі фільму
-                                                            // Припускаємо, що у вашій сутності Movie є поле Posterurl
                                                             var posterUrl = movie.Sessions.FirstOrDefault()?.Movie?.Posterurl;
                                                         }
                                                         @if (!string.IsNullOrEmpty(posterUrl))
@@ -140,7 +131,6 @@
                                                         }
                                                     </div>
 
-                                                    @* --- НАЗВА ТА ТРИВАЛІСТЬ --- *@
                                                     <div class="flex-grow-1 overflow-hidden">
                                                         <h6 class="fw-bold mb-0 text-dark text-truncate" title="@movie.Title" style="font-size: 1rem;">
                                                             @movie.Title
@@ -151,7 +141,6 @@
                                                     </div>
                                                 </div>
 
-                                                @* --- СЕАНСИ --- *@
                                                 <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top border-white">
                                                     @foreach (var session in movie.Sessions)
                                                     {
@@ -162,7 +151,6 @@
                                                             </button>
                     
                                                             <ul class="dropdown-menu shadow-lg border-0 p-3" style="min-width: 250px;">
-                                                                @* --- Інформація про сеанс --- *@
                                                                 <li class="mb-1 text-start">
                                                                     <div class="small text-muted">
                                                                         <i class="bi bi-door-open me-1"></i> Зал: <strong>@session.Hall.Name</strong>
@@ -171,12 +159,10 @@
                                                                 <li class="mb-2 text-start">
                                                                     <div class="small text-muted">
                                                                         <i class="bi bi-layers me-1"></i> Формат: 
-                                                                        @* Логіка перетворення чисел у 2D/3D *@
                                                                         <strong>@(session.Format == 1 ? "2D" : (session.Format == 2 ? "3D" : session.Format.ToString()))</strong>
                                                                     </div>
                                                                 </li>
 
-                                                                @* --- Кількість квитків --- *@
                                                                 @if (session.Tickets.Any())
                                                                 {
                                                                     <li class="mb-2 text-start">
@@ -188,7 +174,6 @@
 
                                                                 <hr class="dropdown-divider">
 
-                                                                @* --- Кнопки дій --- *@
                                                                 <div class="d-flex flex-column gap-2 text-start">
                                                                     <a asp-action="Details" asp-route-id="@session.Id" class="btn btn-sm btn-light border">👁️ Детальніше</a>
                                 
@@ -234,7 +219,6 @@
     }
 </div>
 
-@* --- Модальні вікна --- *@
 <div class="modal fade" id="deleteSessionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -281,7 +265,6 @@
 
 @section Scripts {
     <script>
-        // Обробка модального вікна видалення
         const deleteSessionModal = document.getElementById('deleteSessionModal');
         deleteSessionModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
@@ -291,7 +274,6 @@
             document.getElementById('deleteSessionForm').action = '/Sessions/Delete/' + id;
         });
 
-        // Обробка модального вікна скасування
         const cancelSessionModal = document.getElementById('cancelSessionModal');
         cancelSessionModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
@@ -301,7 +283,6 @@
             document.getElementById('cancelSessionForm').action = '/Sessions/Cancel/' + id;
         });
 
-        // Авто-фільтрація списку кінотеатрів залежно від обраного міста
         document.querySelector('select[name="city"]').addEventListener('change', function() {
             const selectedCity = this.value.toLowerCase();
             const cinemaSelect = document.querySelector('select[name="cinemaId"]');
