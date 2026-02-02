@@ -9,8 +9,5 @@ public enum SessionFormat
 
     [Display(Name = "3D")]
     ThreeD = 2,
-
-    [Display(Name = "IMAX")]
-    IMAX = 3
 }
 

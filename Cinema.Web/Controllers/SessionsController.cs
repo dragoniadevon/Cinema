@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
-using Cinema.Infrastructure.Entities.Enums; // Додано для форматів
+using Cinema.Infrastructure.Entities.Enums;
 
 namespace Cinema.Web.Controllers
 {
@@ -19,7 +19,6 @@ namespace Cinema.Web.Controllers
             _context = context;
         }
 
-        // Допоміжний метод для наповнення ViewBag при редагуванні (схожий на FillCreateViewBags)
         private async Task FillEditViewBags(Session session)
         {
             ViewBag.Movies = await _context.Movies.ToListAsync();
@@ -27,11 +26,10 @@ namespace Cinema.Web.Controllers
                 .Where(c => c.Isactive)
                 .Select(c => new {
                     Id = c.Id,
-                    // Об'єднуємо назву та місто для випадаючого списку
                     DisplayName = $"{c.Name} ({c.City})"
                 })
                 .ToList();
-            // Завантажуємо зали того кінотеатру, якому належить поточний зал сеансу
+
             var currentHall = await _context.Halls.AsNoTracking().FirstOrDefaultAsync(h => h.Id == session.Hallid);
             if (currentHall != null)
             {
@@ -47,85 +45,95 @@ namespace Cinema.Web.Controllers
             ViewBag.PriceCategories = await _context.Pricecategories.ToListAsync();
         }
 
-        // ================= INDEX =================
-        public async Task<IActionResult> Index(int? cinemaId, DateTime? date, bool showArchived = false)
+        // ================= INDEX (ОНОВЛЕНО: ДОДАНО ФІЛЬТР ПО МІСТУ) =================
+        public async Task<IActionResult> Index(int? cinemaId, string city, DateTime? date, string mode = "active")
         {
-            // 1. Отримуємо дані з бази (цей блок у вас вже є)
+            mode = string.IsNullOrEmpty(mode) ? "active" : mode;
+            ViewBag.CurrentMode = mode;
+
             var query = _context.Sessions
                 .Include(s => s.Movie)
-                .Include(s => s.Hall)
-                    .ThenInclude(h => h.Cinema)
-                .Include(s => s.Hall)
-                    .ThenInclude(h => h.Seats)
+                .Include(s => s.Hall).ThenInclude(h => h.Cinema)
                 .Include(s => s.Tickets)
                 .AsQueryable();
 
-            query = showArchived ? query.Where(s => s.Isactive == false) : query.Where(s => s.Isactive == true);
+            // 1. Фільтрація за режимом (active/past/cancelled)
+            if (mode == "past")
+                query = query.Where(s => s.Isactive == true && s.Endtime < DateTime.Now);
+            else if (mode == "cancelled")
+                query = query.Where(s => s.Isactive == false || s.Hall.Isactive == false);
+            else
+                query = query.Where(s => s.Isactive == true && s.Hall.Isactive == true && s.Endtime >= DateTime.Now);
 
-            if (cinemaId.HasValue) query = query.Where(s => s.Hall.Cinemaid == cinemaId.Value);
-
-            if (date.HasValue)
+            // 2. Фільтр по місту (Додано)
+            if (!string.IsNullOrEmpty(city))
             {
-                var targetDate = date.Value.Date;
-                var start = targetDate;
-                var end = targetDate.AddDays(1);
-
-                query = query.Where(s =>
-                    s.Starttime >= start &&
-                    s.Starttime < end);
-            }
-            else if (!showArchived)
-            {
-                query = query.Where(s => s.Starttime.Date >= DateTime.Today);
+                query = query.Where(s => s.Hall.Cinema.City == city);
             }
 
-            var sessions = await query.OrderBy(s => s.Starttime).ToListAsync();
-            foreach (var s in sessions)
+            // 3. Фільтр по конкретному кінотеатру
+            if (cinemaId.HasValue)
             {
-                Console.WriteLine(
-                    $"ID={s.Id} | DB={s.Starttime:yyyy-MM-dd HH:mm} | Local={s.Starttime.ToLocalTime():yyyy-MM-dd HH:mm}"
-                );
+                query = query.Where(s => s.Hall.Cinemaid == cinemaId.Value);
             }
-            // 2. 🔥 ТУТ ВІДБУВАЄТЬСЯ МАГІЯ ГРУПУВАННЯ (Перетворюємо List<Session> у List<SessionsByDateVm>)
+
+            // 4. Фільтр по даті
+            if (date.HasValue) query = query.Where(s => s.Starttime.Date == date.Value.Date);
+
+            var sessions = await query.OrderByDescending(s => s.Starttime).ToListAsync();
+
+            // 5. Групування (залишається без змін)
+            // 4. Групування (з захистом від Null)
             var model = sessions
-                .GroupBy(s => s.Starttime.ToLocalTime().Date) // Групуємо по днях
+                .GroupBy(s => s.Starttime.ToLocalTime().Date)
                 .OrderBy(g => g.Key)
                 .Select(dateGroup => new SessionsByDateVm
                 {
                     Date = dateGroup.Key,
+                    // Перевіряємо, чи є взагалі зали та кінотеатри у сеансів за цю дату
                     Cinemas = dateGroup
-                        .GroupBy(s => s.Hall.Cinemaid) // Групуємо по кінотеатрах всередині дня
+                        .Where(s => s.Hall?.Cinema != null) // Додаємо цей фільтр-захист
+                        .GroupBy(s => s.Hall.Cinemaid)
                         .OrderBy(g => g.First().Hall.Cinema.Name)
                         .Select(cinemaGroup => new SessionsByCinemaVm
                         {
-                            // Помилка була тут. Додаємо .Value, бо Cinemaid у базі може бути null
-                            CinemaId = cinemaGroup.Key.Value,
+                            CinemaId = cinemaGroup.Key ?? 0,
                             CinemaName = cinemaGroup.First().Hall.Cinema.Name,
                             Movies = cinemaGroup
+                                .Where(s => s.Movie != null) // Захист для фільмів
                                 .GroupBy(s => s.Movieid)
                                 .OrderBy(g => g.First().Movie.Title)
                                 .Select(movieGroup => new SessionsByMovieVm
                                 {
-                                    // Помилка була тут. Додаємо .Value
-                                    MovieId = movieGroup.Key.Value,
+                                    MovieId = movieGroup.Key ?? 0,
                                     Title = movieGroup.First().Movie.Title,
                                     Duration = movieGroup.First().Movie.Duration,
                                     Sessions = movieGroup.OrderBy(s => s.Starttime).ToList()
                                 }).ToList()
                         }).ToList()
-                }).ToList();
+                })
+                .Where(d => d.Cinemas.Any()) // Не показуємо дату, якщо в ній немає валідних кінотеатрів
+                .ToList();
 
-            // 3. Дані для фільтрів (це у вас теж було)
-            ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive).ToListAsync();
+            // 6. Дані для фільтрів у View
+            // Отримуємо тільки ті міста, в яких є кінотеатри в базі
+            ViewBag.Cities = await _context.Cinemas
+                .Where(c => c.Isactive == true)
+                .Select(c => c.City)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+
+            ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive == true).ToListAsync();
+
+            ViewBag.SelectedCity = city;
             ViewBag.SelectedCinema = cinemaId;
             ViewBag.SelectedDate = date?.ToString("yyyy-MM-dd");
-            ViewBag.ShowArchived = showArchived;
 
-            // 4. ПЕРЕДАЄМО НОВУ МОДЕЛЬ У VIEW
             return View(model);
         }
 
-        // ================= CREATE (Код залишається без змін) =================
+        // ================= CREATE =================
         public IActionResult Create()
         {
             var now = DateTime.Now;
@@ -168,7 +176,6 @@ namespace Cinema.Web.Controllers
             var movie = await _context.Movies.FindAsync(model.MovieId);
             var hall = await _context.Halls.FindAsync(model.HallId);
 
-            // Визначаємо кількість повторів: 7 або 1
             int iterations = model.RepeatDaily ? 7 : 1;
 
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -176,11 +183,9 @@ namespace Cinema.Web.Controllers
             {
                 for (int i = 0; i < iterations; i++)
                 {
-                    // Кожна наступна ітерація додає 1 день до початкової дати
                     DateTime currentStart = model.StartTime.AddDays(i);
                     DateTime currentEnd = currentStart.AddMinutes(movie.Duration ?? 0);
 
-                    // Перевірка накладання для кожного дня
                     bool isOverlapping = await _context.Sessions.AnyAsync(s =>
                         s.Hallid == hall.Id && currentStart < s.Endtime && currentEnd > s.Starttime);
 
@@ -202,9 +207,8 @@ namespace Cinema.Web.Controllers
                     };
 
                     _context.Sessions.Add(session);
-                    await _context.SaveChangesAsync(); // Щоб отримати ID сеансу для цін
+                    await _context.SaveChangesAsync();
 
-                    // Додаємо ціни для кожного з 7 сеансів
                     var prices = model.Prices.Where(p => p.Price > 0).Select(p => new Sessionprice
                     {
                         Sessionid = session.Id,
@@ -227,7 +231,7 @@ namespace Cinema.Web.Controllers
             }
         }
 
-        // ================= EDIT (З НОВИМИ ПОЛЯМИ) =================
+        // ================= EDIT =================
         public async Task<IActionResult> Edit(int id)
         {
             var session = await _context.Sessions
@@ -239,7 +243,6 @@ namespace Cinema.Web.Controllers
 
             if (session == null) return NotFound();
 
-            // Перевірка: якщо є квитки, не пускаємо на сторінку редагування
             if (session.Tickets.Any())
             {
                 TempData["Error"] = "Редагування заблоковано: на цей сеанс уже продано квитки.";
@@ -256,6 +259,14 @@ namespace Cinema.Web.Controllers
         {
             if (id != session.Id) return NotFound();
 
+            // 1. Отримуємо ОРИГІНАЛЬНИЙ об'єкт із бази, щоб оновити тільки потрібні поля
+            var sessionToUpdate = await _context.Sessions
+                .Include(s => s.Sessionprices)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (sessionToUpdate == null) return NotFound();
+
+            // 2. Отримуємо тривалість фільму для перерахунку Endtime
             var movie = await _context.Movies.AsNoTracking().FirstOrDefaultAsync(m => m.Id == session.Movieid);
             if (movie == null)
             {
@@ -264,13 +275,13 @@ namespace Cinema.Web.Controllers
                 return View(session);
             }
 
-            session.Endtime = session.Starttime.AddMinutes(movie.Duration ?? 0);
-
+            // 3. Перевірка на накладання (виключаємо поточний сеанс)
+            DateTime endTime = session.Starttime.AddMinutes(movie.Duration ?? 0);
             bool isOverlapping = await _context.Sessions.AnyAsync(s =>
                 s.Id != id &&
                 s.Hallid == session.Hallid &&
                 session.Starttime < s.Endtime &&
-                session.Endtime > s.Starttime
+                endTime > s.Starttime
             );
 
             if (isOverlapping)
@@ -285,11 +296,16 @@ namespace Cinema.Web.Controllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    _context.Update(session);
+                    // 4. Оновлюємо основні поля вручну (це найнадійніший спосіб)
+                    sessionToUpdate.Movieid = session.Movieid;
+                    sessionToUpdate.Hallid = session.Hallid;
+                    sessionToUpdate.Starttime = session.Starttime;
+                    sessionToUpdate.Endtime = endTime;
+                    sessionToUpdate.Format = session.Format;
+                    sessionToUpdate.Isactive = true;
 
-                    // Оновлення цін: видаляємо старі та додаємо нові
-                    var oldPrices = _context.Sessionprices.Where(sp => sp.Sessionid == id);
-                    _context.Sessionprices.RemoveRange(oldPrices);
+                    // 5. Оновлюємо ціни
+                    _context.Sessionprices.RemoveRange(sessionToUpdate.Sessionprices);
 
                     if (PriceCategoryIds != null)
                     {
@@ -311,10 +327,10 @@ namespace Cinema.Web.Controllers
                     await transaction.CommitAsync();
                     return RedirectToAction(nameof(Index));
                 }
-                catch
+                catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ModelState.AddModelError("", "Помилка при збереженні.");
+                    ModelState.AddModelError("", "Помилка при збереженні: " + ex.Message);
                 }
             }
 
@@ -336,19 +352,8 @@ namespace Cinema.Web.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Деактивуємо сеанс
                 session.Isactive = false;
                 _context.Update(session);
-
-                // 2. Деактивуємо всі квитки на цей сеанс (робимо їх недійсними)
-                if (session.Tickets.Any())
-                {
-                    foreach (var ticket in session.Tickets)
-                    {
-                        // ticket.Isactive = false; // Зніміть коментар, якщо у квитка є поле Isactive
-                        // Або якщо у вас є статус: ticket.Status = TicketStatus.Cancelled;
-                    }
-                }
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -362,7 +367,7 @@ namespace Cinema.Web.Controllers
             }
         }
 
-        // ================= DELETE (Оновлено) =================
+        // ================= DELETE =================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
@@ -374,7 +379,6 @@ namespace Cinema.Web.Controllers
 
             if (session == null) return Json(new { success = false, message = "Сеанс не знайдено." });
 
-            // Якщо квитки вже є, ми не дозволяємо видалення, пропонуємо тільки скасування
             if (session.Tickets.Any())
             {
                 return Json(new

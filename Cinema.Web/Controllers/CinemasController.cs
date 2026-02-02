@@ -118,15 +118,48 @@ public class CinemasController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Archive(int id)
     {
-        var cinema = await _context.Cinemas.Include(c => c.Halls).FirstOrDefaultAsync(m => m.Id == id);
+        // 1. ВАЖЛИВО: Додаємо Include(s => s.Sessionprices), щоб EF знав про зв'язані ціни
+        var cinema = await _context.Cinemas
+            .Include(c => c.Halls)
+                .ThenInclude(h => h.Sessions)
+                    .ThenInclude(s => s.Tickets)
+            .Include(c => c.Halls)
+                .ThenInclude(h => h.Sessions)
+                    .ThenInclude(s => s.Sessionprices) // Додаємо завантаження цін
+            .FirstOrDefaultAsync(m => m.Id == id);
+
         if (cinema == null) return NotFound();
 
         cinema.Isactive = !cinema.Isactive;
-        foreach (var hall in cinema.Halls) { hall.Isactive = cinema.Isactive; }
 
-        _context.Update(cinema);
+        if (!cinema.Isactive) // Якщо архівуємо кінотеатр
+        {
+            foreach (var hall in cinema.Halls)
+            {
+                hall.Isactive = false;
+
+                var futureSessions = hall.Sessions.Where(s => s.Starttime >= DateTime.Now).ToList();
+
+                foreach (var session in futureSessions)
+                {
+                    if (session.Tickets.Any())
+                    {
+                        session.Isactive = false; // Якщо є квитки — тільки скасовуємо
+                    }
+                    else
+                    {
+                        // 2. Спочатку видаляємо всі ціни, закріплені за цим сеансом
+                        _context.Sessionprices.RemoveRange(session.Sessionprices);
+
+                        // 3. Тепер SQL Server дозволить видалити сам сеанс
+                        _context.Sessions.Remove(session);
+                    }
+                }
+            }
+        }
+
         await _context.SaveChangesAsync();
-        TempData["Success"] = cinema.Isactive ? "Кінотеатр та його зали відновлено!" : "Об'єкт перенесено в архів.";
+        TempData["Success"] = cinema.Isactive ? "Кінотеатр відновлено!" : "Кінотеатр та порожні сеанси видалено.";
         return RedirectToAction(nameof(Index));
     }
 }

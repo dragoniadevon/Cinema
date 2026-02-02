@@ -182,15 +182,41 @@ public class HallsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ArchiveHall(int id)
     {
-        var hall = await _context.Halls.FindAsync(id);
+        // 1. Додаємо Include для Sessionprices, щоб EF знав про них
+        var hall = await _context.Halls
+            .Include(h => h.Sessions)
+                .ThenInclude(s => s.Tickets)
+            .Include(h => h.Sessions)
+                .ThenInclude(s => s.Sessionprices) // ВАЖЛИВО: завантажуємо ціни
+            .FirstOrDefaultAsync(h => h.Id == id);
+
         if (hall == null) return NotFound();
 
         hall.Isactive = !hall.Isactive;
 
-        _context.Update(hall);
-        await _context.SaveChangesAsync();
+        if (!hall.Isactive) // Відправляємо залу в архів
+        {
+            var futureSessions = hall.Sessions.Where(s => s.Starttime >= DateTime.Now).ToList();
 
-        TempData["Success"] = hall.Isactive ? "Зал відновлено!" : "Зал перенесено в архів!";
+            foreach (var session in futureSessions)
+            {
+                if (session.Tickets.Any())
+                {
+                    session.Isactive = false; // Тільки скасовуємо
+                }
+                else
+                {
+                    // 2. Спочатку видаляємо всі ціни цього сеансу
+                    _context.Sessionprices.RemoveRange(session.Sessionprices);
+
+                    // 3. Тепер видалення сеансу пройде успішно
+                    _context.Sessions.Remove(session);
+                }
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        TempData["Success"] = hall.Isactive ? "Зал відновлено!" : "Зал в архіві. Порожні сеанси та їх ціни видалені.";
         return RedirectToAction("Index", "Cinemas");
     }
 }
