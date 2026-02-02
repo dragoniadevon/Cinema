@@ -107,8 +107,7 @@ public class SessionsController : Controller
         var model = new CreateSessionViewModel();
         FillCreateViewBags(model);
 
-        // Якщо хочеш — можна одразу підставити стандартні ціни/категорії,
-        // але поки не чіпаємо, щоб не зламати твою логіку.
+        
         return View(model);
     }
     // POST: /Sessions/Create
@@ -147,10 +146,7 @@ public class SessionsController : Controller
         _context.Sessions.Add(session);
         await _context.SaveChangesAsync();
 
-        // 3) Якщо у вас є введення цін на Create — тут потрібно створити SessionPrices
-        // Але я НЕ роблю цього без твоєї структури SessionPrice/Sessionprices,
-        // бо у тебе там може бути інша назва поля ціни (Price/Amount/Value).
-        // Якщо хочеш — скинь Entity Sessionprice, я додам збереження цін 1:1.
+        
 
         return RedirectToAction(nameof(Index));
     }
