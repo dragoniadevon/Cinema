@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
-using Cinema.Web.Models.Sessions;
 using Cinema.Infrastructure.Entities.Enums;
+using Cinema.Web.Models.Sessions;
 
 namespace Cinema.Web.Controllers;
 
@@ -21,7 +21,6 @@ public class SessionsController : Controller
     // GET: /Sessions
     public async Task<IActionResult> Index(int? cinemaId, DateTime? date, bool showArchived = false)
     {
-        // Для селекта "Всі кінотеатри"
         ViewBag.Cinemas = await _context.Cinemas
             .Where(c => c.Isactive)
             .OrderBy(c => c.Name)
@@ -39,18 +38,15 @@ public class SessionsController : Controller
             .Include(s => s.Tickets)
             .AsQueryable();
 
-        // Фільтр по кінотеатру (Hall/Cinemaid можуть бути null)
         if (cinemaId.HasValue)
             q = q.Where(s => s.Hall != null && s.Hall.Cinemaid == cinemaId.Value);
 
-        // Фільтр по даті
         if (date.HasValue)
         {
             var d = date.Value.Date;
             q = q.Where(s => s.Starttime.Date == d);
         }
 
-        // Активні / Архів (активні = майбутні, архів = минулі)
         var now = DateTime.Now;
         if (!showArchived)
             q = q.Where(s => s.Starttime >= now);
@@ -61,7 +57,6 @@ public class SessionsController : Controller
             .OrderBy(s => s.Starttime)
             .ToListAsync();
 
-        // Групуємо під твій Index.cshtml
         var model = sessions
             .GroupBy(s => s.Starttime.Date)
             .OrderBy(g => g.Key)
@@ -69,14 +64,12 @@ public class SessionsController : Controller
             {
                 Date = dateGroup.Key,
                 Cinemas = dateGroup
-                    // ✅ Cinemaid може бути int? -> робимо ключ int
                     .GroupBy(s => s.Hall?.Cinemaid ?? 0)
                     .Select(cinemaGroup =>
                     {
                         var first = cinemaGroup.First();
                         return new SessionsByCinemaVm
                         {
-                            // ✅ CinemaId у VM int -> беремо ?? 0
                             CinemaId = first.Hall?.Cinemaid ?? 0,
                             CinemaName = first.Hall?.Cinema?.Name ?? "—",
                             Movies = cinemaGroup
@@ -115,9 +108,9 @@ public class SessionsController : Controller
             .Where(c => c.Isactive)
             .OrderBy(c => c.Name)
             .ToListAsync();
-            ViewBag.SelectedCinema = cinemaId;
-        ViewBag.SelectedDate = date?.ToString("yyyy-MM-dd");
 
+        ViewBag.SelectedCinema = cinemaId;
+        ViewBag.SelectedDate = date?.ToString("yyyy-MM-dd");
         var q = _context.Sessions
             .AsNoTracking()
             .Include(s => s.Movie)
@@ -135,12 +128,11 @@ public class SessionsController : Controller
             q = q.Where(s => s.Starttime.Date == d);
         }
 
-        // Показуємо тільки майбутні
         var now = DateTime.Now;
         q = q.Where(s => s.Starttime >= now);
 
         var sessions = await q.ToListAsync();
-        return View(sessions); // 👉 це буде Views/Sessions/DetailsHub.cshtml
+        return View(sessions);
     }
 
     // ============================
@@ -153,6 +145,11 @@ public class SessionsController : Controller
             .Include(s => s.Movie)
             .Include(s => s.Hall)
                 .ThenInclude(h => h.Cinema)
+
+            // ✅ НОВЕ: підтягуємо ціни + категорії
+            .Include(s => s.Sessionprices)
+                .ThenInclude(sp => sp.Category)
+
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (session == null)
@@ -165,7 +162,7 @@ public class SessionsController : Controller
             .ThenBy(s => s.Seatnumber)
             .ToListAsync();
 
-        // зайняті місця для цього сеансу
+        // зайняті місця
         var takenSeatIds = await _context.Tickets
             .Where(t => t.Sessionid == id && t.Seatid != null)
             .Select(t => t.Seatid!.Value)
@@ -193,24 +190,33 @@ public class SessionsController : Controller
             Duration = duration,
 
             AgeRestriction = movie?.Agerating switch
-{
-            null => null,
-
-             // 👇 подстрой под твои реальные значения enum AgeRating
+            {
+                null => null,
                 AgeRating.G => "0+",
                 AgeRating.PG => "6+",
                 AgeRating.PG13 => "12+",
                 AgeRating.R => "16+",
                 AgeRating.NC17 => "18+",
+                _ => movie!.Agerating.ToString()
+            },
 
-     _           => movie.Agerating.ToString()
-                },
             ReleaseDate = movie?.Releasedate.HasValue == true
                 ? movie.Releasedate.Value.ToDateTime(TimeOnly.MinValue)
                 : (DateTime?)null,
 
             Rows = hall?.Rows ?? 0,
             SeatsPerRow = hall?.Seatsperrow ?? 0,
+
+            // ✅ НОВЕ: ціни квитків в деталях
+            Prices = session.Sessionprices?
+                .OrderBy(sp => sp.Categoryid)
+                .Select(sp => new SessionPriceVm
+            {
+                CategoryId = sp.Categoryid ?? 0,
+                CategoryName = sp.Category?.Name ?? "—",
+                Price = sp.Price
+            })
+                .ToList() ?? new List<SessionPriceVm>(),
 
             Seats = seats.Select(s => new SeatDetailsVm
             {
@@ -221,7 +227,7 @@ public class SessionsController : Controller
             }).ToList()
         };
 
-        return View(vm); // 👉 Views/Sessions/Details.cshtml
+        return View(vm);
     }
 
     // ============================
@@ -235,11 +241,9 @@ public class SessionsController : Controller
             .Include(s => s.Tickets)
             .Include(s => s.Sessionprices)
             .FirstOrDefaultAsync(s => s.Id == id);
-
-        if (session == null)
+            if (session == null)
             return Json(new { success = false, message = "Сеанс не знайдено." });
 
-        // Якщо квитки вже є, не дозволяємо видалення
         if (session.Tickets.Any())
         {
             return Json(new

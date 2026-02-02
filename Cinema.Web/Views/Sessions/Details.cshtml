@@ -57,10 +57,32 @@
                         @(string.IsNullOrWhiteSpace(Model.AgeRestriction) ? "—" : Model.AgeRestriction)
                     </p>
 
+
                     <p class="mb-0">
                         <b>Дата релізу:</b>
                         @(Model.ReleaseDate == null ? "—" : Model.ReleaseDate.Value.ToString("dd.MM.yyyy"))
                     </p>
+
+                    <hr />
+
+<h6 class="mb-2">💸 Ціни на квитки</h6>
+
+@if (Model.Prices == null || !Model.Prices.Any())
+{
+    <div class="text-muted">Немає цін для цього сеансу.</div>
+}
+else
+{
+    <ul class="list-group list-group-flush">
+        @foreach (var p in Model.Prices)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>@p.CategoryName</span>
+                <span class="fw-bold">@p.Price ₴</span>
+            </li>
+        }
+    </ul>
+}
 
                 </div>
             </div>
