@@ -1,132 +1,171 @@
 ﻿@model Hall
 
-
 @{
     ViewData["Title"] = "✏️ Редагувати зал";
     bool hasSessions = ViewBag.HasSessions ?? false;
 }
 
-<h1 class="mb-4">✏️ Редагувати зал: @Model.Name</h1>
-<div asp-validation-summary="All" class="text-danger mb-4"></div>
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-6">
+        
+        <h1 class="mb-4 text-center">✏️ Редагувати зал: @Model.Name</h1>
 
-@if (hasSessions)
-{
-    <div class="alert alert-danger shadow-sm mb-4">
-        <i class="bi bi-lock-fill"></i> 
-        <strong>Увага!</strong> Редагування структури (тип, ряди, місця) заблоковано, оскільки для залу вже створено сеанси. Ви можете змінити лише назву.
-    </div>
-}
-else
-{
-    <div class="alert alert-warning shadow-sm mb-4">
-        <i class="bi bi-exclamation-triangle-fill"></i> 
-        <strong>Увага!</strong> Будь-яка зміна параметрів призведе до повної перегенерації схеми місць.
-    </div>
-}
+        @if (hasSessions)
+        {
+            <div class="alert alert-danger shadow-sm mb-4">
+                <i class="bi bi-lock-fill me-2"></i> 
+                <strong>Увага!</strong> Редагування структури заблоковано, оскільки для залу вже створено сеанси. Ви можете змінити лише назву.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning shadow-sm mb-4">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> 
+                <strong>Увага!</strong> Будь-яка зміна параметрів (ряди/місця) призведе до повної перегенерації схеми місць.
+            </div>
+        }
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form asp-action="Edit" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="Id" />
-            <input type="hidden" asp-for="Cinemaid" />
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post" id="editHallForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Cinemaid" />
 
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="Name" class="form-label">Назва залу</label>
-                    <input asp-for="Name" class="form-control" />
-                    <span asp-validation-for="Name" class="text-danger"></span>
-                </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
 
-                <div class="col-md-6">
-                    <label asp-for="Halltype" class="form-label">Тип залу</label>
-                    @if (hasSessions)
-                    {
-                        <input type="hidden" asp-for="Halltype" />
-                        <select class="form-select" disabled>
-                            <option value="@((short)HallType.Standard)" selected="@(Model.Halltype == (short)HallType.Standard)">Стандарт</option>
-                            <option value="@((short)HallType.VIP)" selected="@(Model.Halltype == (short)HallType.VIP)">VIP</option>
-                            <option value="@((short)HallType.Mixed)" selected="@(Model.Halltype == (short)HallType.Mixed)">Змішаний</option>
-                        </select>
-                    }
-                    else
-                    {
-                        <select asp-for="Halltype" id="editHallType" class="form-select">
-                            <option value="@((short)HallType.Standard)">Стандарт</option>
-                            <option value="@((short)HallType.VIP)">VIP</option>
-                            <option value="@((short)HallType.Mixed)">Змішаний (VIP останній ряд)</option>
-                        </select>
-                    }
-                </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label fw-bold">Назва залу</label>
+                            <input asp-for="Name" class="form-control" placeholder="Наприклад: Синій зал" required />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
 
-                <div class="col-md-6">
-                    <label asp-for="Rows" class="form-label">Кількість рядів</label>
-                    <input asp-for="Rows" type="number" class="form-control" min="1" max="50" 
-                           readonly="@(hasSessions ? "readonly" : null)" />
-                    <span asp-validation-for="Rows" class="text-danger"></span>
-                </div>
+                        <div class="col-md-6">
+                            <label asp-for="Halltype" class="form-label fw-bold">Тип залу</label>
+                            @if (hasSessions)
+                            {
+                                <input type="hidden" asp-for="Halltype" />
+                                <select class="form-select bg-light" disabled>
+                                    <option value="@((short)HallType.Standard)" selected="@(Model.Halltype == (short)HallType.Standard)">Стандарт</option>
+                                    <option value="@((short)HallType.VIP)" selected="@(Model.Halltype == (short)HallType.VIP)">VIP</option>
+                                    <option value="@((short)HallType.Mixed)" selected="@(Model.Halltype == (short)HallType.Mixed)">Змішаний</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select asp-for="Halltype" id="editHallType" class="form-select">
+                                    <option value="@((short)HallType.Standard)">Стандарт</option>
+                                    <option value="@((short)HallType.VIP)">VIP</option>
+                                    <option value="@((short)HallType.Mixed)">Змішаний (VIP останній ряд)</option>
+                                </select>
+                            }
+                        </div>
 
-                <div class="col-md-6">
-                    <label asp-for="Seatsperrow" class="form-label">Місць у звичайному ряду</label>
-                    <input asp-for="Seatsperrow" id="editStandardSeats" type="number" class="form-control" min="1" max="30" 
-                           readonly="@(hasSessions ? "readonly" : null)" />
-                    <span asp-validation-for="Seatsperrow" class="text-danger"></span>
-                </div>
+                        <div class="col-md-6">
+                            <label asp-for="Rows" class="form-label fw-bold">Кількість рядів</label>
+                            <input asp-for="Rows" type="number" class="form-control" min="1" max="50" required 
+                                   readonly="@(hasSessions ? "readonly" : null)" />
+                            <span asp-validation-for="Rows" class="text-danger small"></span>
+                        </div>
 
-                <div class="col-md-12" id="editVipContainer" style="display: none;">
-                    <div class="p-3 border rounded border-warning bg-light">
-                        <label class="form-label fw-bold text-warning">💎 VIP місць в останньому ряду</label>
-                        @{
-                            var currentVipCount = Model.Seats
-                                .Where(s => s.Rownumber == Model.Rows && s.Pricecategoryid == (int)SeatCategory.VIP)
-                                .Count();
-                            string displayValue = currentVipCount > 0 ? currentVipCount.ToString() : "";
-                        }
-                        <input name="vipSeats" id="editVipInput" type="number" class="form-control border-warning" 
-                               placeholder="Введіть кількість..." value="@displayValue" min="1"
-                               readonly="@(hasSessions ? "readonly" : null)" />
-                        <span class="text-danger" data-valmsg-for="vipSeats"></span>
+                        <div class="col-12">
+                            <label asp-for="Seatsperrow" class="form-label fw-bold">Місць у звичайному ряду</label>
+                            <input asp-for="Seatsperrow" id="editStandardSeats" type="number" class="form-control" min="1" max="30" required 
+                                   readonly="@(hasSessions ? "readonly" : null)" />
+                            <span asp-validation-for="Seatsperrow" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12" id="editVipContainer" style="display: none;">
+                            <div class="p-3 border rounded border-warning bg-light">
+                                <label class="form-label fw-bold text-warning">💎 VIP місць в останньому ряду</label>
+                                @{
+                                    var currentVipCount = Model.Seats?
+                                        .Where(s => s.Rownumber == Model.Rows && s.Pricecategoryid == (int)SeatCategory.VIP)
+                                        .Count() ?? 0;
+                                    string displayValue = currentVipCount > 0 ? currentVipCount.ToString() : "";
+                                }
+                                <input name="vipSeats" id="editVipInput" type="number" class="form-control border-warning" 
+                                       placeholder="Введіть кількість..." value="@displayValue" min="1"
+                                       readonly="@(hasSessions ? "readonly" : null)" />
+                                <span class="text-danger small" data-valmsg-for="vipSeats"></span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Зберегти зміни</button>
-                <a asp-controller="Cinemas" asp-action="Index" class="btn btn-outline-secondary">Скасувати</a>
+                    <div class="mt-4 d-grid gap-2 d-md-flex">
+                        <button type="submit" id="saveHallBtn" class="btn btn-primary px-4 shadow-sm">
+                            Зберегти зміни
+                        </button>
+                        <a asp-controller="Cinemas" asp-action="Index" class="btn btn-outline-secondary px-4">
+                            Скасувати
+                        </a>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<script>
-    const typeSelect = document.getElementById('editHallType');
-    const container = document.getElementById('editVipContainer');
-    const vipInput = document.getElementById('editVipInput');
-    const stdInput = document.getElementById('editStandardSeats');
-    const hasSessions = @hasSessions.ToString().ToLower();
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 
-    function syncEditUI() {
-        if (!typeSelect) return;
+    <script>
+        const form = document.getElementById('editHallForm');
+        const typeSelect = document.getElementById('editHallType');
+        const container = document.getElementById('editVipContainer');
+        const vipInput = document.getElementById('editVipInput');
+        const stdInput = document.getElementById('editStandardSeats');
+        const saveBtn = document.getElementById('saveHallBtn');
+        const hasSessions = @hasSessions.ToString().ToLower();
 
-        if (typeSelect.value == "3") {
-            container.style.display = 'block';
-            if (!hasSessions) vipInput.removeAttribute('disabled');
-        } else {
-            container.style.display = 'none';
-            if (!hasSessions) {
-                vipInput.value = "";
-                vipInput.setAttribute('disabled', 'disabled');
+        function syncEditUI() {
+            const currentType = typeSelect ? typeSelect.value : "@Model.Halltype";
+            
+            if (currentType == "3") {
+                container.style.display = 'block';
+                if (!hasSessions) vipInput.required = true;
+            } else {
+                container.style.display = 'none';
+                if (!hasSessions) {
+                    vipInput.required = false;
+                    vipInput.value = "";
+                }
             }
-        }
-        
-        vipInput.max = stdInput.value;
-    }
+            
+            if (stdInput.value) {
+                vipInput.max = stdInput.value;
+            }
 
-    if (typeSelect) {
-        typeSelect.addEventListener('change', syncEditUI);
-        stdInput.addEventListener('input', syncEditUI);
-        syncEditUI();
-    } else if (hasSessions && "@Model.Halltype" == "3") {
-        container.style.display = 'block';
-    }
-</script>
+            checkValidity();
+        }
+
+        function checkValidity() {
+            let allFilled = true;
+            const requiredFields = form.querySelectorAll("input[required], select[required]");
+            
+            requiredFields.forEach(field => {
+                if (field.value.trim() === "") allFilled = false;
+            });
+
+            const currentType = typeSelect ? typeSelect.value : "@Model.Halltype";
+            if (currentType == "3" && vipInput.value.trim() === "") {
+                allFilled = false;
+            }
+
+            saveBtn.disabled = !allFilled;
+        }
+
+        if (typeSelect) {
+            typeSelect.addEventListener('change', syncEditUI);
+            stdInput.addEventListener('input', syncEditUI);
+            vipInput.addEventListener('input', checkValidity);
+            form.addEventListener('input', checkValidity);
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            syncEditUI();
+            checkValidity();
+        });
+    </script>
+}

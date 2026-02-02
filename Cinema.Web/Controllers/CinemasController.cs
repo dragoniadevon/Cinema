@@ -118,15 +118,45 @@ public class CinemasController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Archive(int id)
     {
-        var cinema = await _context.Cinemas.Include(c => c.Halls).FirstOrDefaultAsync(m => m.Id == id);
+        var cinema = await _context.Cinemas
+            .Include(c => c.Halls)
+                .ThenInclude(h => h.Sessions)
+                    .ThenInclude(s => s.Tickets)
+            .Include(c => c.Halls)
+                .ThenInclude(h => h.Sessions)
+                    .ThenInclude(s => s.Sessionprices)
+            .FirstOrDefaultAsync(m => m.Id == id);
+
         if (cinema == null) return NotFound();
 
         cinema.Isactive = !cinema.Isactive;
-        foreach (var hall in cinema.Halls) { hall.Isactive = cinema.Isactive; }
 
-        _context.Update(cinema);
+        if (!cinema.Isactive)
+        {
+            foreach (var hall in cinema.Halls)
+            {
+                hall.Isactive = false;
+
+                var futureSessions = hall.Sessions.Where(s => s.Starttime >= DateTime.Now).ToList();
+
+                foreach (var session in futureSessions)
+                {
+                    if (session.Tickets.Any())
+                    {
+                        session.Isactive = false;
+                    }
+                    else
+                    {
+                        _context.Sessionprices.RemoveRange(session.Sessionprices);
+
+                        _context.Sessions.Remove(session);
+                    }
+                }
+            }
+        }
+
         await _context.SaveChangesAsync();
-        TempData["Success"] = cinema.Isactive ? "Кінотеатр та його зали відновлено!" : "Об'єкт перенесено в архів.";
+        TempData["Success"] = cinema.Isactive ? "Кінотеатр відновлено!" : "Кінотеатр та порожні сеанси видалено.";
         return RedirectToAction(nameof(Index));
     }
 }

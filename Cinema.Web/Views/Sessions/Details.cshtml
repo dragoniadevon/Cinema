@@ -1,4 +1,4 @@
-@model SessionDetailsVm
+﻿@model SessionDetailsVm
 
 @{
     ViewData["Title"] = "Деталі сеансу";
@@ -8,11 +8,6 @@
 
     <!-- Навігація -->
     <div class="mb-3 d-flex gap-2 flex-wrap">
-        <!-- ✅ Главная кнопка "Назад" -> возвращает в DetailsHub -->
-        <a asp-controller="Sessions" asp-action="DetailsHub" class="btn btn-outline-secondary">
-            ⬅️ Назад до деталей сеансу
-        </a>
-
         <!-- ✅ Отдельная кнопка в расписание -->
         <a asp-controller="Sessions" asp-action="Index" class="btn btn-outline-secondary">
             🗓 До розкладу
@@ -93,7 +88,7 @@ else
             <div class="card shadow-sm">
                 <div class="card-body">
 
-                    <h5 class="mb-3">🪑 Оберіть місце</h5>
+                    <h5 class="mb-3 text-center">Схема місць</h5>
 
                     @if (Model.Seats == null || !Model.Seats.Any())
                     {

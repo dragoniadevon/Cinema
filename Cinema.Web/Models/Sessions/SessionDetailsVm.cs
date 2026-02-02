@@ -1,4 +1,4 @@
-namespace Cinema.Web.Models.Sessions;
+﻿namespace Cinema.Web.Models.Sessions;
 
 public class SessionDetailsVm
 {

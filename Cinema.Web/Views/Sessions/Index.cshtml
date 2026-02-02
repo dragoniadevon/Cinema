@@ -6,23 +6,36 @@
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>🗓 Панель керування розкладом</h1>
-        <a asp-action="Create" class="btn btn-success shadow-sm">+ Додати сеанс</a>
+        <h1>🗓️ Панель керування розкладом</h1>
+        <a asp-action="Create" class="btn btn-primary shadow-sm">+ Додати сеанс</a>
     </div>
 
     <div class="card mb-4 border-0 shadow-sm bg-light">
         <div class="card-body">
             <form method="get" asp-action="Index" class="row g-3 align-items-end">
-                <input type="hidden" name="showArchived" value="@ViewBag.ShowArchived.ToString().ToLower()" />
+                <input type="hidden" name="mode" value="@(ViewBag.CurrentMode ?? "active")" />
+                
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Місто</label>
+                    <select name="city" class="form-select border-0 shadow-sm">
+                        <option value="">Всі міста</option>
+                        @foreach (var city in ViewBag.Cities)
+                        {
+                            <option value="@city" selected="@(ViewBag.SelectedCity == city)">@city</option>
+                        }
+                    </select>
+                </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold">Кінотеатр</label>
                     <select name="cinemaId" class="form-select border-0 shadow-sm">
                         <option value="">Всі кінотеатри</option>
                         @foreach (var cinema in ViewBag.Cinemas)
                         {
-                            <option value="@cinema.Id" selected="@(ViewBag.SelectedCinema == cinema.Id)">
-                                @cinema.Name (@cinema.City)
+                            <option value="@cinema.Id" 
+                                    data-city="@cinema.City" 
+                                    selected="@(ViewBag.SelectedCinema == cinema.Id)">
+                                @cinema.Name
                             </option>
                         }
                     </select>
@@ -33,13 +46,9 @@
                     <input type="date" name="date" class="form-control border-0 shadow-sm" value="@ViewBag.SelectedDate" />
                 </div>
 
-                <div class="col-md-5 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
-                        <i class="bi bi-filter"></i> Застосувати
-                    </button>
-                    <a asp-action="Index" asp-route-showArchived="@ViewBag.ShowArchived" class="btn btn-outline-secondary shadow-sm">
-                        Скинути
-                    </a>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 shadow-sm">Застосувати</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary shadow-sm">Скинути</a>
                 </div>
             </form>
         </div>
@@ -47,22 +56,19 @@
 
     <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm">
         <li class="nav-item">
-            <a class="nav-link @(ViewBag.ShowArchived ? "" : "active")"
-               asp-action="Index"
-               asp-route-showArchived="false"
-               asp-route-cinemaId="@ViewBag.SelectedCinema"
-               asp-route-date="@ViewBag.SelectedDate">
-                Активні сеанси
-            </a>
+            <a class="nav-link @(ViewBag.CurrentMode == "active" ? "active" : "")" 
+               asp-action="Index" asp-route-mode="active" 
+               asp-route-cinemaId="@ViewBag.SelectedCinema">📅 Активні</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @(ViewBag.ShowArchived ? "active text-white bg-danger" : "text-danger")"
-               asp-action="Index"
-               asp-route-showArchived="true"
-               asp-route-cinemaId="@ViewBag.SelectedCinema"
-               asp-route-date="@ViewBag.SelectedDate">
-                Архів / Скасовані
-            </a>
+            <a class="nav-link @(ViewBag.CurrentMode == "past" ? "active bg-secondary text-white" : "")" 
+               asp-action="Index" asp-route-mode="past" 
+               asp-route-cinemaId="@ViewBag.SelectedCinema">📜 Архів (минулі)</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(ViewBag.CurrentMode == "cancelled" ? "active bg-danger text-white" : "text-danger")" 
+               asp-action="Index" asp-route-mode="cancelled" 
+               asp-route-cinemaId="@ViewBag.SelectedCinema">🚫 Скасовані</a>
         </li>
     </ul>
 
@@ -73,127 +79,226 @@
             <p class="mt-3 mb-0 text-muted">Сеансів не знайдено за заданими фільтрами.</p>
         </div>
     }
-    else
+    else 
     {
         @foreach (var dateGroup in Model)
         {
-            <div class="date-section mb-5">
-                <!-- фикс: заголовок поверх dropdown -->
-                <h3 class="sticky-top bg-white py-3 border-bottom shadow-sm px-2" style="z-index: 2000; top: 0;">
+            <div class="date-section mb-5 p-3 bg-white rounded shadow-sm border">
+                <h3 class="py-2 mb-4 border-bottom text-secondary">
                     📅 @dateGroup.Date.ToString("dd MMMM yyyy, dddd")
                 </h3>
 
-                <div class="ps-3 border-start border-4 border-light ms-2">
-                    @foreach (var cinema in dateGroup.Cinemas)
+                <div class="row g-4">
+                    @if (dateGroup.Cinemas != null)
                     {
-                        <div class="mt-4 mb-3">
-                            <h5 class="text-primary fw-bold">
-                                <i class="bi bi-geo-alt-fill"></i> @cinema.CinemaName
-                            </h5>
-<div class="row row-cols-1 g-3 mt-2">
-                                @foreach (var movie in cinema.Movies)
-                                {
-                                    <div class="col">
-                                        <div class="card shadow-sm border-0">
-                                            <div class="card-body py-3">
-                                                <div class="row align-items-center">
-                                                    <div class="col-md-3 col-lg-2 border-end">
-                                                        <h6 class="fw-bold mb-1 text-dark">@movie.Title</h6>
-                                                        <span class="text-muted small">@movie.Duration хв.</span>
+                        @foreach (var cinema in dateGroup.Cinemas)
+                        {
+                            <div class="col-md-4">
+                                <div class="cinema-card h-100 p-3 bg-white border-start border-4 border-primary shadow-sm rounded">
+                                    <h5 class="text-primary fw-bold mb-1">
+                                        <i class="bi bi-geo-alt-fill"></i> @cinema.CinemaName
+                                    </h5>
+                                    
+                                    <div class="text-muted small mb-3">
+                                        @{
+                                            var cinemaData = ((IEnumerable<global::Cinema.Infrastructure.Entities.Cinema>)ViewBag.Cinemas)
+                                                .FirstOrDefault(c => c.Id == cinema.CinemaId);
+                                        }
+                                        <i class="bi bi-building"></i> @(cinemaData?.City ?? "Місто")
+                                    </div>
+                                    
+                                    <div class="movies-stack">
+                                        @foreach (var movie in cinema.Movies)
+                                        {
+                                            <div class="movie-box mb-3 p-2 border rounded bg-light shadow-sm">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <div class="flex-shrink-0 me-3">
+                                                        @{
+                                                            var posterUrl = movie.Sessions.FirstOrDefault()?.Movie?.Posterurl;
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(posterUrl))
+                                                        {
+                                                            <img src="@posterUrl" alt="@movie.Title" 
+                                                                 class="rounded shadow-sm" 
+                                                                 style="width: 50px; height: 75px; object-fit: cover; border: 1px solid #dee2e6;" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center shadow-sm" 
+                                                                 style="width: 50px; height: 75px; font-size: 10px; text-align: center;">
+                                                                🎬<br/>Немає
+                                                            </div>
+                                                        }
                                                     </div>
 
-                                                    <div class="col-md-9 col-lg-10">
-                                                        <div class="d-flex flex-wrap gap-2 ps-md-3">
-                                                            @foreach (var session in movie.Sessions)
-                                                            {
-                                                                <div class="dropdown">
-                                                                    <button class="btn btn-sm @(session.Tickets.Any() ? "btn-info text-white" : "btn-outline-secondary") dropdown-toggle"
-                                                                            type="button"
-                                                                            data-bs-toggle="dropdown">
-                                                                        <strong>@session.Starttime.ToString("HH:mm")</strong>
-                                                                    </button>
-
-                                                                    <ul class="dropdown-menu shadow-lg border-0 p-3" style="min-width: 260px; z-index: 1500;">
-                                                                        <li class="mb-2">
-                                                                            <div class="small text-muted">Зал: @session.Hall.Name</div>
-                                                                        </li>
-                                                                        <li class="mb-2">
-                                                                            <small class="fw-bold">@session.Tickets.Count квитків продано</small>
-                                                                        </li>
-
-                                                                        <hr class="dropdown-divider" />
-
-                                                                        <div class="d-flex flex-column gap-2">
-
-                                                                            
-                                                                            <a asp-action="Details"
-                                                                               asp-route-id="@session.Id"
-                                                                               class="btn btn-sm btn-light border">
-                                                                                🔍 Схема залу
-                                                                            </a>
-
-                                                                            <a asp-action="Edit"
-                                                                               asp-route-id="@session.Id"
-                                                                               class="btn btn-sm btn-warning">
-                                                                                ✏️ Редагувати
-                                                                            </a>                            
-                                                                            <!-- ВАЖНО: "Купити квиток" теперь НЕ исчезает -->
-                                                                            <a asp-controller="Tickets"
-                                                                               asp-action="Book"
-                                                                               asp-route-sessionId="@session.Id"
-                                                                               class="btn btn-success btn-sm w-100">
-                                                                                Купити квиток 🎟
-                                                                            </a>
-
-                                                                            @if (!session.Tickets.Any())
-                                                                            {
-                                                                                <button type="button"
-                                                                                        class="btn btn-sm btn-danger"
-                                                                                        onclick="document.getElementById('delete-form-@session.Id').submit()">
-                                                                                    🗑 Видалити
-                                                                                </button>
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                <button type="button"
-                                                                                        class="btn btn-sm btn-outline-danger"
-                                                                                        onclick="document.getElementById('cancel-form-@session.Id').submit()">
-                                                                                    🚫 Скасувати
-                                                                                </button>
-                                                                            }
-                                                                        </div>
-                                                                    </ul>
-                                                                </div>
-
-                                                                <form id="delete-form-@session.Id"
-                                                                      asp-action="Delete"
-                                                                      asp-route-id="@session.Id"
-                                                                      method="post"
-                                                                      style="display:none">
-                                                                    @Html.AntiForgeryToken()
-                                                                </form>
-
-                                                                <form id="cancel-form-@session.Id"
-                                                                      asp-action="Cancel"
-                                                                      asp-route-id="@session.Id"
-                                                                      method="post"
-                                                                      style="display:none">
-                                                                    @Html.AntiForgeryToken()
-                                                                </form>
-                                                                }
+                                                    <div class="flex-grow-1 overflow-hidden">
+                                                        <h6 class="fw-bold mb-0 text-dark text-truncate" title="@movie.Title" style="font-size: 1rem;">
+                                                            @movie.Title
+                                                        </h6>
+                                                        <div class="text-muted small d-flex align-items-center mt-1">
+                                                            <i class="bi bi-clock me-1"></i> @movie.Duration хв.
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
 
-                        </div>
+                                                <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top border-white">
+                                                    @foreach (var session in movie.Sessions)
+                                                    {
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm @(session.Tickets.Any() ? "btn-info text-white" : "btn-outline-secondary") dropdown-toggle" 
+                                                                    type="button" data-bs-toggle="dropdown" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">
+                                                                <strong>@session.Starttime.ToString("HH:mm")</strong>
+                                                            </button>
+                    
+                                                            <ul class="dropdown-menu shadow-lg border-0 p-3" style="min-width: 250px;">
+                                                                <li class="mb-1 text-start">
+                                                                    <div class="small text-muted">
+                                                                        <i class="bi bi-door-open me-1"></i> Зал: <strong>@session.Hall.Name</strong>
+                                                                    </div>
+                                                                </li>
+                                                                <li class="mb-2 text-start">
+                                                                    <div class="small text-muted">
+                                                                        <i class="bi bi-layers me-1"></i> Формат: 
+                                                                        <strong>@(session.Format == 1 ? "2D" : (session.Format == 2 ? "3D" : session.Format.ToString()))</strong>
+                                                                    </div>
+                                                                </li>
+
+                                                                @if (session.Tickets.Any())
+                                                                {
+                                                                    <li class="mb-2 text-start">
+                                                                        <span class="badge bg-info text-white">
+                                                                            <i class="bi bi-ticket-perforated me-1"></i> Продано: @session.Tickets.Count
+                                                                        </span>
+                                                                    </li>
+                                                                }
+
+                                                                <hr class="dropdown-divider">
+
+                                                                <div class="d-flex flex-column gap-2 text-start">
+                                                                    <a asp-action="Details" asp-route-id="@session.Id" class="btn btn-sm btn-light border">👁️ Детальніше</a>
+                                
+                                                                    <a asp-action="Edit" asp-route-id="@session.Id" 
+                                                                       class="btn btn-sm btn-warning @(session.Tickets.Any() ? "disabled" : "")"
+                                                                       title="@(session.Tickets.Any() ? "Редагування заблоковано" : "")">
+                                                                        ✏️ Редагувати
+                                                                    </a>
+
+                                                                    @if (!session.Tickets.Any())
+                                                                    {
+                                                                        <button type="button" class="btn btn-sm btn-danger" 
+                                                                                data-bs-toggle="modal" data-bs-target="#deleteSessionModal" 
+                                                                                data-id="@session.Id" data-info="@session.Starttime.ToString("HH:mm") - @movie.Title">
+                                                                            🗑️ Видалити
+                                                                        </button>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                                data-bs-toggle="modal" data-bs-target="#cancelSessionModal" 
+                                                                                data-id="@session.Id" data-info="@session.Starttime.ToString("HH:mm") - @movie.Title">
+                                                                            🚫 Скасувати
+                                                                        </button>
+                                                                    }
+                                                                </div>
+                                                            </ul>
+                                                        </div>
+                                                        <form id="delete-form-@session.Id" asp-action="Delete" asp-route-id="@session.Id" method="post" style="display:none">@Html.AntiForgeryToken()</form>
+                                                        <form id="cancel-form-@session.Id" asp-action="Cancel" asp-route-id="@session.Id" method="post" style="display:none">@Html.AntiForgeryToken()</form>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     }
                 </div>
             </div>
         }
     }
 </div>
+
+<div class="modal fade" id="deleteSessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Видалити сеанс</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Ви впевнені, що хочете видалити сеанс: <br />
+                <strong id="deleteSessionInfo"></strong>?
+            </div>
+            <div class="modal-footer">
+                <form id="deleteSessionForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">Видалити</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cancelSessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Скасувати сеанс</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                На цей сеанс вже є квитки! Ви впевнені, що хочете скасувати сеанс: <br />
+                <strong id="cancelSessionInfo"></strong>?
+            </div>
+            <div class="modal-footer">
+                <form id="cancelSessionForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">Скасувати сеанс</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const deleteSessionModal = document.getElementById('deleteSessionModal');
+        deleteSessionModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const info = button.getAttribute('data-info');
+            document.getElementById('deleteSessionInfo').innerText = info;
+            document.getElementById('deleteSessionForm').action = '/Sessions/Delete/' + id;
+        });
+
+        const cancelSessionModal = document.getElementById('cancelSessionModal');
+        cancelSessionModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const info = button.getAttribute('data-info');
+            document.getElementById('cancelSessionInfo').innerText = info;
+            document.getElementById('cancelSessionForm').action = '/Sessions/Cancel/' + id;
+        });
+
+        document.querySelector('select[name="city"]').addEventListener('change', function() {
+            const selectedCity = this.value.toLowerCase();
+            const cinemaSelect = document.querySelector('select[name="cinemaId"]');
+            const options = cinemaSelect.querySelectorAll('option');
+
+            options.forEach(option => {
+                if (option.value === "") return; 
+                
+                const cityAttr = option.getAttribute('data-city')?.toLowerCase();
+                if (!selectedCity || cityAttr === selectedCity) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                    if (cinemaSelect.value === option.value) cinemaSelect.value = "";
+                }
+            });
+        });
+    </script>
+}
