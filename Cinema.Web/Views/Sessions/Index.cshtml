@@ -1,4 +1,4 @@
-@model IEnumerable<Cinema.Web.Models.Sessions.SessionsByDateVm>
+@model IEnumerable<SessionsByDateVm>
 
 @{
     ViewData["Title"] = "Розклад сеансів";
@@ -101,8 +101,8 @@
                                     
                                     <div class="text-muted small mb-3">
                                         @{
-                                            var cinemaData = ((IEnumerable<Cinema.Infrastructure.Entities.Cinema>)ViewBag.Cinemas)
-                                                             .FirstOrDefault(c => c.Id == cinema.CinemaId);
+                                            var cinemaData = ((IEnumerable<global::Cinema.Infrastructure.Entities.Cinema>)ViewBag.Cinemas)
+                                                .FirstOrDefault(c => c.Id == cinema.CinemaId);
                                         }
                                         <i class="bi bi-building"></i> @(cinemaData?.City ?? "Місто")
                                     </div>

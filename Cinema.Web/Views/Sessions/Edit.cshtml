@@ -1,4 +1,5 @@
-﻿@model Cinema.Web.Models.Sessions.EditSessionViewModel
+﻿@model global::Cinema.Web.Models.Sessions.EditSessionViewModel
+@using Cinema.Infrastructure.Entities
 @using Cinema.Infrastructure.Entities.Enums
 
 @{
@@ -10,29 +11,31 @@
 
         <h1 class="mb-4 text-center">✏️ Редагувати сеанс</h1>
 
-        <div class="card shadow-sm">
+        <div class="card shadow-sm border-0" style="border-radius: 12px;">
             <div class="card-body p-4">
                 <form asp-action="Edit" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="Id" />
 
-                    @Html.ValidationSummary(false, "", new { @class = "text-danger mb-3" })
+                    @Html.ValidationSummary(false, "", new { @class = "text-danger mb-3 small" })
 
                     <div class="row g-3">
+                        @* ВИБІР ФІЛЬМУ *@
                         <div class="col-12">
-                            <label class="form-label fw-bold">Фільм</label>
-                            <select asp-for="MovieId" class="form-select js-movie-select">
-                                @foreach (var movie in (List<Cinema.Infrastructure.Entities.Movie>)ViewBag.Movies)
+                            <label class="form-label fw-bold">🎬 Фільм</label>
+                            <select asp-for="MovieId" class="form-select shadow-sm js-movie-select">
+                                @foreach (var movie in (List<Movie>)ViewBag.Movies)
                                 {
                                     <option value="@movie.Id">@movie.Title</option>
                                 }
                             </select>
-                            <span asp-validation-for="MovieId" class="text-danger"></span>
+                            <span asp-validation-for="MovieId" class="text-danger small"></span>
                         </div>
 
+                        @* ВИБІР КІНОТЕАТРУ (для фільтрації залів через JS) *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Кінотеатр</label>
-                            <select id="cinemaSelect" class="form-select">
+                            <label class="form-label fw-bold text-muted">🏢 Кінотеатр</label>
+                            <select id="cinemaSelect" class="form-select bg-light shadow-sm">
                                 @foreach (var cinema in ViewBag.Cinemas)
                                 {
                                     <option value="@cinema.Id">@cinema.DisplayName</option>
@@ -40,10 +43,11 @@
                             </select>
                         </div>
 
+                        @* ВИБІР ЗАЛУ *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Зал</label>
-                            <select asp-for="HallId" id="hallSelect" class="form-select">
-                                @foreach (var hall in (List<Cinema.Infrastructure.Entities.Hall>)ViewBag.Halls)
+                            <label class="form-label fw-bold">🚪 Зал</label>
+                            <select asp-for="HallId" id="hallSelect" class="form-select shadow-sm">
+                                @foreach (var hall in (List<Hall>)ViewBag.Halls)
                                 {
                                     <option value="@hall.Id" data-hall-type="@hall.Halltype" 
                                             selected="@(hall.Id == Model.HallId)">
@@ -51,67 +55,66 @@
                                     </option>
                                 }
                             </select>
-                            <span asp-validation-for="HallId" class="text-danger"></span>
+                            <span asp-validation-for="HallId" class="text-danger small"></span>
                         </div>
 
+                        @* ЧАС ПОЧАТКУ *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Час початку</label>
+                            <label class="form-label fw-bold">📅 Час початку</label>
                             <input asp-for="StartTime"
                                    type="datetime-local"
-                                   class="form-control"
+                                   class="form-control shadow-sm"
                                    value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
-                            <span asp-validation-for="StartTime" class="text-danger"></span>
+                            <span asp-validation-for="StartTime" class="text-danger small"></span>
                         </div>
 
+                        @* ФОРМАТ *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Формат</label>
+                            <label class="form-label fw-bold">📺 Формат</label>
                             <select asp-for="Format"
-                                    class="form-select"
+                                    class="form-select shadow-sm"
                                     asp-items="Html.GetEnumSelectList<SessionFormat>()">
                             </select>
-                            <span asp-validation-for="Format" class="text-danger"></span>
+                            <span asp-validation-for="Format" class="text-danger small"></span>
                         </div>
                     </div>
 
                     <hr class="my-4" />
 
-                    @{
-                        var categories = (List<Cinema.Infrastructure.Entities.Pricecategory>)ViewBag.PriceCategories;
-                    }
-
-                    <h5 class="mb-3 text-primary">💰 Ціни на квитки</h5>
-
-                    <div class="p-3 bg-light rounded border">
-                        @for (int i = 0; i < categories.Count; i++)
+                    @* ЦІНОВА ПОЛІТИКА *@
+                    <h5 class="mb-3 text-primary fw-bold">💰 Ціни на квитки</h5>
+                    <div class="p-3 bg-light rounded border border-primary border-opacity-25 shadow-sm">
+                        @if (Model.Prices != null)
                         {
-                            var category = categories[i];
-                            decimal currentPrice = Model.CategoryPrices.Length > i ? Model.CategoryPrices[i] : 0;
-
-                            <div class="row mb-3 price-row align-items-center" data-category="@category.Name">
-                                <div class="col-sm-5">
-                                    <label class="form-label mb-0">@category.Name</label>
-                                    <input type="hidden" name="PriceCategoryIds[@i]" value="@category.Id" />
-                                </div>
-                                <div class="col-sm-7">
-                                    <div class="input-group">
-                                        <input name="CategoryPrices[@i]" 
-                                               class="form-control price-input text-end" 
-                                               type="number" 
-                                               step="1" 
-                                               min="0"
-                                               inputmode="numeric"
-                                               value="@((int)currentPrice)" />
-                                        <span class="input-group-text">грн</span>
+                            @for (int i = 0; i < Model.Prices.Count; i++)
+                            {
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-sm-5">
+                                        <label class="form-label mb-0 fw-semibold text-secondary">
+                                            @Model.Prices[i].CategoryName
+                                        </label>
+                                        <input type="hidden" asp-for="Prices[i].PriceCategoryId" />
+                                        <input type="hidden" asp-for="Prices[i].CategoryName" />
+                                    </div>
+                                    <div class="col-sm-7">
+                                        <div class="input-group input-group-sm shadow-sm">
+                                            <input asp-for="Prices[i].Price" 
+                                                   class="form-control text-end fw-bold" 
+                                                   type="number" 
+                                                   step="1" 
+                                                   min="0" />
+                                            <span class="input-group-text bg-white">грн</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            }
                         }
                     </div>
 
-
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary">Зберегти</button>
-                        <a asp-action="Index" class="btn btn-outline-secondary">Скасувати</a>
+                    @* КНОПКИ ДІЙ *@
+                    <div class="mt-4 d-grid gap-2 d-md-flex">
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm">Зберегти зміни</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">Скасувати</a>
                     </div>
                 </form>
             </div>

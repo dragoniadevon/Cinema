@@ -23,5 +23,7 @@ namespace Cinema.Web.Models.Sessions
 
         public int[] PriceCategoryIds { get; set; } = Array.Empty<int>();
         public decimal[] CategoryPrices { get; set; } = Array.Empty<decimal>();
+
+        public List<SessionPriceInput> Prices { get; set; } = new();
     }
 }

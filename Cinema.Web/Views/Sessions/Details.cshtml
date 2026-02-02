@@ -1,4 +1,5 @@
-﻿@model Cinema.Web.Models.Sessions.SessionDetailsVm
+﻿@model SessionDetailsVm
+
 @{
     ViewData["Title"] = "Деталі сеансу";
 }
@@ -7,11 +8,6 @@
 
     <!-- Навігація -->
     <div class="mb-3 d-flex gap-2 flex-wrap">
-        <!-- ✅ Главная кнопка "Назад" -> возвращает в DetailsHub -->
-        <a asp-controller="Sessions" asp-action="DetailsHub" class="btn btn-outline-secondary">
-            ⬅️ Назад до деталей сеансу
-        </a>
-
         <!-- ✅ Отдельная кнопка в расписание -->
         <a asp-controller="Sessions" asp-action="Index" class="btn btn-outline-secondary">
             🗓 До розкладу

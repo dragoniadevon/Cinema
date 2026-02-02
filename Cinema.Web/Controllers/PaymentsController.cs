@@ -17,6 +17,9 @@ public class PaymentsController : Controller
     public async Task<IActionResult> Pay(int ticketId)
     {
         var ticket = await _db.Tickets
+            .Include(t => t.Seat)
+            .Include(t => t.Session)
+                .ThenInclude(s => s.Movie)
             .FirstOrDefaultAsync(t => t.Id == ticketId);
 
         if (ticket == null)
