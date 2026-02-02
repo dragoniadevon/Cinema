@@ -5,82 +5,118 @@
     ViewData["Title"] = "➕ Додати новий зал";
 }
 
-<h1 class="mb-4">➕ Додати новий зал</h1>
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-6">
+        
+        <h1 class="mb-4 text-center">➕ Додати новий зал</h1>
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form asp-action="Create" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="Cinemaid" value="@ViewBag.CinemaId" />
-            @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post" id="hallForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Cinemaid" value="@ViewBag.CinemaId" />
+                    
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
 
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="Name" class="form-label">Назва залу</label>
-                    <input asp-for="Name" class="form-control" placeholder="Наприклад: Синій зал" />
-                    <span asp-validation-for="Name" class="text-danger"></span>
-                </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label fw-bold">Назва залу</label>
+                            <input asp-for="Name" class="form-control" placeholder="Наприклад: Синій зал" required />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
 
-                <div class="col-md-6">
-                    <label asp-for="Halltype" class="form-label">Тип залу</label>
-                    <select asp-for="Halltype" id="hallTypeSelect" class="form-select">
-                        <option value="@((short)HallType.Standard)">Стандарт</option>
-                        <option value="@((short)HallType.VIP)">VIP</option>
-                        <option value="@((short)HallType.Mixed)">Змішаний (VIP останній ряд)</option>
-                    </select>
-                </div>
+                        <div class="col-md-6">
+                            <label asp-for="Halltype" class="form-label fw-bold">Тип залу</label>
+                            <select asp-for="Halltype" id="hallTypeSelect" class="form-select">
+                                <option value="@((short)HallType.Standard)">Стандарт</option>
+                                <option value="@((short)HallType.VIP)">VIP</option>
+                                <option value="@((short)HallType.Mixed)">Змішаний (VIP останній ряд)</option>
+                            </select>
+                        </div>
 
-                <div class="col-md-6">
-                    <label asp-for="Rows" class="form-label">Кількість рядів</label>
-                    <input asp-for="Rows" type="number" class="form-control" min="1" max="50" />
-                    <span asp-validation-for="Rows" class="text-danger"></span>
-                </div>
+                        <div class="col-md-6">
+                            <label asp-for="Rows" class="form-label fw-bold">Кількість рядів</label>
+                            <input asp-for="Rows" type="number" class="form-control" min="1" max="50" required />
+                            <span asp-validation-for="Rows" class="text-danger small"></span>
+                        </div>
 
-                <div class="col-md-6">
-                    <label asp-for="Seatsperrow" class="form-label">Місць у звичайному ряду</label>
-                    <input asp-for="Seatsperrow" id="standardSeatsInput" type="number" class="form-control" min="1" max="30" />
-                    <span asp-validation-for="Seatsperrow" class="text-danger"></span>
-                </div>
+                        <div class="col-md-12">
+                            <label asp-for="Seatsperrow" class="form-label fw-bold">Місць у звичайному ряду</label>
+                            <input asp-for="Seatsperrow" id="standardSeatsInput" type="number" class="form-control" min="1" max="30" required />
+                            <span asp-validation-for="Seatsperrow" class="text-danger small"></span>
+                        </div>
 
-                <div class="col-md-12" id="vipSeatsContainer" style="display: none;">
-                    <div class="p-3 border rounded border-warning bg-light">
-                        <label class="form-label fw-bold text-warning">💎 VIP місць в останньому ряду</label>
-                        <input name="vipSeats" id="vipSeatsInput" type="number" 
-                               class="form-control border-warning" placeholder="Введіть кількість..." />
-                        <span class="text-danger" data-valmsg-for="vipSeats"></span>
+                        <div class="col-12" id="vipSeatsContainer" style="display: none;">
+                            <div class="p-3 border rounded border-warning bg-light">
+                                <label class="form-label fw-bold text-warning">💎 VIP місць в останньому ряду</label>
+                                <input name="vipSeats" id="vipSeatsInput" type="number" 
+                                       class="form-control border-warning" placeholder="Введіть кількість..." />
+                                <span class="text-danger small" data-valmsg-for="vipSeats"></span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Створити та згенерувати місця</button>
-                <a asp-controller="Cinemas" asp-action="Index" class="btn btn-outline-secondary">Скасувати</a>
+                    <div class="mt-4 d-grid gap-2 d-md-flex">
+                        <button type="submit" id="saveBtn" class="btn btn-primary px-4 shadow-sm" disabled>
+                            Створити та згенерувати місця
+                        </button>
+                        <a asp-controller="Cinemas" asp-action="Index" class="btn btn-outline-secondary px-4">
+                            Скасувати
+                        </a>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<script>
-    const hallTypeSelect = document.getElementById('hallTypeSelect');
-    const vipContainer = document.getElementById('vipSeatsContainer');
-    const standardInput = document.getElementById('standardSeatsInput');
-    const vipInput = document.getElementById('vipSeatsInput');
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 
-    function updateVipUI() {
-        if (hallTypeSelect.value == "3") {
-            vipContainer.style.display = 'block';
-            vipInput.required = true;
-        } else {
-            vipContainer.style.display = 'none';
-            vipInput.required = false;
-            vipInput.value = "";
+    <script>
+        const form = document.getElementById('hallForm');
+        const hallTypeSelect = document.getElementById('hallTypeSelect');
+        const vipContainer = document.getElementById('vipSeatsContainer');
+        const standardInput = document.getElementById('standardSeatsInput');
+        const vipInput = document.getElementById('vipSeatsInput');
+        const saveBtn = document.getElementById('saveBtn');
+
+        function updateVipUI() {
+            if (hallTypeSelect.value == "3") {
+                vipContainer.style.display = 'block';
+                vipInput.required = true;
+            } else {
+                vipContainer.style.display = 'none';
+                vipInput.required = false;
+                vipInput.value = "";
+            }
+
+            const maxVal = standardInput.value || 0;
+            vipInput.max = maxVal;
+            checkFormValidity();
         }
 
-        const maxVal = standardInput.value || 0;
-        vipInput.max = maxVal;
-    }
+        function checkFormValidity() {
+            let allFilled = true;
+            const requiredInputs = form.querySelectorAll("input[required], select[required]");
+            
+            requiredInputs.forEach(input => {
+                if (input.value.trim() === "") {
+                    allFilled = false;
+                }
+            });
 
-    hallTypeSelect.addEventListener('change', updateVipUI);
-    standardInput.addEventListener('input', updateVipUI);
-    updateVipUI();
-</script>
+            if (hallTypeSelect.value == "3" && vipInput.value.trim() === "") {
+                allFilled = false;
+            }
+
+            saveBtn.disabled = !allFilled;
+        }
+
+        hallTypeSelect.addEventListener('change', updateVipUI);
+        form.addEventListener('input', checkFormValidity);
+        standardInput.addEventListener('input', updateVipUI);
+
+        document.addEventListener("DOMContentLoaded", updateVipUI);
+    </script>
+}

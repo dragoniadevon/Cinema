@@ -15,7 +15,6 @@
                 <form asp-action="Create" method="post" id="createSessionForm">
                     @Html.AntiForgeryToken()
                     
-                    @* Використовуємо ValidationSummary як у кінотеатрі *@
                     @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
 
                     <div class="row g-3">
@@ -65,7 +64,6 @@
                             <span asp-validation-for="Format" class="text-danger"></span>
                         </div>
 
-                        @* Вставте це перед блоком цін *@
                         <div class="mb-4">
                             <div class="form-check form-switch p-3 bg-light rounded border shadow-sm">
                                 <input class="form-check-input ms-0 me-3" type="checkbox" asp-for="RepeatDaily" id="repeatSwitch">

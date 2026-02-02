@@ -86,28 +86,22 @@ public class HallsController : Controller
     {
         if (id != hall.Id) return NotFound();
 
-        // 1. Отримуємо поточний стан залу з бази БЕЗ відстеження (AsNoTracking)
         var dbHall = await _context.Halls.AsNoTracking().FirstOrDefaultAsync(h => h.Id == id);
         if (dbHall == null) return NotFound();
 
-        // 2. Перевірка унікальності назви
         bool nameExists = await _context.Halls.AnyAsync(h =>
             h.Id != id && h.Name.ToLower() == hall.Name.ToLower() && h.Cinemaid == hall.Cinemaid);
         if (nameExists) ModelState.AddModelError("Name", "Назва вже зайнята.");
 
-        // 3. Перевірка: чи змінилося щось, що вимагає перегенерації місць?
-        // Включаємо Halltype, бо зміна типу теж міняє категорію місць
         bool structureChanged = dbHall.Rows != hall.Rows ||
                                 dbHall.Seatsperrow != hall.Seatsperrow ||
                                 dbHall.Halltype != hall.Halltype;
 
-        // 4. Якщо структура змінилася, перевіряємо наявність сеансів
         if (structureChanged && await _context.Sessions.AnyAsync(s => s.Hallid == id))
         {
             ModelState.AddModelError("", "Неможливо змінити структуру або тип залу: для нього вже створено сеанси в розкладі.");
         }
 
-        // 5. Валідація VIP-місць для змішаного типу
         if (hall.Halltype == (short)HallType.Mixed)
         {
             if (!vipSeats.HasValue || vipSeats <= 0)
@@ -123,8 +117,6 @@ public class HallsController : Controller
                 _context.Update(hall);
                 await _context.SaveChangesAsync();
 
-                // Перегенеруємо місця ТІЛЬКИ якщо змінилася структура
-                // Це захищає від випадкового видалення, якщо ви змінили лише назву залу
                 if (structureChanged || (hall.Halltype == (short)HallType.Mixed && vipSeats.HasValue))
                 {
                     var oldSeats = _context.Seats.Where(s => s.Hallid == hall.Id);
@@ -182,19 +174,18 @@ public class HallsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ArchiveHall(int id)
     {
-        // 1. Додаємо Include для Sessionprices, щоб EF знав про них
         var hall = await _context.Halls
             .Include(h => h.Sessions)
                 .ThenInclude(s => s.Tickets)
             .Include(h => h.Sessions)
-                .ThenInclude(s => s.Sessionprices) // ВАЖЛИВО: завантажуємо ціни
+                .ThenInclude(s => s.Sessionprices)
             .FirstOrDefaultAsync(h => h.Id == id);
 
         if (hall == null) return NotFound();
 
         hall.Isactive = !hall.Isactive;
 
-        if (!hall.Isactive) // Відправляємо залу в архів
+        if (!hall.Isactive)
         {
             var futureSessions = hall.Sessions.Where(s => s.Starttime >= DateTime.Now).ToList();
 
@@ -202,14 +193,12 @@ public class HallsController : Controller
             {
                 if (session.Tickets.Any())
                 {
-                    session.Isactive = false; // Тільки скасовуємо
+                    session.Isactive = false;
                 }
                 else
                 {
-                    // 2. Спочатку видаляємо всі ціни цього сеансу
                     _context.Sessionprices.RemoveRange(session.Sessionprices);
 
-                    // 3. Тепер видалення сеансу пройде успішно
                     _context.Sessions.Remove(session);
                 }
             }
