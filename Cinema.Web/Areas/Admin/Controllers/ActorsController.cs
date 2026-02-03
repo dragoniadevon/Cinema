@@ -1,30 +1,34 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
+using System.Threading.Tasks;
 
-public class GenresController : Controller
+namespace Cinema.Web.Areas.Admin.Controllers;
+
+[Area("Admin")]
+public class ActorsController : Controller
 {
     private readonly AppDbContext _context;
 
-    public GenresController(AppDbContext context)
+    public ActorsController(AppDbContext context)
     {
         _context = context;
     }
 
     // ================== HELPERS ==================
 
-    private bool ValidateGenre(Genre genre)
+    private bool ValidateActor(Actor actor)
     {
-        if (genre.Name != null)
+        if (actor.Fullname != null)
         {
-            genre.Name = genre.Name.Trim();
+            actor.Fullname = actor.Fullname.Trim();
         }
 
-        if (string.IsNullOrWhiteSpace(genre.Name))
+        if (string.IsNullOrWhiteSpace(actor.Fullname))
         {
             ModelState.AddModelError(
-                nameof(genre.Name),
-                "Назва жанру обовʼязкова"
+                nameof(actor.Fullname),
+                "Імʼя актора обовʼязкове"
             );
             return false;
         }
@@ -36,8 +40,8 @@ public class GenresController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var genres = await _context.Genres.ToListAsync();
-        return View(genres);
+        var actors = await _context.Actors.ToListAsync();
+        return View(actors);
     }
 
     // ================== CREATE (GET) ==================
@@ -51,25 +55,25 @@ public class GenresController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Genre genre)
+    public async Task<IActionResult> Create(Actor actor)
     {
-        if (!ValidateGenre(genre))
+        if (!ValidateActor(actor))
         {
-            return View(genre);
+            return View(actor);
         }
 
         try
         {
-            _context.Genres.Add(genre);
+            _context.Actors.Add(actor);
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
             ModelState.AddModelError(
-                nameof(genre.Name),
-                "Такий жанр вже існує"
+                nameof(actor.Fullname),
+                "Такий актор вже існує"
             );
-            return View(genre);
+            return View(actor);
         }
 
         return RedirectToAction(nameof(Index));
@@ -79,39 +83,39 @@ public class GenresController : Controller
 
     public async Task<IActionResult> Edit(int id)
     {
-        var genre = await _context.Genres.FindAsync(id);
-        if (genre == null)
+        var actor = await _context.Actors.FindAsync(id);
+        if (actor == null)
             return NotFound();
 
-        return View(genre);
+        return View(actor);
     }
 
     // ================== EDIT (POST) ==================
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Genre genre)
+    public async Task<IActionResult> Edit(int id, Actor actor)
     {
-        if (id != genre.Id)
+        if (id != actor.Id)
             return BadRequest();
 
-        if (!ValidateGenre(genre))
+        if (!ValidateActor(actor))
         {
-            return View(genre);
+            return View(actor);
         }
 
         try
         {
-            _context.Update(genre);
+            _context.Update(actor);
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
             ModelState.AddModelError(
-                nameof(genre.Name),
-                "Такий жанр вже існує"
+                nameof(actor.Fullname),
+                "Такий актор вже існує"
             );
-            return View(genre);
+            return View(actor);
         }
 
         return RedirectToAction(nameof(Index));
@@ -123,11 +127,11 @@ public class GenresController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var genre = await _context.Genres.FindAsync(id);
-        if (genre == null)
+        var actor = await _context.Actors.FindAsync(id);
+        if (actor == null)
             return NotFound();
 
-        _context.Genres.Remove(genre);
+        _context.Actors.Remove(actor);
         await _context.SaveChangesAsync();
 
         return RedirectToAction(nameof(Index));

@@ -2,7 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
 using Cinema.Web.Models;
+using System.Linq;
+using System.Threading.Tasks;
 
+namespace Cinema.Web.Areas.Admin.Controllers;
+
+[Area("Admin")]
 public class MoviesController : Controller
 {
     private readonly AppDbContext _context;

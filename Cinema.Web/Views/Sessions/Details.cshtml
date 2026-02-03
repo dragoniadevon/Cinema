@@ -1,6 +1,11 @@
 ﻿@model SessionDetailsVm
 
 @{
+    bool isAdmin = Model.IsAdminView;
+}
+
+
+@{
     ViewData["Title"] = "Деталі сеансу";
 }
 
@@ -19,9 +24,12 @@
         </a>
 
         <!-- ✅ Покупка -->
-        <a asp-controller="Tickets" asp-action="Book" asp-route-sessionId="@Model.SessionId" class="btn btn-success">
-            Купити квиток 🎟
-        </a>
+        @if (!isAdmin)
+        {
+            <a asp-controller="Tickets" asp-action="Book" asp-route-sessionId="@Model.SessionId" class="btn btn-success">
+                Купити квиток 🎟
+            </a>
+        }
     </div>
 
     <h2 class="mb-3">🎬 @Model.MovieTitle</h2>
@@ -60,24 +68,24 @@
 
                     <hr />
 
-<h6 class="mb-2">💸 Ціни на квитки</h6>
+                    <h6 class="mb-2">💸 Ціни на квитки</h6>
 
-@if (Model.Prices == null || !Model.Prices.Any())
-{
-    <div class="text-muted">Немає цін для цього сеансу.</div>
-}
-else
-{
-    <ul class="list-group list-group-flush">
-        @foreach (var p in Model.Prices)
-        {
-            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>@p.CategoryName</span>
-                <span class="fw-bold">@p.Price ₴</span>
-            </li>
-        }
-    </ul>
-}
+                    @if (Model.Prices == null || !Model.Prices.Any())
+                    {
+                        <div class="text-muted">Немає цін для цього сеансу.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var p in Model.Prices)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span>@p.CategoryName</span>
+                                    <span class="fw-bold">@p.Price ₴</span>
+                                </li>
+                            }
+                        </ul>
+                    }
 
                 </div>
             </div>
@@ -102,7 +110,8 @@ else
 
                         <!-- ✅ защита от "съезжания": если ширина не влезла — скролл -->
                         <div class="w-100" style="overflow-x:auto;">
-                            <div style="min-width: 620px; display:flex; flex-direction:column; gap:12px; align-items:center;">
+                            <div
+                                style="min-width: 620px; display:flex; flex-direction:column; gap:12px; align-items:center;">
 
                                 @for (int r = 1; r <= Model.Rows; r++)
                                 {
@@ -115,29 +124,60 @@ else
                                             @for (int n = 1; n <= Model.SeatsPerRow; n++)
                                             {
                                                 var seat = Model.Seats.FirstOrDefault(x => x.Row == r && x.Number == n);
+
                                                 if (seat == null)
                                                 {
-                                                    <span style="display:inline-block; width:42px; height:32px; opacity:0.15; border:1px dashed #ccc;"></span>
+                                                    <span style="display:inline-block;
+                                     width:42px;
+                                     height:32px;
+                                     opacity:0.15;
+                                     border:1px dashed #ccc;"></span>
                                                 }
                                                 else if (seat.IsTaken)
                                                 {
-                                                    <button type="button"
-                                                            disabled
-                                                            title="Зайнято"
-                                                            style="width:42px;height:32px; opacity:0.4; border-radius:6px; border:1px solid #999;">
+                                                    <!-- 🔒 ЗАЙНЯТЕ (і для клієнта, і для адміна) -->
+                                                    <button type="button" disabled title="Зайнято" style="width:42px;
+                                       height:32px;
+                                       border-radius:6px;
+                                       border:1px solid #999;
+                                       background:#eee;
+                                       color:#777;
+                                       cursor:not-allowed;">
                                                         @n
                                                     </button>
                                                 }
                                                 else
                                                 {
-                                                    <button type="button"
-                                                            title="Вільне"
-                                                            onclick="location.href='@Url.Action("Book","Tickets", new { sessionId = Model.SessionId })'"
-                                                            style="width:42px;height:32px; border-radius:6px; border:1px solid #333; background:#fff;">
-                                                        @n
-                                                    </button>
+                                                    if (!isAdmin)
+                                                    {
+                                                        <!-- 👤 КЛІЄНТ: можна купити -->
+                                                        <button type="button" title="Вільне"
+                                                            onclick="location.href='@Url.Action("Book", "Tickets", new { sessionId = Model.SessionId })'"
+                                                            style="width:42px;
+                                               height:32px;
+                                               border-radius:6px;
+                                               border:1px solid #333;
+                                               background:#fff;
+                                               cursor:pointer;">
+                                                            @n
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <!-- 🛠 АДМІН: вигляд як у клієнта, але без кліку -->
+                                                        <button type="button" disabled title="Вільне (адмін-перегляд)" style="width:42px;
+                                               height:32px;
+                                               border-radius:6px;
+                                               border:1px solid #333;
+                                               background:#fff;
+                                               color:#000;
+                                               cursor:default;">
+                                                            @n
+                                                        </button>
+                                                    }
                                                 }
                                             }
+
                                         </div>
 
                                         <div style="width:60px; opacity:0.7;">
@@ -149,9 +189,19 @@ else
                             </div>
                         </div>
 
-                        <div class="mt-3 small text-muted text-center">
-                            ⚪️ Вільні — клікабельні (перехід до покупки) • 🔒 Зайняті — недоступні
-                        </div>
+                        @if (!isAdmin)
+                        {
+                            <div class="mt-3 small text-muted text-center">
+                                ⚪️ Вільні — клікабельні (перехід до покупки) • 🔒 Зайняті — недоступні
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mt-3 small text-muted text-center">
+                                🔍 Адмін-перегляд: доступна схема та продані місця
+                            </div>
+                        }
+
                     }
 
                 </div>

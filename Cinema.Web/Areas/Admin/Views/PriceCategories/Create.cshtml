@@ -1,0 +1,95 @@
+@model Pricecategory
+
+@{
+    ViewData["Title"] = "Додати категорію";
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <a asp-action="Index" class="btn btn-link text-decoration-none p-0 text-muted small">
+            <i class="bi bi-arrow-left"></i> Назад до списку категорій
+        </a>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="bg-success bg-opacity-10 p-3 rounded-3 me-3">
+                            <h3 class="mb-0 text-success">💸</h3>
+                        </div>
+                        <div>
+                            <h4 class="fw-bold mb-0">Нова категорія</h4>
+                            <p class="text-muted small mb-0">Створення тарифу для квитків</p>
+                        </div>
+                    </div>
+
+                    <form asp-action="Create">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                        <div class="mb-4">
+                            <label asp-for="Name" class="form-label small fw-bold text-muted">Назва категорії</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0">
+                                    <i class="bi bi-tag text-muted"></i>
+                                </span>
+                                <input asp-for="Name" class="form-control border-0 bg-light shadow-none p-2"
+                                    placeholder="Наприклад: Студентський, VIP..." />
+                            </div>
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary shadow-sm py-2">
+                                <i class="bi bi-check-lg me-1"></i> Зберегти категорію
+                            </button>
+                            <a asp-action="Index" class="btn btn-light py-2 text-muted">
+                                Скасувати
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <p class="small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Ця назва буде відображатися клієнтам при виборі квитка.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Робимо інпути більш сучасними */
+    .form-control:focus {
+        background-color: #fff !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1) !important;
+        border: none;
+    }
+
+    .input-group-text {
+        border-radius: 8px 0 0 8px;
+    }
+
+    input.form-control {
+        border-radius: 0 8px 8px 0;
+    }
+
+    .card {
+        border-radius: 15px;
+    }
+
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+    }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
