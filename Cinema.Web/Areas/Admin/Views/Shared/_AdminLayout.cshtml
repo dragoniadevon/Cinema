@@ -65,9 +65,31 @@
                                 Ціни
                             </a>
                         </li>
-
                     </ul>
+
+                    <!-- 🔐 ADMIN INFO + LOGOUT -->
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="d-flex align-items-center text-light gap-3">
+                            <span>
+                                👤 @User.Identity.Name
+                            </span>
+
+                            <form asp-area="" asp-controller="Account" asp-action="Logout" method="post"
+                                class="d-inline ms-3">
+
+                                @Html.AntiForgeryToken()
+
+                                <button type="submit" class="btn btn-outline-light btn-sm">
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    }
+
+
                 </div>
+
             </div>
         </nav>
 

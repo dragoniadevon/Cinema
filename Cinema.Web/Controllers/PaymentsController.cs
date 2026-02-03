@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Cinema.Web.Controllers;
 
+[Authorize]
 public class PaymentsController : Controller
 {
     private readonly AppDbContext _db;

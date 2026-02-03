@@ -126,8 +126,8 @@ namespace Cinema.Web.Controllers
 
             // зайняті місця
             var takenSeatIds = await _context.Tickets
-                .Where(t => t.Sessionid == id && t.Seatid != null)
-                .Select(t => t.Seatid!.Value)
+                .Where(t => t.Sessionid == id)
+                .Select(t => t.Seatid)
                 .ToListAsync();
 
             var movie = session.Movie;

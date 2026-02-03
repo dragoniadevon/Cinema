@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
 using System.Threading.Tasks;
 using System;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Cinema.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = "Admin")]
 public class CinemasController : Controller
 {
     private readonly AppDbContext _context;

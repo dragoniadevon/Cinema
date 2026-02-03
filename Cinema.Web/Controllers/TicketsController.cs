@@ -1,20 +1,30 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Cinema.Infrastructure.Entities;
 using Cinema.Web.Models.Tickets;
+
 
 namespace Cinema.Web.Controllers;
 
 public class TicketsController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public TicketsController(AppDbContext db)
+
+    public TicketsController(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager)
     {
         _db = db;
+        _userManager = userManager;
     }
 
+
     // GET: /Tickets/Book?sessionId=1
+    [Authorize]
     public async Task<IActionResult> Book(int sessionId)
     {
         var session = await _db.Sessions
@@ -31,9 +41,10 @@ public class TicketsController : Controller
             .ToListAsync();
 
         var takenSeatIds = await _db.Tickets
-            .Where(t => t.Sessionid == sessionId && t.Seatid != null)
-            .Select(t => t.Seatid!.Value)
+            .Where(t => t.Sessionid == sessionId)
+            .Select(t => t.Seatid)
             .ToListAsync();
+
 
         var vm = new BookTicketVm
         {
@@ -51,11 +62,18 @@ public class TicketsController : Controller
     }
 
     // POST: /Tickets/Book
+    [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Book(BookTicketRequest request)
     {
-        int? userId = null;
+        var user = await _userManager.GetUserAsync(User);
+
+        if (user == null)
+            return Challenge();
+
+        int userId = user.Id;
+
 
         // 1) Достаём сеанс + зал
         var session = await _db.Sessions

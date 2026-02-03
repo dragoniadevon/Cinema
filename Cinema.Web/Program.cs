@@ -1,4 +1,5 @@
-﻿using Cinema.Infrastructure.Entities;
+﻿using Microsoft.AspNetCore.Identity;
+using Cinema.Infrastructure.Entities;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +12,24 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
+builder.Services
+    .AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
+    {
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 6;
+
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+
 var app = builder.Build();
+
+
 
 
 // ============================
@@ -38,6 +56,77 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"Помилка при виконанні SEED Pricecategories: {ex.Message}");
+    }
+}
+
+// ============================
+// ✅ SEED ROLES (Identity)
+// ============================
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole<int>>>();
+
+    string[] roles = { "Admin", "User" };
+
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole<int>(role));
+        }
+    }
+}
+
+// ============================
+// ✅ SEED ADMIN USER
+// ============================
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole<int>>>();
+
+    string adminEmail = "admin@cinema.local";
+    string adminPassword = "Admin123!"; // для практики ок
+
+    // 1️⃣ Перевіряємо, чи існує адмін
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+    if (adminUser == null)
+    {
+        adminUser = new ApplicationUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            FirstName = "Admin",
+            LastName = "Cinema",
+            EmailConfirmed = true
+        };
+
+        var createResult = await userManager.CreateAsync(adminUser, adminPassword);
+
+        if (!createResult.Succeeded)
+        {
+            throw new Exception(
+                "Не вдалося створити Admin: " +
+                string.Join(", ", createResult.Errors.Select(e => e.Description))
+            );
+        }
+    }
+
+    // 2️⃣ Переконуємось, що роль Admin існує
+    if (!await roleManager.RoleExistsAsync("Admin"))
+    {
+        await roleManager.CreateAsync(new IdentityRole<int>("Admin"));
+    }
+
+    // 3️⃣ Призначаємо роль Admin
+    if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+    {
+        await userManager.AddToRoleAsync(adminUser, "Admin");
     }
 }
 
@@ -140,7 +229,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
 using Cinema.Infrastructure.Entities.Enums;
 using Cinema.Web.Models.Sessions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Cinema.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = "Admin")]
 public class SessionsController : Controller
 {
     private readonly AppDbContext _context;
@@ -472,8 +474,8 @@ public class SessionsController : Controller
             .ToListAsync();
 
         var takenSeatIds = await _context.Tickets
-            .Where(t => t.Sessionid == id && t.Seatid != null)
-            .Select(t => t.Seatid!.Value)
+            .Where(t => t.Sessionid == id)
+            .Select(t => t.Seatid)
             .ToListAsync();
 
         var vm = new SessionDetailsVm

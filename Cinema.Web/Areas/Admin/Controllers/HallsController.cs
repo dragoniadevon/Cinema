@@ -4,10 +4,12 @@ using Cinema.Infrastructure.Entities;
 using Cinema.Infrastructure.Entities.Enums;
 using System.Threading.Tasks;
 using System;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Cinema.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = "Admin")]
 public class HallsController : Controller
 {
     private readonly AppDbContext _context;
