@@ -7,6 +7,8 @@ namespace Cinema.Web.Models.Sessions
     {
         public DateTime Date { get; set; }
 
+        public bool IsAdminView { get; set; }
+
         public List<SessionsByCinemaVm> Cinemas { get; set; }
     }
 }

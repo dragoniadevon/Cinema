@@ -2,8 +2,11 @@
 
 @{
     bool isAdmin = Model.IsAdminView;
-}
 
+    Layout = isAdmin
+    ? "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"
+    : "~/Views/Shared/_Layout.cshtml";
+}
 
 @{
     ViewData["Title"] = "Деталі сеансу";
@@ -128,21 +131,21 @@
                                                 if (seat == null)
                                                 {
                                                     <span style="display:inline-block;
-                                     width:42px;
-                                     height:32px;
-                                     opacity:0.15;
-                                     border:1px dashed #ccc;"></span>
+                                                     width:42px;
+                                                     height:32px;
+                                                     opacity:0.15;
+                                                     border:1px dashed #ccc;"></span>
                                                 }
                                                 else if (seat.IsTaken)
                                                 {
                                                     <!-- 🔒 ЗАЙНЯТЕ (і для клієнта, і для адміна) -->
                                                     <button type="button" disabled title="Зайнято" style="width:42px;
-                                       height:32px;
-                                       border-radius:6px;
-                                       border:1px solid #999;
-                                       background:#eee;
-                                       color:#777;
-                                       cursor:not-allowed;">
+                                                       height:32px;
+                                                       border-radius:6px;
+                                                       border:1px solid #999;
+                                                       background:#eee;
+                                                       color:#777;
+                                                       cursor:not-allowed;">
                                                         @n
                                                     </button>
                                                 }
@@ -154,11 +157,11 @@
                                                         <button type="button" title="Вільне"
                                                             onclick="location.href='@Url.Action("Book", "Tickets", new { sessionId = Model.SessionId })'"
                                                             style="width:42px;
-                                               height:32px;
-                                               border-radius:6px;
-                                               border:1px solid #333;
-                                               background:#fff;
-                                               cursor:pointer;">
+                                                                   height:32px;
+                                                                   border-radius:6px;
+                                                                   border:1px solid #333;
+                                                                   background:#fff;
+                                                                   cursor:pointer;">
                                                             @n
                                                         </button>
                                                     }
@@ -166,12 +169,12 @@
                                                     {
                                                         <!-- 🛠 АДМІН: вигляд як у клієнта, але без кліку -->
                                                         <button type="button" disabled title="Вільне (адмін-перегляд)" style="width:42px;
-                                               height:32px;
-                                               border-radius:6px;
-                                               border:1px solid #333;
-                                               background:#fff;
-                                               color:#000;
-                                               cursor:default;">
+                                                                   height:32px;
+                                                                   border-radius:6px;
+                                                                   border:1px solid #333;
+                                                                   background:#fff;
+                                                                   color:#000;
+                                                                   cursor:default;">
                                                             @n
                                                         </button>
                                                     }
