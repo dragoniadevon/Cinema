@@ -1,13 +1,17 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace Cinema.Infrastructure.Entities;
 
-public class AppDbContext : DbContext
+public class AppDbContext
+    : IdentityDbContext<ApplicationUser, IdentityRole<int>, int>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
     }
+
 
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<Genre> Genres => Set<Genre>();
@@ -17,8 +21,6 @@ public class AppDbContext : DbContext
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Payment> Payments => Set<Payment>();
-    public DbSet<User> Users => Set<User>();
-    public DbSet<Role> Roles => Set<Role>();
     public DbSet<Actor> Actors => Set<Actor>();
     public DbSet<Movieactor> Movieactors => Set<Movieactor>();
     public DbSet<Pricecategory> Pricecategories => Set<Pricecategory>();

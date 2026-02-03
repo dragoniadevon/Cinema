@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Cinema.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
+[Authorize(Roles = "Admin")]
 public class PriceCategoriesController : Controller
 {
     private readonly AppDbContext _context;
