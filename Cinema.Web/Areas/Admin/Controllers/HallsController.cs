@@ -1,8 +1,13 @@
-﻿using Cinema.Infrastructure.Entities;
-using Cinema.Infrastructure.Entities.Enums;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Cinema.Infrastructure.Entities;
+using Cinema.Infrastructure.Entities.Enums;
+using System.Threading.Tasks;
+using System;
 
+namespace Cinema.Web.Areas.Admin.Controllers;
+
+[Area("Admin")]
 public class HallsController : Controller
 {
     private readonly AppDbContext _context;

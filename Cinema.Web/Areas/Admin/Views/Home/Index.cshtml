@@ -1,0 +1,154 @@
+@{
+    ViewData["Title"] = "Адмін-панель";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">🛠️ Адмін-панель</h1>
+            <div class="text-muted">
+                Керування контентом кінотеатру та розкладом сеансів
+            </div>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-light text-dark border shadow-sm p-2">
+                <i class="bi bi-person-badge me-1"></i> Адміністратор
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm transition-hover">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-3 me-3">
+                            <h3 class="mb-0 text-primary">🎬</h3>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Фільми</h5>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Додавання нових стрічок, редагування описів, завантаження постерів та керування акторським
+                        складом.
+                    </p>
+                    <a asp-controller="Movies" asp-action="Index" class="btn btn-primary shadow-sm w-100 mt-3">
+                        Керувати фільмами
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm transition-hover">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-info bg-opacity-10 p-3 rounded-3 me-3">
+                            <h3 class="mb-0 text-info">🗓️</h3>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Сеанси</h5>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Планування розкладу, вибір залів, контроль форматів (2D/3D) та моніторинг проданих квитків.
+                    </p>
+                    <a asp-controller="Sessions" asp-action="Index"
+                        class="btn btn-info text-white shadow-sm w-100 mt-3">
+                        Розклад сеансів
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm transition-hover">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-warning bg-opacity-10 p-3 rounded-3 me-3">
+                            <h3 class="mb-0 text-warning">🎭</h3>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Жанри</h5>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Налаштування категорій фільмів для зручного пошуку користувачами на сайті.
+                    </p>
+                    <a asp-controller="Genres" asp-action="Index" class="btn btn-outline-warning shadow-sm w-100 mt-3">
+                        Налаштувати жанри
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm transition-hover border-start border-4 border-primary">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-secondary bg-opacity-10 p-3 rounded-3 me-3">
+                            <h3 class="mb-0 text-secondary">🏢</h3>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Кінотеатри</h5>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Керування філіями, налаштування залів, їх місткості та адрес.
+                    </p>
+                    <a asp-controller="Cinemas" asp-action="Index"
+                        class="btn btn-outline-secondary shadow-sm w-100 mt-3">
+                        Список локацій
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm transition-hover">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-dark bg-opacity-10 p-3 rounded-3 me-3">
+                            <h3 class="mb-0 text-dark">🎤</h3>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Актори</h5>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        База даних акторів, їх фото та інформація для прив'язки до кінопроєктів.
+                    </p>
+                    <a asp-controller="Actors" asp-action="Index" class="btn btn-outline-dark shadow-sm w-100 mt-3">
+                        База акторів
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm transition-hover">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success bg-opacity-10 p-3 rounded-3 me-3">
+                            <h3 class="mb-0 text-success">💸</h3>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Ціни</h5>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Гнучке налаштування тарифів, категорій квитків та акційних пропозицій.
+                    </p>
+                    <a asp-controller="PriceCategories" asp-action="Index"
+                        class="btn btn-outline-success shadow-sm w-100 mt-3">
+                        Тарифікація
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Додаємо легкий ефект при наведенні, як у сучасних панелях */
+    .transition-hover {
+        transition: transform 0.2s ease-in-out, shadow 0.2s ease-in-out;
+    }
+
+    .transition-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .1) !important;
+    }
+</style>

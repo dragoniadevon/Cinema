@@ -20,7 +20,8 @@ namespace Cinema.Web.Controllers
             ViewBag.Movies = await _context.Movies.ToListAsync();
             ViewBag.Cinemas = _context.Cinemas
                 .Where(c => c.Isactive)
-                .Select(c => new {
+                .Select(c => new
+                {
                     Id = c.Id,
                     DisplayName = $"{c.Name} ({c.City})"
                 })
@@ -537,7 +538,7 @@ namespace Cinema.Web.Controllers
                     IsTaken = takenSeatIds.Contains(s.Id)
                 }).ToList()
             };
-
+            vm.IsAdminView = false;
             return View(vm);
         }
 

@@ -27,6 +27,8 @@ public class SessionDetailsVm
 
     // ✅ НОВЕ: ціни
     public List<SessionPriceVm> Prices { get; set; } = new();
+
+    public bool IsAdminView { get; set; }
 }
 
 public class SessionPriceVm
