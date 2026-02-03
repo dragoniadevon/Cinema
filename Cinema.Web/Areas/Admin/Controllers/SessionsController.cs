@@ -118,7 +118,12 @@ public class SessionsController : Controller
         ViewBag.SelectedCinema = cinemaId;
         ViewBag.SelectedDate = date?.ToString("yyyy-MM-dd");
 
-        return View(model);
+        foreach (var d in model)
+        {
+            d.IsAdminView = true;
+        }
+
+        return View("~/Views/Sessions/Index.cshtml", model);
     }
 
     // ================= CREATE =================
