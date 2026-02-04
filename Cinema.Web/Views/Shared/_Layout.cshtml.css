@@ -1,48 +1,103 @@
-﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-for details on configuring this project to bundle and minify static web assets. */
+﻿/* Глобальні налаштування */
+body {
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Виштовхує футер донизу */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
-a.navbar-brand {
-  white-space: normal;
-  text-align: center;
-  word-break: break-all;
+main {
+    flex-grow: 1;
 }
 
 a {
-  color: #0077cc;
+    color: #0d6efd;
+    text-decoration: none;
+    transition: color 0.2s;
 }
 
-.btn-primary {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+a:hover {
+    color: #0a58ca;
 }
 
-.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+/* Навігаційна панель */
+.navbar {
+    background-color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 0.8rem 1rem;
 }
 
-.border-top {
-  border-top: 1px solid #e5e5e5;
-}
-.border-bottom {
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.box-shadow {
-  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+.navbar-brand {
+    font-weight: 800;
+    color: #0d6efd !important;
+    letter-spacing: -0.5px;
 }
 
-button.accept-policy {
-  font-size: 1rem;
-  line-height: inherit;
+.nav-link {
+    color: #495057 !important;
+    font-weight: 500;
 }
 
+.nav-link:hover {
+    color: #0d6efd !important;
+}
+
+/* Кнопки та бейджі */
+.btn-select-location {
+    border: none;
+    background-color: #f1f3f5;
+    color: #495057;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s;
+}
+
+.btn-select-location:hover {
+    background-color: #e9ecef;
+    color: #0d6efd;
+}
+
+.user-badge {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Картки та тіні */
+.card {
+    border-radius: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important;
+}
+
+/* Кнопки дій (Edit/Delete) */
+.btn-white {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+}
+
+.btn-white:hover {
+    background-color: #f8f9fa;
+}
+
+/* Футер */
 .footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  white-space: nowrap;
-  line-height: 60px;
+    background-color: #ffffff;
+    padding: 1.5rem 0;
+    margin-top: auto; /* Притискає до низу у flex-контейнері */
+    border-top: 1px solid #dee2e6;
+    width: 100%;
+}
+
+/* Валідація */
+.field-validation-error {
+    font-size: 0.8rem;
+    font-weight: 500;
 }
