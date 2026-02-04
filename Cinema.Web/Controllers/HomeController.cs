@@ -15,8 +15,34 @@ public class HomeController : Controller
 
     public IActionResult Index()
     {
+        if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+        {
+            return RedirectToAction("Index", "Sessions", new { area = "Admin" });
+        }
+
+        var cinemaIdCookie = Request.Cookies["selectedCinemaId"];
+
+        if (int.TryParse(cinemaIdCookie, out int id))
+        {
+            ViewBag.SelectedCinemaId = id;
+        }
+
         return View();
     }
+
+    public IActionResult PosterCarouselPartial()
+    {
+        var cinemaIdCookie = Request.Cookies["SelectedCinemaId"];
+
+        int? cinemaId = null;
+        if (int.TryParse(cinemaIdCookie, out var id))
+        {
+            cinemaId = id;
+        }
+
+        return ViewComponent("PosterCarousel", new { cinemaId });
+    }
+
 
     public IActionResult Privacy()
     {
