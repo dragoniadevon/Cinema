@@ -132,72 +132,73 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+
         const cityButtons = document.querySelectorAll(".city-item");
         const cityBlocks = document.querySelectorAll(".city-block");
 
+        function saveLocation(city, cinemaName, cinemaId) {
+            document.cookie = `selectedCity=${encodeURIComponent(city)}; path=/`;
+            document.cookie = `selectedCinemaName=${encodeURIComponent(cinemaName)}; path=/`;
+            document.cookie = `selectedCinemaId=${cinemaId}; path=/`;
+        }
+
+        // перемикання міст
         cityButtons.forEach(btn => {
             btn.addEventListener("click", () => {
                 const city = btn.dataset.city;
 
-                // Сховати всі блоки кінотеатрів
                 cityBlocks.forEach(block => block.classList.add("d-none"));
 
-                // Показати обране місто
                 const activeBlock = document.querySelector(`.city-block[data-city="${city}"]`);
-                if (activeBlock) {
-                    activeBlock.classList.remove("d-none");
-                }
+                if (activeBlock) activeBlock.classList.remove("d-none");
 
-                // Підсвітка активного міста
                 cityButtons.forEach(b => b.classList.remove("active-city"));
                 btn.classList.add("active-city");
             });
         });
 
-        // Вибір кінотеатру
+        // 👉 Обрати кінотеатр
         document.querySelectorAll(".select-cinema").forEach(btn => {
             btn.addEventListener("click", () => {
                 const city = btn.dataset.city;
                 const cinemaName = btn.dataset.cinemaName;
                 const cinemaId = btn.dataset.cinemaId;
 
-                // Cookie
-                document.cookie = `selectedCity=${encodeURIComponent(city)}; path=/`;
-                document.cookie = `selectedCinemaName=${encodeURIComponent(cinemaName)}; path=/`;
-                document.cookie = `selectedCinemaId=${cinemaId}; path=/`;
+                saveLocation(city, cinemaName, cinemaId);
 
-                // Закрити модалку
-                const modalElement = document.getElementById("cityCinemaModal");
-                const modal = bootstrap.Modal.getInstance(modalElement);
-                modal.hide();
+                const modalEl = document.getElementById("cityCinemaModal");
+                bootstrap.Modal.getInstance(modalEl)?.hide();
 
-                // Оновити Navbar label
-                const label = document.getElementById("cityCinemaLabel");
-                if (label) {
-                    label.innerHTML = `<i class="bi bi-geo-alt-fill me-2 text-primary"></i> ${city}, ${cinemaName}`;
+                const isSessions = window.location.pathname.toLowerCase().startsWith("/sessions");
+
+                if (isSessions) {
+                    // 🔥 ключове
+                    window.location.href =
+                        `/Sessions?city=${encodeURIComponent(city)}&cinemaId=${cinemaId}`;
+                } else {
+                    const label = document.getElementById("cityCinemaLabel");
+                    if (label) {
+                        label.innerHTML =
+                            `<i class="bi bi-geo-alt-fill me-2 text-primary"></i> ${city}, ${cinemaName}`;
+                    }
                 }
-
-                // Можна додати перезавантаження сторінки, якщо контент залежить від локації
-                // window.location.reload();
             });
         });
 
-        // Відкрити перше місто автоматично
+        // 👉 Розклад (просто зберігаємо cookies — навігацію робить <a>)
+        document.querySelectorAll(".schedule-link").forEach(link => {
+            link.addEventListener("click", () => {
+                saveLocation(
+                    link.dataset.city,
+                    link.dataset.cinemaName,
+                    link.dataset.cinemaId
+                );
+            });
+        });
+
+        // автоматично відкрити перше місто
         if (cityButtons.length > 0) {
             cityButtons[0].click();
         }
-    });
-</script>
-<script>
-    document.querySelectorAll(".schedule-link").forEach(link => {
-        link.addEventListener("click", () => {
-            const city = link.dataset.city;
-            const cinemaName = link.dataset.cinemaName;
-            const cinemaId = link.dataset.cinemaId;
-
-            document.cookie = `selectedCity=${encodeURIComponent(city)}; path=/`;
-            document.cookie = `selectedCinemaName=${encodeURIComponent(cinemaName)}; path=/`;
-            document.cookie = `selectedCinemaId=${cinemaId}; path=/`;
-        });
     });
 </script>
