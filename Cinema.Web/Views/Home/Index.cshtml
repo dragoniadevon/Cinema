@@ -1,8 +1,19 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    var cinemaId = Context.Request.Cookies["SelectedCinemaId"];
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div id="poster-carousel-container">
+    @await Component.InvokeAsync(
+    "PosterCarousel",
+        new { cinemaId = ViewBag.SelectedCinemaId }
+        )
 </div>
+
+<script>
+    async function reloadPosterCarousel() {
+        const response = await fetch('/Home/PosterCarouselPartial');
+        const html = await response.text();
+
+        document.getElementById('poster-carousel-container').innerHTML = html;
+    }
+</script>

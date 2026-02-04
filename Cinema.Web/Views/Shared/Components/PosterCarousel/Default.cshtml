@@ -1,0 +1,204 @@
+@model List<PosterCarouselItemVm>
+
+@if (Model != null && Model.Any())
+{
+    <div class="full-screen-carousel-wrapper">
+        <div class="poster-carousel">
+            @foreach (var movie in Model)
+            {
+                <div class="poster-card" tabindex="0">
+                    <div class="poster-image-container">
+                        <img src="@movie.PosterUrl" class="poster-img" alt="Постер до фільму @movie.Title" loading="lazy" />
+
+                        <div class="poster-multiplex-overlay">
+                            <div class="overlay-header">
+                                <a asp-controller="Movies" asp-action="Details" asp-route-id="@movie.MovieId"
+                                    class="action-item">
+                                    <i class="bi bi-info-circle"></i>
+                                    <span>Детальніше</span>
+                                </a>
+                                @if (!string.IsNullOrEmpty(movie.TrailerUrl))
+                                {
+                                    <a href="@movie.TrailerUrl" target="_blank" rel="noopener" class="action-item">
+                                        <i class="bi bi-play-circle"></i>
+                                        <span>Трейлер</span>
+                                    </a>
+                                }
+                            </div>
+
+                            <div class="overlay-footer">
+                                <h3 class="poster-title">@movie.Title</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="no-sessions-wrapper d-flex flex-column align-items-center justify-content-center text-center py-5 shadow-sm mx-auto my-5 rounded-4 bg-white border"
+        style="max-width: 600px;">
+        <div class="display-1 text-muted opacity-25 mb-3">
+            <i class="bi bi-calendar-x"></i>
+        </div>
+        <h3 class="fw-bold text-dark">На жаль, сеансів не знайдено</h3>
+        <p class="text-muted px-4">
+            У цьому кінотеатрі зараз немає активних сеансів. Спробуйте обрати іншу локацію або завітайте до нас пізніше.
+        </p>
+        <button class="btn btn-primary rounded-pill px-4 mt-2 shadow-sm" data-bs-toggle="modal"
+            data-bs-target="#cityCinemaModal">
+            <i class="bi bi-geo-alt-fill me-2"></i>Змінити кінотеатр
+        </button>
+    </div>
+}
+<style>
+    /* 1. КОНТЕЙНЕР ТА ОСНОВНІ НАЛАШТУВАННЯ */
+    .full-screen-carousel-wrapper {
+        width: 100%;
+        background-color: #000;
+        overflow: hidden;
+    }
+
+    .poster-carousel {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        /* Firefox */
+        -ms-overflow-style: none;
+        /* IE/Edge */
+    }
+
+    .poster-carousel::-webkit-scrollbar {
+        display: none;
+        /* Chrome/Safari */
+    }
+
+    /* 2. КАРТКА ФІЛЬМУ */
+    .poster-card {
+        position: relative;
+        flex: 0 0 25%;
+        /* 4 афіші на екрані */
+        min-width: 300px;
+        height: 85vh;
+        scroll-snap-align: start;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .poster-image-container {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .poster-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* 3. ОВЕРЛЕЙ ТА ГРАДІЄНТ */
+    .poster-multiplex-overlay {
+        position: absolute;
+        inset: 0;
+        /* Тільки нижній градієнт за замовчуванням */
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 40%);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 2.5rem 1.5rem;
+        transition: all 0.4s ease-in-out;
+        z-index: 2;
+    }
+
+    /* Ефект при наведенні (затемнення + блюр) */
+    .poster-card:hover .poster-multiplex-overlay,
+    .poster-card:focus-within .poster-multiplex-overlay {
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+
+    /* 4. ЕЛЕМЕНТИ КЕРУВАННЯ */
+    .overlay-header {
+        display: flex;
+        justify-content: space-around;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.4s ease-out;
+    }
+
+    .action-item {
+        color: #fff;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 0.8rem;
+        font-weight: 500;
+        gap: 8px;
+        transition: opacity 0.2s;
+    }
+
+    .action-item i {
+        font-size: 1.8rem;
+    }
+
+    .action-item:hover {
+        color: #fff;
+        opacity: 0.7;
+    }
+
+    /* 5. НАЗВА ФІЛЬМУ */
+    .poster-title {
+        color: #fff;
+        font-size: 1.5rem;
+        font-weight: 800;
+        text-align: center;
+        text-transform: uppercase;
+        margin: 0;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 6. АНІМАЦІЇ */
+    .poster-card:hover .overlay-header,
+    .poster-card:focus-within .overlay-header {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .poster-card:hover .poster-img,
+    .poster-card:focus-within .poster-img {
+        transform: scale(1.1);
+    }
+
+    /* 7. АДАПТИВНІСТЬ (подвійне @@ для Razor) */
+    @@media (max-width: 1200px) {
+        .poster-card {
+            flex: 0 0 33.333%;
+        }
+    }
+
+    @@media (max-width: 992px) {
+        .poster-card {
+            flex: 0 0 50%;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .poster-card {
+            flex: 0 0 85%;
+            height: 70vh;
+        }
+
+        .poster-title {
+            font-size: 1.2rem;
+        }
+    }
+</style>
