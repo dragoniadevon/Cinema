@@ -50,6 +50,14 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
+            await _userManager.AddClaimAsync(
+                user,
+                new System.Security.Claims.Claim(
+                    "FirstName",
+                    user.FirstName ?? ""
+                )
+            );
+
             await _signInManager.SignInAsync(user, isPersistent: false);
             return RedirectToAction("Index", "Home");
         }
@@ -93,14 +101,30 @@ public class AccountController : Controller
             // 🔑 знаходимо користувача
             var user = await _userManager.FindByEmailAsync(model.Email);
 
-            // 🔐 якщо адмін — одразу в адмінку
-            if (user != null && await _userManager.IsInRoleAsync(user, "Admin"))
+            if (user != null)
             {
-                return RedirectToAction(
-                    "Index",
-                    "Home",
-                    new { area = "Admin" }
-                );
+                // ✅ додаємо FirstName у claims (один раз)
+                var claims = await _userManager.GetClaimsAsync(user);
+
+                if (!claims.Any(c => c.Type == "FirstName"))
+                {
+                    await _userManager.AddClaimAsync(
+                        user,
+                        new System.Security.Claims.Claim("FirstName", user.FirstName ?? "")
+                    );
+
+                    await _signInManager.RefreshSignInAsync(user);
+                }
+
+                // 🔐 якщо адмін — одразу в адмінку
+                if (await _userManager.IsInRoleAsync(user, "Admin"))
+                {
+                    return RedirectToAction(
+                        "Index",
+                        "Home",
+                        new { area = "Admin" }
+                    );
+                }
             }
 
             // 👤 звичайний користувач — на головну
@@ -110,6 +134,7 @@ public class AccountController : Controller
         ModelState.AddModelError("", "Невірний email або пароль");
         return View(model);
     }
+
 
 
     [HttpPost]
