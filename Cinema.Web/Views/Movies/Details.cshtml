@@ -1,0 +1,234 @@
+@model Movie
+@using Cinema.Infrastructure.Entities
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">🎬 @Model.Title</h1>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body text-center p-3">
+                    @if (!string.IsNullOrWhiteSpace(Model.Posterurl))
+                    {
+                        <img src="@Model.Posterurl"
+                             alt="Постер @Model.Title"
+                             class="img-fluid rounded mb-3 shadow-sm"
+                             style="max-height: 450px; width: 100%; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="bg-light rounded d-flex flex-column align-items-center justify-content-center mb-3"
+                             style="height: 400px;">
+                            <i class="bi bi-camera-reels display-4 text-muted mb-2"></i>
+                            <span class="text-muted">Постер відсутній</span>
+                        </div>
+                    }
+
+                    <div class="d-grid gap-2">
+                        @if (!string.IsNullOrWhiteSpace(Model.Trailerurl))
+                        {
+                            <a href="@Model.Trailerurl" target="_blank" class="btn btn-danger shadow-sm">
+                                <i class="bi bi-play-circle-fill me-2"></i> Дивитися трейлер
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="mb-4 fw-bold text-dark border-bottom pb-2">
+                        <i class="bi bi-info-circle me-2"></i> Детальна інформація
+                    </h5>
+
+                    <ul class="list-group list-group-flush">
+                        @if (Model.MovieGenres.Any())
+                        {
+                            <li class="list-group-item px-0 py-3 d-flex align-items-start">
+                                <span class="fw-bold text-dark me-3" style="min-width: 140px;">Жанри:</span>
+
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach (var genre in Model.MovieGenres)
+                                    {
+                                        <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">
+                                            @genre.Genre.Name
+                                        </span>
+                                    }
+                                </div>
+                            </li>
+                        }
+
+                        @if (Model.Rating.HasValue)
+                        {
+                            <li class="list-group-item px-0 py-3 d-flex align-items-center">
+                                <span class="fw-bold text-dark me-3" style="min-width: 140px;">Рейтинг:</span>
+
+                                <span class="badge bg-warning text-dark px-3">
+                                    <i class="bi bi-star-fill me-1"></i> @Model.Rating
+                                </span>
+                            </li>
+                        }
+
+                        @if (Model.Duration.HasValue)
+                        {
+                            <li class="list-group-item px-0 py-3 d-flex align-items-center">
+                                <span class="fw-bold text-dark me-3" style="min-width: 140px;">Тривалість:</span>
+                                <span class="text-muted">@Model.Duration хв.</span>
+                            </li>
+                        }
+
+                        @if (Model.Agerating.HasValue)
+                        {
+                            <li class="list-group-item px-0 py-3 d-flex align-items-center">
+                                <span class="fw-bold text-dark me-3" style="min-width: 140px;">Віковий рейтинг:</span>
+
+                                <span class="badge bg-light text-dark border fw-normal">
+                                    @Html.DisplayFor(m => m.Agerating)
+                                </span>
+                            </li>
+                        }
+
+                        @if (Model.Releasedate.HasValue)
+                        {
+                            <li class="list-group-item px-0 py-3 d-flex align-items-center">
+                                <span class="fw-bold text-dark me-3" style="min-width: 140px;">Дата релізу:</span>
+                                <span class="text-muted">@Model.Releasedate.Value.ToString("dd MMMM yyyy")</span>
+                            </li>
+                        }
+
+                        @if (Model.Languagecode.HasValue)
+                        {
+                            <li class="list-group-item px-0 py-3 d-flex align-items-center">
+                                <span class="fw-bold text-dark me-3" style="min-width: 140px;">Мова:</span>
+                                <span class="text-muted text-uppercase">@Html.DisplayFor(m => m.Languagecode)</span>
+                            </li>
+                        }
+
+                        @if (Model.Countrycode.HasValue)
+                        {
+                            <li class="list-group-item px-0 py-3 d-flex align-items-center">
+                                <span class="fw-bold text-dark me-3" style="min-width: 140px;">Країна:</span>
+                                <span class="text-muted">@Html.DisplayFor(m => m.Countrycode)</span>
+                            </li>
+                        }
+
+                        @if (Model.MovieActors.Any())
+                        {
+                            <li class="list-group-item px-0 py-3 d-flex align-items-start">
+                                <span class="fw-bold text-dark me-3" style="min-width: 140px;">В головних ролях:</span>
+
+                                <span class="text-muted">
+                                    @string.Join(", ", Model.MovieActors.Select(ma => ma.Actor.Fullname))
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Description))
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h5 class="mb-3 fw-bold text-dark border-bottom pb-2">
+                            <i class="bi bi-justify-left me-2"></i> Опис
+                        </h5>
+
+                        <p class="text-muted mb-0" style="line-height: 1.6; text-align: justify;">
+                            @Model.Description
+                        </p>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px; z-index: 1000;">
+                <div class="card-body p-4">
+                    <h5 class="mb-3 fw-bold text-dark border-bottom pb-2 text-center">
+                        <i class="bi bi-clock-history me-2"></i> Розклад у м. @(ViewBag.SelectedCity ?? "всі міста")
+                    </h5>
+
+                    <form method="get" id="dateFilterForm" class="mb-4">
+                        <input type="hidden" name="city" value="@ViewBag.SelectedCity" />
+
+                        <select name="date"
+                                class="form-select form-select-sm border-primary shadow-none fw-bold"
+                                onchange="this.form.submit()">
+                            @for (int i = 0; i < 7; i++)
+                            {
+                                var dateValue = DateTime.Today.AddDays(i);
+                                var dateStr = dateValue.ToString("yyyy-MM-dd");
+                                var displayDate = i == 0
+                                    ? "Сьогодні"
+                                    : (i == 1 ? "Завтра" : dateValue.ToString("dd MMMM, dddd"));
+
+                                <option value="@dateStr" selected="@(ViewBag.SelectedDate == dateStr)">
+                                    @displayDate
+                                </option>
+                            }
+                        </select>
+                    </form>
+
+                    @if (ViewBag.Sessions != null && ((List<Session>)ViewBag.Sessions).Any())
+{                  var groupedSessions = ((List<Session>)ViewBag.Sessions)
+                            .GroupBy(s => s.Hall.Cinema.Name);
+        @foreach (var cinemaGroup in groupedSessions)
+                        {
+                            <div class="mb-4">
+                                <h6 class="text-primary small fw-bold mb-2 border-start border-3 border-primary ps-2">
+                                    @cinemaGroup.Key
+                                </h6>
+
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach (var session in cinemaGroup)
+                                    {
+                                        <a asp-controller="Sessions"
+                                           asp-action="Details"
+                                           asp-route-id="@session.Id"
+                                           class="btn btn-sm btn-outline-primary fw-bold px-3">
+                                            @session.Starttime.ToString("HH:mm")
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <p class="small text-muted mb-0">
+                                Сеансів у місті @ViewBag.SelectedCity на цю дату не знайдено.
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-outline-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.15);
+        transition: all 0.2s ease;
+    }
+
+    .sticky-top {
+        transition: top 0.3s ease;
+    }
+
+    .form-select-sm {
+        cursor: pointer;
+        background-color: #f8f9ff;
+    }
+</style>

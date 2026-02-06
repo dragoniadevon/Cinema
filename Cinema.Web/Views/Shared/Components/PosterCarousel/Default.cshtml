@@ -3,6 +3,13 @@
 @if (Model != null && Model.Any())
 {
     <div class="full-screen-carousel-wrapper">
+        <button class="carousel-nav-btn prev-btn" onclick="scrollCarousel(-1)">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        <button class="carousel-nav-btn next-btn" onclick="scrollCarousel(1)">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+
         <div class="poster-carousel">
             @foreach (var movie in Model)
             {
@@ -13,7 +20,7 @@
                         <div class="poster-multiplex-overlay">
                             <div class="overlay-header">
                                 <a asp-controller="Movies" asp-action="Details" asp-route-id="@movie.MovieId"
-                                    class="action-item">
+                                       class="action-item">
                                     <i class="bi bi-info-circle"></i>
                                     <span>Детальніше</span>
                                 </a>
@@ -39,7 +46,7 @@
 else
 {
     <div class="no-sessions-wrapper d-flex flex-column align-items-center justify-content-center text-center py-5 shadow-sm mx-auto my-5 rounded-4 bg-white border"
-        style="max-width: 600px;">
+         style="max-width: 600px;">
         <div class="display-1 text-muted opacity-25 mb-3">
             <i class="bi bi-calendar-x"></i>
         </div>
@@ -48,13 +55,12 @@ else
             У цьому кінотеатрі зараз немає активних сеансів. Спробуйте обрати іншу локацію або завітайте до нас пізніше.
         </p>
         <button class="btn btn-primary rounded-pill px-4 mt-2 shadow-sm" data-bs-toggle="modal"
-            data-bs-target="#cityCinemaModal">
+                data-bs-target="#cityCinemaModal">
             <i class="bi bi-geo-alt-fill me-2"></i>Змінити кінотеатр
         </button>
     </div>
 }
 <style>
-    /* 1. КОНТЕЙНЕР ТА ОСНОВНІ НАЛАШТУВАННЯ */
     .full-screen-carousel-wrapper {
         width: 100%;
         background-color: #000;
@@ -178,7 +184,50 @@ else
         transform: scale(1.1);
     }
 
-    /* 7. АДАПТИВНІСТЬ (подвійне @@ для Razor) */
+    /* Контейнер для позиціонування кнопок */
+    .full-screen-carousel-wrapper {
+        position: relative;
+    }
+
+    .carousel-nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0, 0, 0, 0.3);
+        /* Напівпрозорий фон */
+        color: white;
+        border: none;
+        width: 60px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        z-index: 10;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 8px;
+    }
+
+    .carousel-nav-btn:hover {
+        background: rgba(0, 0, 0, 0.8);
+        font-size: 3rem;
+    }
+
+    .prev-btn {
+        left: 10px;
+    }
+
+    .next-btn {
+        right: 10px;
+    }
+
+    @@media (max-width: 768px) {
+        .carousel-nav-btn {
+            display: none;
+        }
+    }
+
     @@media (max-width: 1200px) {
         .poster-card {
             flex: 0 0 33.333%;
@@ -202,3 +251,19 @@ else
         }
     }
 </style>
+
+<script>
+    function scrollCarousel(direction) {
+        const carousel = document.querySelector(".poster-carousel");
+        const firstCard = carousel?.querySelector(".poster-card");
+
+        if (carousel && firstCard) {
+            const step = firstCard.offsetWidth;
+
+            carousel.scrollBy({
+                left: step * direction,
+                behavior: 'smooth'
+            });
+        }
+    }
+</script>
