@@ -9,6 +9,7 @@ namespace Cinema.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
 [Authorize(Roles = "Admin")]
+[Route("Admin/[controller]/[action]/{id?}")]
 public class SessionsController : Controller
 {
     private readonly AppDbContext _context;
@@ -19,15 +20,18 @@ public class SessionsController : Controller
 
     private async Task FillEditViewBags(Session session)
     {
-        ViewBag.Movies = await _context.Movies.ToListAsync();
-        ViewBag.Cinemas = _context.Cinemas
+        ViewBag.Movies = await _context.Movies.OrderBy(m => m.Title).ToListAsync();
+
+        // ПЕРЕДАЄМО ПОВНІ ОБ'ЄКТИ
+        ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive).ToListAsync();
+
+        // ДОДАЄМО МІСТА
+        ViewBag.Cities = await _context.Cinemas
             .Where(c => c.Isactive)
-            .Select(c => new
-            {
-                Id = c.Id,
-                DisplayName = $"{c.Name} ({c.City})"
-            })
-            .ToList();
+            .Select(c => c.City)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToListAsync();
 
         var currentHall = await _context.Halls.AsNoTracking().FirstOrDefaultAsync(h => h.Id == session.Hallid);
         if (currentHall != null)
@@ -57,11 +61,31 @@ public class SessionsController : Controller
             .AsQueryable();
 
         if (mode == "past")
-            query = query.Where(s => s.Isactive == true && s.Endtime < DateTime.Now);
+        {
+            // АРХІВ: Тільки ті, що були активні на момент завершення (тобто відбулися)
+            // Навіть якщо зал зараз архівний, ми показуємо цей сеанс тут, бо він БУВ успішним.
+            query = query.Where(s =>
+                s.Isactive == true &&
+                s.Endtime < DateTime.Now);
+        }
         else if (mode == "cancelled")
-            query = query.Where(s => s.Isactive == false || s.Hall.Isactive == false);
-        else
-            query = query.Where(s => s.Isactive == true && s.Hall.Isactive == true && s.Endtime >= DateTime.Now);
+        {
+            // СКАСОВАНІ: 
+            // 1. Сеанс було скасовано вручну АБО зал заархівували ПЕРЕД початком сеансу.
+            // 2. І при цьому сеанс або майбутній, або має квитки до повернення.
+            query = query.Where(s =>
+                (s.Isactive == false || s.Hall.Isactive == false) &&
+                (s.Endtime >= DateTime.Now || s.Tickets.Any(t => s.Isactive == false)));
+            // Примітка: остання умова залежить від того, чи ви видаляєте порожні минулі сеанси.
+        }
+        else // active
+        {
+            // Тільки ті, де і сеанс активний, і зал працює.
+            query = query.Where(s =>
+                s.Isactive == true &&
+                s.Hall.Isactive == true &&
+                s.Endtime >= DateTime.Now);
+        }
 
         if (!string.IsNullOrEmpty(city))
         {
@@ -125,7 +149,7 @@ public class SessionsController : Controller
             d.IsAdminView = true;
         }
 
-        return View("~/Views/Sessions/Index.cshtml", model);
+        return View(model);
     }
 
     // ================= CREATE =================
@@ -148,6 +172,13 @@ public class SessionsController : Controller
         ViewBag.Movies = _context.Movies.ToList();
         ViewBag.Cinemas = _context.Cinemas.Where(c => c.Isactive).ToList();
         ViewBag.Halls = new List<Hall>();
+
+        ViewBag.Cities = _context.Cinemas
+            .Where(c => c.Isactive)
+            .Select(c => c.City)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
 
         return View(model);
     }
@@ -250,53 +281,46 @@ public class SessionsController : Controller
     {
         var session = await _context.Sessions
             .Include(s => s.Tickets)
-            .Include(s => s.Movie)
-            .Include(s => s.Hall)
             .Include(s => s.Sessionprices)
+            .Include(s => s.Hall)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (session == null) return NotFound();
 
-        if (session.Tickets.Any())
-        {
-            TempData["Error"] = "Редагування заблоковано: на цей сеанс уже продано квитки.";
-            return RedirectToAction(nameof(Index));
-        }
-
         var allCategories = await _context.Pricecategories.ToListAsync();
-        var sessionPrices = session.Sessionprices.ToList();
 
         var model = new EditSessionViewModel
         {
             Id = session.Id,
             MovieId = session.Movieid ?? 0,
+            CinemaId = session.Hall?.Cinemaid ?? 0, // Не забудьте це!
             HallId = session.Hallid ?? 0,
             StartTime = session.Starttime,
             Format = (SessionFormat)session.Format,
 
-            PriceCategoryIds = allCategories.Select(c => c.Id).ToArray(),
-            CategoryPrices = allCategories.Select(c =>
-                sessionPrices.FirstOrDefault(sp => sp.Categoryid == c.Id)?.Price ?? 0m
-            ).ToArray()
+            // Ініціалізуємо Prices для відображення в View
+            Prices = allCategories.Select(c => new SessionPriceInput
+            {
+                PriceCategoryId = c.Id,
+                CategoryName = c.Name,
+                Price = session.Sessionprices.FirstOrDefault(sp => sp.Categoryid == c.Id)?.Price ?? 0
+            }).ToList()
         };
-
 
         await FillEditViewBags(session);
         return View(model);
     }
 
-
+    // GET: Admin/Sessions/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(EditSessionViewModel model)
     {
         if (!ModelState.IsValid)
         {
-            var sessionForBags = await _context.Sessions
-                .Include(s => s.Hall)
-                .FirstAsync(s => s.Id == model.Id);
-
-            await FillEditViewBags(sessionForBags);
+            // Створюємо тимчасовий об'єкт для FillEditViewBags
+            var tempSession = new Session { Hallid = model.HallId };
+            await FillEditViewBags(tempSession);
             return View(model);
         }
 
@@ -348,27 +372,27 @@ public class SessionsController : Controller
             session.Movieid = model.MovieId;
             session.Hallid = model.HallId;
             session.Starttime = model.StartTime;
-            session.Endtime = endTime;
+            session.Endtime = model.StartTime.AddMinutes(movie.Duration ?? 0);
             session.Format = (short)model.Format;
 
+            // Оновлюємо ціни через нову колекцію Prices
             _context.Sessionprices.RemoveRange(session.Sessionprices);
 
-            for (int i = 0; i < model.PriceCategoryIds.Length; i++)
+            if (model.Prices != null)
             {
-                if (model.CategoryPrices[i] > 0)
+                foreach (var p in model.Prices.Where(x => x.Price > 0))
                 {
                     _context.Sessionprices.Add(new Sessionprice
                     {
                         Sessionid = session.Id,
-                        Categoryid = model.PriceCategoryIds[i],
-                        Price = model.CategoryPrices[i]
+                        Categoryid = p.PriceCategoryId,
+                        Price = p.Price
                     });
                 }
             }
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
-
             return RedirectToAction(nameof(Index));
         }
         catch
@@ -386,28 +410,14 @@ public class SessionsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(int id)
     {
-        var session = await _context.Sessions
-            .Include(s => s.Tickets)
-            .FirstOrDefaultAsync(s => s.Id == id);
+        var session = await _context.Sessions.FindAsync(id);
+        if (session == null) return NotFound();
 
-        if (session == null) return Json(new { success = false, message = "Сеанс не знайдено." });
+        session.Isactive = false;
+        await _context.SaveChangesAsync();
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            session.Isactive = false;
-            _context.Update(session);
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return Json(new { success = true, message = "Сеанс та всі квитки скасовані." });
-        }
-        catch (Exception)
-        {
-            await transaction.RollbackAsync();
-            return Json(new { success = false, message = "Помилка при скасуванні сеансу." });
-        }
+        // ТАКОЖ ТУТ
+        return RedirectToAction(nameof(Index));
     }
 
     // ================= DELETE =================
@@ -415,34 +425,15 @@ public class SessionsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var session = await _context.Sessions
-            .Include(s => s.Tickets)
-            .Include(s => s.Sessionprices)
-            .FirstOrDefaultAsync(s => s.Id == id);
+        var session = await _context.Sessions.Include(s => s.Sessionprices).FirstOrDefaultAsync(s => s.Id == id);
+        if (session == null) return NotFound();
 
-        if (session == null) return Json(new { success = false, message = "Сеанс не знайдено." });
+        _context.Sessionprices.RemoveRange(session.Sessionprices);
+        _context.Sessions.Remove(session);
+        await _context.SaveChangesAsync();
 
-        if (session.Tickets.Any())
-        {
-            return Json(new
-            {
-                success = false,
-                needCancel = true,
-                message = "Неможливо видалити: на сеанс уже куплені квитки. Використовуйте кнопку 'Скасувати'."
-            });
-        }
-
-        try
-        {
-            _context.Sessionprices.RemoveRange(session.Sessionprices);
-            _context.Sessions.Remove(session);
-            await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "Сеанс успішно видалено." });
-        }
-        catch (Exception)
-        {
-            return Json(new { success = false, message = "Помилка бази даних при видаленні." });
-        }
+        // ЗАМІСТЬ return Json(...) використовуємо:
+        return RedirectToAction(nameof(Index));
     }
 
     private void FillCreateViewBags(CreateSessionViewModel model)
@@ -512,7 +503,7 @@ public class SessionsController : Controller
             IsAdminView = true
         };
 
-        return View("~/Views/Sessions/Details.cshtml", vm);
+        return View(vm);
     }
 
 }

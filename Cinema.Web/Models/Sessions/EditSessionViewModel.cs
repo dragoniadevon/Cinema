@@ -12,6 +12,9 @@ namespace Cinema.Web.Models.Sessions
         [Required(ErrorMessage = "Оберіть фільм")]
         public int MovieId { get; set; }
 
+        [Required(ErrorMessage = "Оберіть кінотеатр")]
+        public int CinemaId { get; set; }
+
         [Required(ErrorMessage = "Оберіть зал")]
         public int HallId { get; set; }
 

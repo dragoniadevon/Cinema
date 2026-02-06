@@ -41,36 +41,28 @@
         var cardClass = isInactive ? "cinema-inactive" : "";
 
         <div class="col">
-            <div class="card h-100 shadow-sm border-0 @cardClass" style="border-radius: 12px; transition: all 0.3s ease;">
-                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center" style="background-color: transparent !important;">
+            <div class="card h-100 shadow-sm border-0 @cardClass" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-0 fw-bold d-inline">@cinema.Name</h5>
-                        @if (isInactive)
-                        {
-                            <span class="badge bg-secondary status-badge">Архів</span>
-                        }
+                        @if (isInactive) { <span class="badge bg-secondary status-badge">Архів</span> }
                     </div>
                     <div class="d-flex gap-1">
                         <a asp-controller="Halls" asp-action="Create" asp-route-cinemaId="@cinema.Id" 
-                           class="btn btn-sm btn-outline-success shadow-sm @(isInactive ? "disabled" : "")">+ залу</a>
-                        
+                           class="btn btn-sm btn-outline-success @(isInactive ? "disabled" : "")">+ залу</a>
+                    
                         <a asp-action="Edit" asp-route-id="@cinema.Id" 
-                           class="btn btn-sm btn-outline-primary w-38 @(isInactive ? "disabled" : "")" title="Редагувати">✏️</a>
-                        
-                        <form asp-action="Archive" asp-route-id="@cinema.Id" method="post">
-                            @Html.AntiForgeryToken()
-                            <button type="button" class="btn btn-sm btn-outline-secondary w-38" 
+                           class="btn btn-sm btn-outline-primary @(isInactive ? "disabled" : "")">✏️</a>
+                    
+                        @* КНОПКА АРХІВУВАННЯ КІНОТЕАТРУ *@
+                        <button type="button" class="btn btn-sm btn-outline-secondary" 
                                 data-bs-toggle="modal" 
                                 data-bs-target="#archiveCinemaModal" 
                                 data-id="@cinema.Id" 
                                 data-name="@cinema.Name" 
-                                data-isactive="@cinema.Isactive.ToString().ToLower()"
-                                title="@(cinema.Isactive ? "Архівувати" : "Відновити")">
-                            <span style="color: @(cinema.Isactive ? "#6c757d" : "#198754");">
-                                @(cinema.Isactive ? "📥" : "📤")
-                            </span>
+                                data-isactive="@cinema.Isactive.ToString().ToLower()">
+                            <span>@(cinema.Isactive ? "📥" : "📤")</span>
                         </button>
-                        </form>
                     </div>
                 </div>
                 <div class="card-body">
@@ -82,52 +74,47 @@
                             <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 bg-transparent">
                                 <span class="small">@hall.Name</span>
                                 <div class="d-flex gap-1">
-                                    <a asp-controller="Halls" asp-action="Details" asp-route-id="@hall.Id" 
-                                       class="btn btn-sm btn-outline-secondary w-32 @(isInactive ? "disabled" : "")">👁️</a>
-                                    
+                                    <a asp-controller="Halls" asp-action="Details" asp-route-id="@hall.Id" class="btn btn-sm btn-outline-secondary @(isInactive ? "disabled" : "")">👁️</a>
                                     <a asp-controller="Halls" asp-action="Edit" asp-route-id="@hall.Id" 
+
                                        class="btn btn-sm btn-outline-primary w-32 @(isInactive ? "disabled" : "")">✏️</a>
-                                    
-                                    <form asp-controller="Halls" asp-action="ArchiveHall" asp-route-id="@hall.Id" method="post">
-                                        @Html.AntiForgeryToken()
-                                        <button type="button" class="btn btn-sm btn-outline-secondary w-32 @(isInactive ? "disabled" : "")" 
+                                    @* КНОПКА АРХІВУВАННЯ ЗАЛУ *@
+                                    <button type="button" class="btn btn-sm btn-outline-secondary @(isInactive ? "disabled" : "")" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#archiveHallModal" 
                                             data-id="@hall.Id" 
                                             data-name="@hall.Name" 
-                                            data-isactive="true"
-                                            title="В архів">📥</button>
-                                    </form>
+                                            data-isactive="true">📥</button>
                                 </div>
                             </div>
-                        }
+                            }
 
-                        @{ var archivedHalls = cinema.Halls.Where(h => !h.Isactive).ToList(); }
-                        @if (archivedHalls.Any())
-                        {
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-link p-0 text-decoration-none text-muted" 
-                                        type="button" data-bs-toggle="collapse" 
-                                        data-bs-target="#archivedHalls-@cinema.Id">
-                                    <small>📦 Показати архівні зали (@archivedHalls.Count)</small>
-                                </button>
+                            @{ var archivedHalls = cinema.Halls.Where(h => !h.Isactive).ToList(); }
+                            @if (archivedHalls.Any())
+                            {
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-link p-0 text-decoration-none text-muted" 
+                                            type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#archivedHalls-@cinema.Id">
+                                        <small>📦 Показати архівні зали (@archivedHalls.Count)</small>
+                                    </button>
                                 
-                                <div class="collapse" id="archivedHalls-@cinema.Id">
-                                    @foreach (var hall in archivedHalls)
-                                    {
-                                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 bg-transparent border-0 opacity-75">
-                                            <span class="small text-muted text-decoration-line-through">@hall.Name</span>
-                                            <form asp-controller="Halls" asp-action="ArchiveHall" asp-route-id="@hall.Id" method="post">
-                                                @Html.AntiForgeryToken()
-                                                <button type="button" class="btn btn-sm btn-link p-0 text-success @(isInactive ? "disabled" : "")" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#archiveHallModal" 
-                                                    data-id="@hall.Id" 
-                                                    data-name="@hall.Name" 
-                                                    data-isactive="false"
-                                                    title="Відновити">📤</button>
-                                            </form>
-                                        </div>
+                                    <div class="collapse" id="archivedHalls-@cinema.Id">
+                                        @foreach (var hall in archivedHalls)
+                                        {
+                                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 bg-transparent border-0 opacity-75">
+                                                <span class="small text-muted text-decoration-line-through">@hall.Name</span>
+                                                <form asp-controller="Halls" asp-action="ArchiveHall" asp-route-id="@hall.Id" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="button" class="btn btn-sm btn-link p-0 text-success @(isInactive ? "disabled" : "")" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#archiveHallModal" 
+                                                        data-id="@hall.Id" 
+                                                        data-name="@hall.Name" 
+                                                        data-isactive="false"
+                                                        title="Відновити">📤</button>
+                                                </form>
+                                            </div>
                                     }
                                 </div>
                             </div>
@@ -140,17 +127,14 @@
 </div>
 </div>
 
+@* МОДАЛКА КІНОТЕАТРУ *@
 <div class="modal fade" id="archiveCinemaModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold" id="archiveModalTitle">Підтвердження дії</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+            <div class="modal-header border-0"><h5 class="modal-title fw-bold" id="archiveModalTitle"></h5></div>
             <div class="modal-body text-center py-4">
                 <div id="archiveModalIcon" style="font-size: 3rem;" class="mb-3"></div>
                 <p id="archiveModalText" class="fs-5"></p>
-                <p class="text-muted small">Ви завжди зможете змінити статус об'єкта пізніше.</p>
             </div>
             <div class="modal-footer border-0 justify-content-center pb-4">
                 <form id="archiveCinemaForm" method="post">
@@ -163,64 +147,53 @@
     </div>
 </div>
 
+@* МОДАЛКА ЗАЛУ *@
 <div class="modal fade" id="archiveHallModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center py-3">
+            <div class="modal-body text-center py-4">
                 <div id="hallIcon" style="font-size: 2.5rem;" class="mb-2"></div>
                 <h6 class="fw-bold mb-2" id="hallTitle"></h6>
-                <p id="hallText" class="small text-muted mb-0"></p>
-            </div>
-            <div class="modal-footer border-0 justify-content-center pt-0 pb-4">
+                <p id="hallText" class="small text-muted mb-3"></p>
                 <form id="archiveHallForm" method="post">
                     @Html.AntiForgeryToken()
-                    <button type="submit" id="hallConfirmBtn" class="btn btn-sm px-4 shadow-sm"></button>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="submit" id="hallConfirmBtn" class="btn btn-sm px-4 shadow-sm"></button>
+                        <button type="button" class="btn btn-sm btn-light border px-4" data-bs-dismiss="modal">Назад</button>
+                    </div>
                 </form>
-                <button type="button" class="btn btn-sm btn-light border px-4" data-bs-dismiss="modal">Назад</button>
             </div>
         </div>
     </div>
 </div>
 
-@section Scripts
-{
-
+@section Scripts {
     <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const archiveModal = document.getElementById('archiveCinemaModal');
-        
-        archiveModal.addEventListener('show.bs.modal', function (event) {
+        // Логіка для кінотеатру
+        const archiveCinemaModal = document.getElementById('archiveCinemaModal');
+        archiveCinemaModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
             const id = button.getAttribute('data-id');
             const name = button.getAttribute('data-name');
             const isActive = button.getAttribute('data-isactive') === "true";
             
             const form = document.getElementById('archiveCinemaForm');
-            const title = document.getElementById('archiveModalTitle');
-            const text = document.getElementById('archiveModalText');
-            const icon = document.getElementById('archiveModalIcon');
-            const confirmBtn = document.getElementById('archiveConfirmBtn');
+            // ВАЖЛИВО: додаємо /Admin/
+            form.action = '/Admin/Cinemas/Archive/' + id;
             
-            form.action = '/Cinemas/Archive/' + id;
+            document.getElementById('archiveModalTitle').innerText = isActive ? "Архівувати кінотеатр" : "Відновити кінотеатр";
+            document.getElementById('archiveModalText').innerHTML = isActive 
+                ? `Ви впевнені, що хочете архівувати <strong>${name}</strong>?` 
+                : `Відновити роботу кінотеатру <strong>${name}</strong>?`;
+            document.getElementById('archiveModalIcon').innerText = isActive ? "📥" : "📤";
             
-            if (isActive) {
-                title.innerText = "Архівувати кінотеатр";
-                text.innerHTML = `Ви впевнені, що хочете перенести в архів <strong>${name}</strong>? <br>Усі пов'язані зали та майбутні порожні сеанси будуть приховані.`;
-                icon.innerText = "📥";
-                confirmBtn.innerText = "Архівувати";
-                confirmBtn.className = "btn btn-secondary px-4 shadow-sm";
-            } else {
-                title.innerText = "Відновити кінотеатр";
-                text.innerHTML = `Бажаєте відновити роботу кінотеатру <strong>${name}</strong>?`;
-                icon.innerText = "📤";
-                confirmBtn.innerText = "Відновити";
-                confirmBtn.className = "btn btn-success px-4 shadow-sm";
-            }
+            const btn = document.getElementById('archiveConfirmBtn');
+            btn.innerText = isActive ? "Архівувати" : "Відновити";
+            btn.className = isActive ? "btn btn-secondary px-4" : "btn btn-success px-4";
         });
 
+        // Логіка для залу
         const archiveHallModal = document.getElementById('archiveHallModal');
         archiveHallModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
@@ -229,29 +202,19 @@
             const isActive = button.getAttribute('data-isactive') === "true";
             
             const form = document.getElementById('archiveHallForm');
-            const title = document.getElementById('hallTitle');
-            const text = document.getElementById('hallText');
-            const icon = document.getElementById('hallIcon');
-            const confirmBtn = document.getElementById('hallConfirmBtn');
+            // ВАЖЛИВО: шлях до контролера Halls
+            form.action = '/Admin/Halls/ArchiveHall/' + id;
             
-            form.action = '/Halls/ArchiveHall/' + id;
+            document.getElementById('hallTitle').innerText = isActive ? "Архівувати зал" : "Відновити зал";
+            document.getElementById('hallText').innerText = name;
+            document.getElementById('hallIcon').innerText = isActive ? "📥" : "📤";
             
-            if (isActive) {
-                title.innerText = "Архівувати зал";
-                text.innerHTML = `Приховати зал <strong>${name}</strong>?`;
-                icon.innerText = "📥";
-                confirmBtn.innerText = "В архів";
-                confirmBtn.className = "btn btn-secondary btn-sm px-4";
-            } else {
-                title.innerText = "Відновити зал";
-                text.innerHTML = `Повернути зал <strong>${name}</strong> до роботи?`;
-                icon.innerText = "📤";
-                confirmBtn.innerText = "Відновити";
-                confirmBtn.className = "btn btn-success btn-sm px-4";
-            }
+            const btn = document.getElementById('hallConfirmBtn');
+            btn.innerText = isActive ? "В архів" : "Відновити";
+            btn.className = isActive ? "btn btn-secondary btn-sm" : "btn btn-success btn-sm";
         });
     });
-</script>
+    </script>
 }
 
 <style>

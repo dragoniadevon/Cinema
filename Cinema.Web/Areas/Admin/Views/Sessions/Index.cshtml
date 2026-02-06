@@ -1,0 +1,364 @@
+﻿@model IEnumerable<global::Cinema.Web.Models.Sessions.SessionsByDateVm>
+@using global::Cinema.Infrastructure.Entities
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Керування розкладом";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold">🗓️ Панель керування розкладом</h1>
+        <a asp-action="Create" class="btn btn-primary shadow-sm">+ Додати сеанс</a>
+    </div>
+
+    @* ФІЛЬТРАЦІЯ *@
+    <div class="card mb-4 border-0 shadow-sm bg-light">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3 align-items-end">
+                <input type="hidden" name="mode" value="@(ViewBag.CurrentMode ?? "active")" />
+                
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Місто</label>
+                    <select name="city" class="form-select border-0 shadow-sm">
+                        <option value="">Всі міста</option>
+                        @foreach (var city in (List<string>)ViewBag.Cities)
+                        {
+                            <option value="@city" selected="@(ViewBag.SelectedCity == city)">@city</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Кінотеатр</label>
+                    <select name="cinemaId" class="form-select border-0 shadow-sm">
+                        <option value="">Всі кінотеатри</option>
+                        @foreach (var cinema in (List<global::Cinema.Infrastructure.Entities.Cinema>)ViewBag.Cinemas)
+                        {
+                            <option value="@cinema.Id" 
+                                    data-city="@cinema.City" 
+                                    selected="@(ViewBag.SelectedCinema == cinema.Id)">
+                                @cinema.Name
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Дата</label>
+                    <input type="date" name="date" class="form-control border-0 shadow-sm" value="@ViewBag.SelectedDate" />
+                </div>
+
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 shadow-sm">Застосувати</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary shadow-sm">Скинути</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ПЕРЕМИКАЧІ РЕЖИМІВ *@
+    <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm">
+        <li class="nav-item">
+            <a class="nav-link @(ViewBag.CurrentMode == "active" ? "active" : "")" 
+               asp-action="Index" asp-route-mode="active" 
+               asp-route-cinemaId="@ViewBag.SelectedCinema">📅 Активні</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(ViewBag.CurrentMode == "past" ? "active bg-secondary text-white" : "")" 
+               asp-action="Index" asp-route-mode="past" 
+               asp-route-cinemaId="@ViewBag.SelectedCinema">📜 Архів (минулі)</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(ViewBag.CurrentMode == "cancelled" ? "active bg-danger text-white" : "text-danger")" 
+               asp-action="Index" asp-route-mode="cancelled" 
+               asp-route-cinemaId="@ViewBag.SelectedCinema">🚫 Скасовані</a>
+        </li>
+    </ul>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-light text-center border py-5 shadow-sm">
+            <i class="bi bi-calendar-x display-4 text-muted"></i>
+            <p class="mt-3 mb-0 text-muted">Сеансів не знайдено за заданими фільтрами.</p>
+        </div>
+    }
+    else 
+    {
+        // 1. ЛОГІКА СОРТУВАННЯ (залишається вашою)
+        IEnumerable<global::Cinema.Web.Models.Sessions.SessionsByDateVm> sortedModel;
+
+        if (ViewBag.CurrentMode == "cancelled")
+        {
+            var futureCancelled = Model.Where(d => d.Date >= DateTime.Today).OrderBy(d => d.Date);
+            var pastCancelled = Model.Where(d => d.Date < DateTime.Today).OrderByDescending(d => d.Date);
+            sortedModel = futureCancelled.Concat(pastCancelled);
+        }
+        else if (ViewBag.CurrentMode == "past")
+        {
+            sortedModel = Model.OrderByDescending(d => d.Date);
+        }
+        else
+        {
+            sortedModel = Model.OrderBy(d => d.Date);
+        }
+
+        // 2. ЦИКЛ ПО ДАТАХ
+        foreach (var dateGroup in sortedModel)
+        {
+            var isPast = dateGroup.Date < DateTime.Today;
+            var applyOpacity = (ViewBag.CurrentMode == "cancelled" && isPast);
+
+            <div class="date-section mb-5 p-3 bg-white rounded shadow-sm border @(applyOpacity ? "opacity-50" : "")">
+                <h3 class="py-2 mb-4 border-bottom fw-bold d-flex justify-content-between align-items-center @(applyOpacity ? "text-muted" : "text-secondary")">
+                    <span>📅 @dateGroup.Date.ToString("dd MMMM yyyy, dddd")</span>
+                </h3>
+
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    @{
+                        // ГРУПУВАННЯ: Фільми одного дня з різних кінотеатрів в одну картку
+                        var flattenedMovies = dateGroup.Cinemas
+                            .SelectMany(c => c.Movies.Select(m => new { CinemaId = c.CinemaId, CinemaName = c.CinemaName, Movie = m }))
+                            .GroupBy(x => x.Movie.Title);
+                    }
+
+                    @foreach (var movieGroup in flattenedMovies)
+                    {
+                        var firstMovie = movieGroup.First().Movie;
+                        var posterUrl = firstMovie.Sessions.FirstOrDefault()?.Movie?.Posterurl;
+
+                        <div class="col">
+                            <div class="card h-100 movie-card border-0 shadow-sm transition-all">
+                                <div class="row g-0 h-100">
+                                    <div class="col-5 position-relative">
+                                        @if (!string.IsNullOrEmpty(posterUrl))
+                                        {
+                                            <img src="@posterUrl" class="img-fluid h-100 movie-poster" alt="@firstMovie.Title">
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-light d-flex align-items-center justify-content-center h-100">
+                                                <span class="display-6">🎬</span>
+                                            </div>
+                                        }
+                                        <div class="position-absolute bottom-0 start-0 p-2 w-100" style="background: linear-gradient(transparent, rgba(0,0,0,0.8));">
+                                            <small class="text-white fw-bold"><i class="bi bi-clock me-1"></i> @firstMovie.Duration хв.</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-7">
+                                        <div class="card-body d-flex flex-column h-100 p-3">
+                                            <h6 class="movie-title fw-bold mb-2 text-dark" title="@firstMovie.Title">
+                                                @firstMovie.Title
+                                            </h6>
+
+                                            <div class="cinema-sessions-list mt-1 flex-grow-1 overflow-auto" style="max-height: 160px;">
+                                                @foreach (var cinemaItem in movieGroup)
+                                                {
+                                                    <div class="mb-3">
+                                                        <div class="cinema-label small text-muted mb-1">
+                                                            <i class="bi bi-geo-alt-fill text-primary"></i> @cinemaItem.CinemaName
+                                                        </div>
+                                                        <div class="d-flex flex-wrap gap-1">
+                                                            @foreach (var session in cinemaItem.Movie.Sessions)
+                                                            {
+                                                                <div class="dropdown">
+                                                                    <button class="btn btn-time dropdown-toggle @((session.Isactive ?? false) ? (session.Tickets.Any() ? "bg-info text-white" : "") : "bg-danger text-white")" 
+                                                                            type="button" data-bs-toggle="dropdown">
+                                                                        @session.Starttime.ToString("HH:mm")
+                                                                    </button>
+                                                                    <ul class="dropdown-menu shadow-lg border-0 p-3" style="min-width: 200px;">
+                                                                        <li class="small mb-1">Зал: <strong>@session.Hall.Name</strong></li>
+                                                                        <li class="small mb-2">Формат: <strong>@(session.Format == 1 ? "2D" : "3D")</strong></li>
+                                                                        @if (session.Tickets.Any())
+                                                                        {
+                                                                            <li class="mb-2"><span class="badge bg-info text-white">Продано: @session.Tickets.Count</span></li>
+                                                                        }
+                                                                        <hr class="dropdown-divider">
+                                                                        <a asp-action="Details" asp-route-id="@session.Id" class="btn btn-sm btn-light w-100 border mb-1">👁️ Деталі</a>
+                                                                        @if (ViewBag.CurrentMode == "active")
+                                                                        {
+                                                                            if (!session.Tickets.Any())
+                                                                            {
+                                                                                <a asp-action="Edit" asp-route-id="@session.Id" class="btn btn-sm btn-warning w-100 mb-1">✏️ Редагувати</a>
+                                                                                <button class="btn btn-sm btn-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteSessionModal" data-id="@session.Id" data-info="@session.Starttime.ToString("HH:mm") - @firstMovie.Title">🗑️ Видалити</button>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <button class="btn btn-sm btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#cancelSessionModal" data-id="@session.Id" data-info="@session.Starttime.ToString("HH:mm") - @firstMovie.Title">🚫 Скасувати</button>
+                                                                            }
+                                                                        }
+                                                                    </ul>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@* МОДАЛЬНІ ВІКНА *@
+<div class="modal fade" id="deleteSessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold">Видалити сеанс</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                Ви впевнені, що хочете безповоротно видалити сеанс:<br />
+                <strong id="deleteSessionInfo" class="fs-5"></strong>?
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <form id="deleteSessionForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger px-4">Так, видалити</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cancelSessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold">Скасувати сеанс</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <div class="alert alert-warning border-0 small mb-3">
+                    <i class="bi bi-exclamation-triangle-fill"></i> На цей сеанс вже є квитки!
+                </div>
+                Ви впевнені, що хочете скасувати сеанс:<br />
+                <strong id="cancelSessionInfo" class="fs-5"></strong>?
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <form id="cancelSessionForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">Підтвердити скасування</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteModal = document.getElementById('deleteSessionModal');
+            if (deleteModal) {
+                deleteModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const id = button.getAttribute('data-id');
+                    const info = button.getAttribute('data-info');
+                    document.getElementById('deleteSessionInfo').innerText = info;
+                    document.getElementById('deleteSessionForm').action = '/Admin/Sessions/Delete/' + id;
+                });
+            }
+
+            const cancelModal = document.getElementById('cancelSessionModal');
+            if (cancelModal) {
+                cancelModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const id = button.getAttribute('data-id');
+                    const info = button.getAttribute('data-info');
+                    document.getElementById('cancelSessionInfo').innerText = info;
+                    document.getElementById('cancelSessionForm').action = '/Admin/Sessions/Cancel/' + id;
+                });
+            }
+
+            const citySelect = document.querySelector('select[name="city"]');
+            if (citySelect) {
+                citySelect.addEventListener('change', function() {
+                    const selectedCity = this.value.toLowerCase();
+                    const cinemaSelect = document.querySelector('select[name="cinemaId"]');
+                    const options = cinemaSelect.querySelectorAll('option');
+
+                    options.forEach(option => {
+                        if (option.value === "") return; 
+                        const cityAttr = option.getAttribute('data-city')?.toLowerCase();
+                        if (!selectedCity || cityAttr === selectedCity) {
+                            option.style.display = 'block';
+                        } else {
+                            option.style.display = 'none';
+                            if (cinemaSelect.value === option.value) cinemaSelect.value = "";
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+}
+
+                        <style>
+    /* Картка фільму */
+    .movie-card {
+        border-radius: 16px !important;
+        overflow: hidden;
+        background: #ffffff;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+    }
+
+    .movie-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.12) !important;
+    }
+
+    .movie-poster {
+        object-fit: cover;
+        width: 100%;
+        height: 100%;
+    }
+
+    .movie-title {
+        font-size: 1rem;
+        line-height: 1.2;
+        height: 2.4em;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .cinema-label {
+        font-weight: 700;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Кнопки часу */
+    .btn-time {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background-color: #f8f9fa;
+        color: #212529;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s;
+    }
+
+    .btn-time:hover {
+        background-color: #212529;
+        color: white;
+    }
+
+    .btn-time.dropdown-toggle::after { display: none; } /* Прибираємо стрілочку */
+
+    .cinema-sessions-list::-webkit-scrollbar { width: 3px; }
+    .cinema-sessions-list::-webkit-scrollbar-thumb { background: #eee; border-radius: 10px; }
+</style>
