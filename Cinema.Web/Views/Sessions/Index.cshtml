@@ -1,350 +1,119 @@
-@model IEnumerable<SessionsByDateVm>
-
-@{
-    bool isAdmin = Model.FirstOrDefault()?.IsAdminView == true;
-
-    Layout = isAdmin
-    ? "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"
-    : "~/Views/Shared/_Layout.cshtml";
-}
-
-
+@model IEnumerable<global::Cinema.Web.Models.Sessions.SessionsByDateVm>
 @{
     ViewData["Title"] = "Розклад сеансів";
+    // Тепер SelectedDate ніколи не порожній (приходить з контролера)
+    var selectedDateStr = ViewBag.SelectedDate as string;
+    var availableDates = (List<DateTime>)ViewBag.AllAvailableDates ?? new List<DateTime>();
 }
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>
-            🗓️ @(isAdmin ? "Панель керування розкладом" : "Розклад сеансів")
-        </h1>
-
-        @if (isAdmin)
-        {
-            <a asp-action="Create" class="btn btn-primary shadow-sm">
-                + Додати сеанс
-            </a>
-        }
+    <div class="mb-5 text-center">
+        <h1 class="fw-bold display-5">🗓️ Розклад сеансів</h1>
+        <p class="text-muted">Оберіть зручний час для перегляду</p>
     </div>
 
+    <div class="mx-auto mb-5" style="max-width: 700px;">
+        <div class="d-flex flex-wrap align-items-center bg-white p-2 rounded-4 shadow-sm border justify-content-center gap-2">
+            
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                @foreach (var date in availableDates.Take(7))
+                {
+                    var dateValue = date.ToString("yyyy-MM-dd");
+                    var isActive = selectedDateStr == dateValue;
+                    
+                    <a href="@Url.Action("Index", "Sessions", new { date = dateValue, cinemaId = ViewBag.SelectedCinemaId })" 
+                       class="btn @(isActive ? "btn-primary shadow-sm" : "btn-light text-dark border-0") rounded-3 px-3 d-flex flex-column align-items-center justify-content-center"
+                       style="min-width: 70px; height: 50px; transition: 0.2s;">
+                        <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem; opacity: 0.7;">
+                            @(date.Date == DateTime.Today ? "Сьогодні" : date.ToString("ddd"))
+                        </span>
+                        <span class="fw-bold" style="font-size: 0.9rem;">@date.ToString("dd.MM")</span>
+                    </a>
+                }
+            </div>
 
-    <div class="card mb-4 border-0 shadow-sm bg-light">
-        <div class="card-body">
-            <form method="get" asp-action="Index" class="row g-3 align-items-end">
-                <input type="hidden" name="mode" value="@(ViewBag.CurrentMode ?? "active")" />
+            @if (availableDates.Count > 7)
+            {
+                var moreDates = availableDates.Skip(7).ToList();
+                var selectedInMore = moreDates.FirstOrDefault(d => d.ToString("yyyy-MM-dd") == selectedDateStr);
+                var isMoreActive = selectedInMore != default(DateTime);
 
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold">Місто</label>
-                    <select name="city" class="form-select border-0 shadow-sm">
-                        <option value="">Всі міста</option>
-                        @foreach (var city in ViewBag.Cities)
-                        {
-                            <option value="@city" selected="@(ViewBag.SelectedCity == city)">@city</option>
+                <div class="dropdown">
+                    <button class="btn @(isMoreActive ? "btn-primary shadow-sm" : "btn-outline-secondary") dropdown-toggle rounded-3 fw-bold d-flex flex-column align-items-center justify-content-center" 
+                            type="button" data-bs-toggle="dropdown" style="height: 50px; min-width: 80px;">
+                        @if (isMoreActive) {
+                            <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem;">@selectedInMore.ToString("ddd")</span>
+                            <span class="fw-bold" style="font-size: 0.9rem;">@selectedInMore.ToString("dd.MM")</span>
+                        } else {
+                            <span>Ще</span>
                         }
-                    </select>
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold">Кінотеатр</label>
-                    <select name="cinemaId" class="form-select border-0 shadow-sm">
-                        <option value="">Всі кінотеатри</option>
-                        @foreach (var cinema in ViewBag.Cinemas)
-                        {
-                            <option value="@cinema.Id" data-city="@cinema.City"
-                                selected="@(ViewBag.SelectedCinema == cinema.Id)">
-                                @cinema.Name
-                            </option>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" style="max-height: 300px; overflow-y: auto;">
+                        @foreach (var date in moreDates) {
+                            var dateValue = date.ToString("yyyy-MM-dd");
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center @(selectedDateStr == dateValue ? "active bg-primary text-white" : "")" 
+                                   href="@Url.Action("Index", "Sessions", new { date = dateValue, cinemaId = ViewBag.SelectedCinemaId })">
+                                   <i class="bi bi-calendar-check me-2"></i>
+                                   <div>
+                                       <div class="fw-bold">@date.ToString("dd MMMM")</div>
+                                       <div class="small opacity-75">@date.ToString("dddd")</div>
+                                   </div>
+                                </a>
+                            </li>
                         }
-                    </select>
+                    </ul>
                 </div>
-
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold">Дата</label>
-                    <input type="date" name="date" class="form-control border-0 shadow-sm"
-                        value="@ViewBag.SelectedDate" />
-                </div>
-
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100 shadow-sm">Застосувати</button>
-                    <a asp-action="Index" class="btn btn-outline-secondary shadow-sm">Скинути</a>
-                </div>
-            </form>
+            }
         </div>
     </div>
 
-
-
-    @if (isAdmin)
-    {
-        <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm">
-            <li class="nav-item">
-                <a class="nav-link @(ViewBag.CurrentMode == "active" ? "active" : "")" asp-action="Index"
-                    asp-route-mode="active" asp-route-cinemaId="@ViewBag.SelectedCinema">📅 Активні</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link @(ViewBag.CurrentMode == "past" ? "active bg-secondary text-white" : "")"
-                    asp-action="Index" asp-route-mode="past" asp-route-cinemaId="@ViewBag.SelectedCinema">📜 Архів
-                    (минулі)</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link @(ViewBag.CurrentMode == "cancelled" ? "active bg-danger text-white" : "text-danger")"
-                    asp-action="Index" asp-route-mode="cancelled" asp-route-cinemaId="@ViewBag.SelectedCinema">🚫
-                    Скасовані</a>
-            </li>
-        </ul>
-    }
-
-
-
-    @if (!Model.Any())
-    {
-        <div class="alert alert-light text-center border py-5 shadow-sm">
-            <i class="bi bi-calendar-x display-4 text-muted"></i>
-            <p class="mt-3 mb-0 text-muted">Сеансів не знайдено за заданими фільтрами.</p>
+    @if (!Model.Any()) {
+        <div class="text-center py-5">
+            <h4 class="text-muted">На сьогодні сеансів більше немає 🍿</h4>
+            <p class="small text-muted">Спробуйте обрати іншу дату зверху</p>
         </div>
     }
-    else
+
+    @foreach (var dateGroup in Model)
     {
-        @foreach (var dateGroup in Model)
-        {
-            <div class="date-section mb-5 p-3 bg-white rounded shadow-sm border">
-                <h3 class="py-2 mb-4 border-bottom text-secondary">
-                    📅 @dateGroup.Date.ToString("dd MMMM yyyy, dddd")
-                </h3>
+        <div class="mb-4 mt-5">
+            <h3 class="fw-bold text-dark border-bottom pb-3 mb-4">
+                <span class="text-primary me-2">📅</span>@dateGroup.Date.ToString("dd MMMM yyyy, dddd")
+            </h3>
+        </div>
 
-                <div class="row g-4">
-                    @if (dateGroup.Cinemas != null)
-                    {
-                        @foreach (var cinema in dateGroup.Cinemas)
-                        {
-                            <div class="col-md-4">
-                                <div class="cinema-card h-100 p-3 bg-white border-start border-4 border-primary shadow-sm rounded">
-                                    <h5 class="text-primary fw-bold mb-1">
-                                        <i class="bi bi-geo-alt-fill"></i> @cinema.CinemaName
-                                    </h5>
-
-                                    <div class="text-muted small mb-3">
-                                        @{
-                                            var cinemaData = ((IEnumerable<global::Cinema.Infrastructure.Entities.Cinema>)ViewBag.Cinemas)
-                                            .FirstOrDefault(c => c.Id == cinema.CinemaId);
-                                        }
-                                        <i class="bi bi-building"></i> @(cinemaData?.City ?? "Місто")
-                                    </div>
-
-                                    <div class="movies-stack">
-                                        @foreach (var movie in cinema.Movies)
-                                        {
-                                            <div class="movie-box mb-3 p-2 border rounded bg-light shadow-sm">
-                                                <div class="d-flex align-items-center mb-2">
-                                                    <div class="flex-shrink-0 me-3">
-                                                        @{
-                                                            var posterUrl = movie.Sessions.FirstOrDefault()?.Movie?.Posterurl;
-                                                        }
-                                                        @if (!string.IsNullOrEmpty(posterUrl))
-                                                        {
-                                                            <img src="@posterUrl" alt="@movie.Title" class="rounded shadow-sm"
-                                                                style="width: 50px; height: 75px; object-fit: cover; border: 1px solid #dee2e6;" />
-                                                        }
-                                                        else
-                                                        {
-                                                            <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center shadow-sm"
-                                                                style="width: 50px; height: 75px; font-size: 10px; text-align: center;">
-                                                                🎬<br />Немає
-                                                            </div>
-                                                        }
-                                                    </div>
-
-                                                    <div class="flex-grow-1 overflow-hidden">
-                                                        <h6 class="fw-bold mb-0 text-dark text-truncate" title="@movie.Title"
-                                                            style="font-size: 1rem;">
-                                                            @movie.Title
-                                                        </h6>
-                                                        <div class="text-muted small d-flex align-items-center mt-1">
-                                                            <i class="bi bi-clock me-1"></i> @movie.Duration хв.
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top border-white">
-                                                    @foreach (var session in movie.Sessions)
-                                                    {
-                                                        <div class="dropdown">
-                                                            <button
-                                                                class="btn btn-sm @(session.Tickets.Any() ? "btn-info text-white" : "btn-outline-secondary") dropdown-toggle"
-                                                                type="button" data-bs-toggle="dropdown"
-                                                                style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">
-                                                                <strong>@session.Starttime.ToString("HH:mm")</strong>
-                                                            </button>
-
-                                                            <ul class="dropdown-menu shadow-lg border-0 p-3" style="min-width: 250px;">
-                                                                <li class="mb-1 text-start">
-                                                                    <div class="small text-muted">
-                                                                        <i class="bi bi-door-open me-1"></i> Зал:
-                                                                        <strong>@session.Hall.Name</strong>
-                                                                    </div>
-                                                                </li>
-                                                                <li class="mb-2 text-start">
-                                                                    <div class="small text-muted">
-                                                                        <i class="bi bi-layers me-1"></i> Формат:
-                                                                        <strong>@(session.Format == 1 ? "2D" : (session.Format == 2 ? "3D" :
-                                                                                                                                session.Format.ToString()))</strong>
-                                                                    </div>
-                                                                </li>
-
-                                                                @if (session.Tickets.Any())
-                                                                {
-                                                                    <li class="mb-2 text-start">
-                                                                        <span class="badge bg-info text-white">
-                                                                            <i class="bi bi-ticket-perforated me-1"></i> Продано:
-                                                                            @session.Tickets.Count
-                                                                        </span>
-                                                                    </li>
-                                                                }
-
-                                                                <hr class="dropdown-divider">
-
-                                                                <div class="d-flex flex-column gap-2 text-start">
-                                                                    <a asp-action="Details" asp-route-id="@session.Id"
-                                                                        class="btn btn-sm btn-light border">👁️ Детальніше</a>
-
-                                                                    @if (isAdmin)
-                                                                    {
-                                                                        <a asp-action="Edit" asp-route-id="@session.Id"
-                                                                            class="btn btn-sm btn-warning @(session.Tickets.Any() ? "disabled" : "")"
-                                                                            title="@(session.Tickets.Any() ? "Редагування заблоковано" : "")">
-                                                                            ✏️ Редагувати
-                                                                        </a>
-
-                                                                        @if (!session.Tickets.Any())
-                                                                        {
-                                                                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                                                                                data-bs-target="#deleteSessionModal" data-id="@session.Id"
-                                                                                data-info="@session.Starttime.ToString("HH:mm") - @movie.Title">
-                                                                                🗑️ Видалити
-                                                                            </button>
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            <button type="button" class="btn btn-sm btn-outline-danger"
-                                                                                data-bs-toggle="modal" data-bs-target="#cancelSessionModal"
-                                                                                data-id="@session.Id"
-                                                                                data-info="@session.Starttime.ToString("HH:mm") - @movie.Title">
-                                                                                🚫 Скасувати
-                                                                            </button>
-                                                                        }
-                                                                    }
-
-                                                                </div>
-                                                            </ul>
-                                                        </div>
-                                                        @if (isAdmin)
-                                                        {
-                                                            <form id="delete-form-@session.Id" asp-action="Delete" asp-route-id="@session.Id"
-                                                                method="post" style="display:none">@Html.AntiForgeryToken()</form>
-                                                            <form id="cancel-form-@session.Id" asp-action="Cancel" asp-route-id="@session.Id"
-                                                                method="post" style="display:none">@Html.AntiForgeryToken()</form>
-                                                        }
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
+            @foreach (var movieGroup in dateGroup.Cinemas.SelectMany(c => c.Movies).GroupBy(m => m.Title))
+            {
+                var movie = movieGroup.First();
+                var posterUrl = movie.Sessions.FirstOrDefault()?.Movie?.Posterurl;
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm border-bottom border-primary border-3" style="border-radius: 20px; overflow: hidden;">
+                        <div class="row g-0 h-100">
+                            <div class="col-5">
+                                <img src="@(string.IsNullOrEmpty(posterUrl) ? "/images/no-poster.png" : posterUrl)" class="w-100 h-100 object-fit-cover" style="min-height: 180px;">
+                            </div>
+                            <div class="col-7">
+                                <div class="card-body d-flex flex-column h-100 p-3">
+                                    <h6 class="card-title fw-bold text-dark mb-1">@movie.Title</h6>
+                                    <p class="small text-muted mb-3"><i class="bi bi-clock me-1"></i>@movie.Duration хв.</p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var session in movieGroup.SelectMany(m => m.Sessions).OrderBy(s => s.Starttime)) {
+                                                <a asp-action="Details" asp-route-id="@session.Id" 
+                                                   class="btn btn-sm btn-outline-dark rounded-3 px-2 py-1 fw-bold" style="font-size: 0.75rem;">
+                                                    @session.Starttime.ToString("HH:mm")
+                                                </a>
+                                            }
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        }
-                    }
+                        </div>
+                    </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
     }
 </div>
-
-@if (isAdmin)
-{
-    <div class="modal fade" id="deleteSessionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Видалити сеанс</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    Ви впевнені, що хочете видалити сеанс: <br />
-                    <strong id="deleteSessionInfo"></strong>?
-                </div>
-                <div class="modal-footer">
-                    <form id="deleteSessionForm" method="post">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-danger">Видалити</button>
-                    </form>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="cancelSessionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Скасувати сеанс</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    На цей сеанс вже є квитки! Ви впевнені, що хочете скасувати сеанс: <br />
-                    <strong id="cancelSessionInfo"></strong>?
-                </div>
-                <div class="modal-footer">
-                    <form id="cancelSessionForm" method="post">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-danger">Скасувати сеанс</button>
-                    </form>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-@if (isAdmin)
-{
-    @section Scripts {
-        <script>
-            const deleteSessionModal = document.getElementById('deleteSessionModal');
-            deleteSessionModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const id = button.getAttribute('data-id');
-                const info = button.getAttribute('data-info');
-                document.getElementById('deleteSessionInfo').innerText = info;
-                document.getElementById('deleteSessionForm').action = '/Sessions/Delete/' + id;
-            });
-
-            const cancelSessionModal = document.getElementById('cancelSessionModal');
-            cancelSessionModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const id = button.getAttribute('data-id');
-                const info = button.getAttribute('data-info');
-                document.getElementById('cancelSessionInfo').innerText = info;
-                document.getElementById('cancelSessionForm').action = '/Sessions/Cancel/' + id;
-            });
-
-            document.querySelector('select[name="city"]').addEventListener('change', function () {
-                const selectedCity = this.value.toLowerCase();
-                const cinemaSelect = document.querySelector('select[name="cinemaId"]');
-                const options = cinemaSelect.querySelectorAll('option');
-
-                options.forEach(option => {
-                    if (option.value === "") return;
-
-                    const cityAttr = option.getAttribute('data-city')?.toLowerCase();
-                    if (!selectedCity || cityAttr === selectedCity) {
-                        option.style.display = 'block';
-                    } else {
-                        option.style.display = 'none';
-                        if (cinemaSelect.value === option.value) cinemaSelect.value = "";
-                    }
-                });
-            });
-        </script>
-    }
-}

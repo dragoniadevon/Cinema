@@ -21,32 +21,46 @@ namespace Cinema.Web.Controllers
             mode = string.IsNullOrEmpty(mode) ? "active" : mode;
             ViewBag.CurrentMode = mode;
 
-            var query = _context.Sessions
-                .Include(s => s.Movie)
+            var baseQuery = _context.Sessions
+                .AsNoTracking()
                 .Include(s => s.Hall).ThenInclude(h => h.Cinema)
-                .Include(s => s.Tickets)
                 .AsQueryable();
 
+            // Фільтри режиму
             if (mode == "past")
-                query = query.Where(s => s.Isactive == true && s.Endtime < DateTime.Now);
+                baseQuery = baseQuery.Where(s => s.Isactive == true && s.Endtime < DateTime.Now);
             else if (mode == "cancelled")
-                query = query.Where(s => s.Isactive == false || s.Hall.Isactive == false);
+                baseQuery = baseQuery.Where(s => s.Isactive == false || (s.Hall != null && s.Hall.Isactive == false));
             else
-                query = query.Where(s => s.Isactive == true && s.Hall.Isactive == true && s.Endtime >= DateTime.Now);
+                baseQuery = baseQuery.Where(s => s.Isactive == true && (s.Hall != null && s.Hall.Isactive == true) && s.Endtime >= DateTime.Now);
 
             if (!string.IsNullOrEmpty(city))
-            {
-                query = query.Where(s => s.Hall.Cinema.City == city);
-            }
+                baseQuery = baseQuery.Where(s => s.Hall.Cinema.City == city);
 
             if (cinemaId.HasValue)
-            {
-                query = query.Where(s => s.Hall.Cinemaid == cinemaId.Value);
-            }
+                baseQuery = baseQuery.Where(s => s.Hall.Cinemaid == cinemaId.Value);
 
-            if (date.HasValue) query = query.Where(s => s.Starttime.Date == date.Value.Date);
+            // Список дат для кнопок
+            ViewBag.AllAvailableDates = await baseQuery
+                .Select(s => s.Starttime.Date)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToListAsync();
 
-            var sessions = await query.OrderByDescending(s => s.Starttime).ToListAsync();
+            var query = baseQuery
+                .Include(s => s.Movie)
+                .Include(s => s.Sessionprices);
+
+            IQueryable<Session> finalQuery = query;
+
+            // ВИЗНАЧАЄМО ОБРАНУ ДАТУ (якщо null — то сьогодні)
+            DateTime activeDate = date ?? DateTime.Today;
+            finalQuery = finalQuery.Where(s => s.Starttime.Date == activeDate.Date);
+
+            // Передаємо рядок для порівняння у View
+            ViewBag.SelectedDate = activeDate.ToString("yyyy-MM-dd");
+
+            var sessions = await finalQuery.OrderBy(s => s.Starttime).ToListAsync();
 
             var model = sessions
                 .GroupBy(s => s.Starttime.ToLocalTime().Date)
@@ -55,46 +69,26 @@ namespace Cinema.Web.Controllers
                 {
                     Date = dateGroup.Key,
                     Cinemas = dateGroup
-                        .Where(s => s.Hall?.Cinema != null)
                         .GroupBy(s => s.Hall.Cinemaid)
-                        .OrderBy(g => g.First().Hall.Cinema.Name)
                         .Select(cinemaGroup => new SessionsByCinemaVm
                         {
                             CinemaId = cinemaGroup.Key ?? 0,
-                            CinemaName = cinemaGroup.First().Hall.Cinema.Name,
+                            CinemaName = cinemaGroup.First().Hall?.Cinema?.Name ?? "Кінотеатр",
                             Movies = cinemaGroup
-                                .Where(s => s.Movie != null)
                                 .GroupBy(s => s.Movieid)
-                                .OrderBy(g => g.First().Movie.Title)
                                 .Select(movieGroup => new SessionsByMovieVm
                                 {
                                     MovieId = movieGroup.Key ?? 0,
-                                    Title = movieGroup.First().Movie.Title,
-                                    Duration = movieGroup.First().Movie.Duration,
+                                    Title = movieGroup.First().Movie?.Title ?? "Фільм",
+                                    Duration = movieGroup.First().Movie?.Duration,
                                     Sessions = movieGroup.OrderBy(s => s.Starttime).ToList()
                                 }).ToList()
                         }).ToList()
-                })
-                .Where(d => d.Cinemas.Any())
-                .ToList();
+                }).ToList();
 
-            ViewBag.Cities = await _context.Cinemas
-                .Where(c => c.Isactive == true)
-                .Select(c => c.City)
-                .Distinct()
-                .OrderBy(c => c)
-                .ToListAsync();
-
+            ViewBag.Cities = await _context.Cinemas.Where(c => c.Isactive == true).Select(c => c.City).Distinct().ToListAsync();
             ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive == true).ToListAsync();
-
-            ViewBag.SelectedCity = city;
-            ViewBag.SelectedCinema = cinemaId;
-            ViewBag.SelectedDate = date?.ToString("yyyy-MM-dd");
-
-            foreach (var d in model)
-            {
-                d.IsAdminView = false;
-            }
+            ViewBag.SelectedCinemaId = cinemaId;
 
             return View(model);
         }
