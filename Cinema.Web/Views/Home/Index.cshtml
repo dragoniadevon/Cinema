@@ -2,18 +2,80 @@
     var cinemaId = Context.Request.Cookies["SelectedCinemaId"];
 }
 
-<div id="poster-carousel-container">
-    @await Component.InvokeAsync(
-    "PosterCarousel",
-        new { cinemaId = ViewBag.SelectedCinemaId }
-        )
+<div id="poster-carousel-container" class="position-relative">
+    @await Component.InvokeAsync("PosterCarousel", new { cinemaId = ViewBag.SelectedCinemaId })
 </div>
 
+<style>
+    .poster-carousel {
+        display: flex;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+
+        scroll-snap-type: x mandatory;
+
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .poster-carousel::-webkit-scrollbar {
+        display: none;
+    }
+
+    .poster-card {
+
+        flex: 0 0 25%;
+
+        scroll-snap-align: start;
+
+        min-width: 300px;
+    }
+
+    @@media (max-width: 992px) {
+        .poster-card {
+            flex: 0 0 50%;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .poster-card {
+            flex: 0 0 100%;
+        }
+</style>
+
 <script>
+    function initCarouselLogic() {
+        const carousel = document.querySelector(".poster-carousel");
+        if (!carousel) return;
+
+        let isHovered = false;
+        carousel.addEventListener("mouseenter", () => isHovered = true);
+        carousel.addEventListener("mouseleave", () => isHovered = false);
+
+        setInterval(() => {
+            const carousel = document.querySelector(".poster-carousel");
+            const firstCard = carousel?.querySelector(".poster-card");
+
+            if (carousel && firstCard && !isHovered) {
+                const step = firstCard.offsetWidth;
+
+                if (carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 10) {
+                    carousel.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    carousel.scrollBy({ left: step, behavior: 'smooth' });
+                }
+            }
+        }, 5000);
+    }
+
     async function reloadPosterCarousel() {
         const response = await fetch('/Home/PosterCarouselPartial');
         const html = await response.text();
 
         document.getElementById('poster-carousel-container').innerHTML = html;
+
+        initCarouselLogic();
     }
+
+    document.addEventListener("DOMContentLoaded", initCarouselLogic);
 </script>
