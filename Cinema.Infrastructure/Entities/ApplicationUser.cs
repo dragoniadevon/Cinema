@@ -7,5 +7,8 @@ namespace Cinema.Infrastructure.Entities
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // нове поле для аватара
+        public string? AvatarPath { get; set; }
     }
 }
