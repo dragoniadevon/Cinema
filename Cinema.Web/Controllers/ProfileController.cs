@@ -31,6 +31,9 @@ namespace Cinema.Web.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
 
+            ViewBag.SelectedCity = Request.Cookies["selectedCity"] ?? "Оберіть місто";
+            ViewBag.SelectedCinemaId = Request.Cookies["selectedCinemaId"];
+
             var userIdString = _userManager.GetUserId(User);
             if (!int.TryParse(userIdString, out var userId))
                 return RedirectToAction("Login", "Account");
