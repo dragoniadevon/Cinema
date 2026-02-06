@@ -107,7 +107,24 @@ namespace Cinema.Web.Controllers
 
             await _signInManager.RefreshSignInAsync(user);
 
+            TempData["ProfileUpdated"] = true;
             return RedirectToAction("Index");
         }
+
+        // Новий метод для повернення квитка
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReturnTicket(int id)
+        {
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null) return NotFound();
+
+            ticket.IsReturned = true; // позначаємо як повернений
+            await _context.SaveChangesAsync();
+
+            TempData["TicketReturned"] = true;
+            return RedirectToAction("Index");
+        }
+
     }
 }

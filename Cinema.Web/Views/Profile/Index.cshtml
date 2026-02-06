@@ -88,101 +88,121 @@
             </div>
         </div>
 
-        <!-- Блок квитків -->
-        <div class="col-md-8">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-body p-4">
-                    <h4 class="fw-bold mb-3">🎟 Мої квитки</h4>
+       <!-- Блок квитків -->
+<div class="col-md-8">
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-3">🎟 Мої квитки</h4>
 
-                    @if (!Model.Tickets.Any())
-                    {
-                        <div class="alert alert-info text-center">
-                            У вас ще немає куплених квитків.
-                        </div>
-                    }
-                    else
-                    {
-                        <ul class="nav nav-tabs mb-3" id="ticketTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button" role="tab">
-                                    Активні
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive" type="button" role="tab">
-                                    Архівні
-                                </button>
-                            </li>
-                        </ul>
-
-                        <div class="tab-content">
-                            <div class="tab-pane fade show active" id="active" role="tabpanel">
-                                @foreach (var ticket in Model.Tickets.Where(t => t.Session.Starttime >= DateTime.Now))
-                                {
-                                    <div class="card mb-3 shadow-sm">
-                                        <div class="card-body">
-                                            <h5>@ticket.Session.Movie!.Title</h5>
-                                            <p class="text-muted">
-                                                📍 @ticket.Session.Hall!.Cinema!.Name • Зал: @ticket.Session.Hall.Name
-                                            </p>
-                                            <p>🕒 @ticket.Session.Starttime.ToString("dd.MM.yyyy HH:mm")</p>
-                                            <p>💺 Ряд @ticket.Seat!.Rownumber, Місце @ticket.Seat.Seatnumber</p>
-                                            <p class="fw-bold">💵 @ticket.Price.ToString("C")</p>
-                                            <p id="countdown-@ticket.Id" class="text-primary fw-bold"></p>
-                                            <script>
-                                                (function () {
-                                                    const targetDate = new Date("@ticket.Session.Starttime.ToString("yyyy-MM-ddTHH:mm:ss")");
-                                                    const countdownElement = document.getElementById("countdown-@ticket.Id");
-
-                                                    function updateCountdown() {
-                                                        const now = new Date();
-                                                        const diff = targetDate - now;
-
-                                                        if (diff <= 0) {
-                                                            countdownElement.innerText = "🎬 Сеанс вже почався!";
-                                                            return;
-                                                        }
-
-                                                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                                        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                                                        const minutes = Math.floor((diff / (1000 * 60)) % 60);
-
-                                                        countdownElement.innerText = `⏳ До початку залишилось: ${days} дн. ${hours} год. ${minutes} хв.`;
-                                                    }
-
-                                                    updateCountdown();
-                                                    setInterval(updateCountdown, 60000);
-                                                })();
-                                            </script>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-
-                            <div class="tab-pane fade" id="archive" role="tabpanel">
-                                @foreach (var ticket in Model.Tickets.Where(t => t.Session.Starttime < DateTime.Now))
-                                {
-                                    <div class="card mb-3 shadow-sm">
-                                        <div class="card-body">
-                                            <h5>@ticket.Session.Movie!.Title</h5>
-                                            <p class="text-muted">
-                                                📍 @ticket.Session.Hall!.Cinema!.Name • Зал: @ticket.Session.Hall.Name
-                                            </p>
-                                            <p>🕒 @ticket.Session.Starttime.ToString("dd.MM.yyyy HH:mm")</p>
-                                            <p>💺 Ряд @ticket.Seat!.Rownumber, Місце @ticket.Seat.Seatnumber</p>
-                                            <p class="fw-bold">💵 @ticket.Price.ToString("C")</p>
-                                            <span class="badge bg-secondary">Минув</span>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
+            @if (!Model.Tickets.Any())
+            {
+                <div class="alert alert-info text-center">
+                    У вас ще немає куплених квитків.
                 </div>
-            </div>
+            }
+            else
+            {
+                <ul class="nav nav-tabs mb-3" id="ticketTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button" role="tab">
+                            Активні
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive" type="button" role="tab">
+                            Архівні
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Активні квитки -->
+                    <div class="tab-pane fade show active" id="active" role="tabpanel">
+                        @foreach (var ticket in Model.Tickets.Where(t => t.Session.Starttime >= DateTime.Now && !t.IsReturned))
+                        {
+                            <div class="card mb-3 shadow-sm">
+                                <div class="card-body">
+                                    <h5>@ticket.Session.Movie!.Title</h5>
+                                    <p class="text-muted">
+                                        📍 @ticket.Session.Hall!.Cinema!.Name • Зал: @ticket.Session.Hall.Name
+                                    </p>
+                                    <p>🏙 Місто: @ticket.Session.Hall!.Cinema!.City</p>
+                                    <p>🕒 @ticket.Session.Starttime.ToString("dd.MM.yyyy HH:mm")</p>
+                                    <p>💺 Ряд @ticket.Seat!.Rownumber, Місце @ticket.Seat.Seatnumber</p>
+                                    <p class="fw-bold">💵 @ticket.Price.ToString("C")</p>
+                                    <p id="countdown-@ticket.Id" class="text-primary fw-bold"></p>
+
+                                    <!-- кнопка повернення -->
+                                    <form asp-action="ReturnTicket" asp-route-id="@ticket.Id" method="post" class="mt-2">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger w-100">
+                                            🔄 Повернути квиток
+                                        </button>
+                                    </form>
+
+                                    <script>
+                                        (function () {
+                                            const targetDate = new Date("@ticket.Session.Starttime.ToString("yyyy-MM-ddTHH:mm:ss")");
+                                            const countdownElement = document.getElementById("countdown-@ticket.Id");
+
+                                            function updateCountdown() {
+                                                const now = new Date();
+                                                const diff = targetDate - now;
+
+                                                if (diff <= 0) {
+                                                    countdownElement.innerText = "🎬 Сеанс вже почався!";
+                                                    return;
+                                                }
+
+                                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                                                const minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+                                                countdownElement.innerText = `⏳ До початку залишилось: ${days} дн. ${hours} год. ${minutes} хв.`;
+                                            }
+
+                                            updateCountdown();
+                                            setInterval(updateCountdown, 60000);
+                                        })();
+                                    </script>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Архівні квитки -->
+                    <div class="tab-pane fade" id="archive" role="tabpanel">
+                        @foreach (var ticket in Model.Tickets.Where(t => t.Session.Starttime < DateTime.Now || t.IsReturned))
+                        {
+                            <div class="card mb-3 shadow-sm">
+                                <div class="card-body">
+                                    <h5>@ticket.Session.Movie!.Title</h5>
+                                    <p class="text-muted">
+                                        📍 @ticket.Session.Hall!.Cinema!.Name • Зал: @ticket.Session.Hall.Name
+                                    </p>
+                                    <p>🏙 Місто: @ticket.Session.Hall!.Cinema!.City</p>
+                                    <p>🕒 @ticket.Session.Starttime.ToString("dd.MM.yyyy HH:mm")</p>
+                                    <p>💺 Ряд @ticket.Seat!.Rownumber, Місце @ticket.Seat.Seatnumber</p>
+                                    <p class="fw-bold">💵 @ticket.Price.ToString("C")</p>
+
+                                    @if (ticket.IsReturned)
+                                    {
+                                        <span class="badge bg-warning">Повернений</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Минув</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </div>
+
 
 <script>
     // відкриває діалог вибору файлу при кліку на кнопку
