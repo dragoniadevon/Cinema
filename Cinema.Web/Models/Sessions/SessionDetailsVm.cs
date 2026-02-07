@@ -29,6 +29,7 @@ public class SessionDetailsVm
     public List<SessionPriceVm> Prices { get; set; } = new();
 
     public bool IsAdminView { get; set; }
+    public string? Posterurl { get; set; }
 }
 
 public class SessionPriceVm
@@ -44,4 +45,5 @@ public class SeatDetailsVm
     public int Row { get; set; }
     public int Number { get; set; }
     public bool IsTaken { get; set; }
+    public string CategoryName { get; set; } = "Стандарт";
 }
