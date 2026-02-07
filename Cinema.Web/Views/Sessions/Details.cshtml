@@ -3,69 +3,494 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = Model.MovieTitle;
+
+    var standardPrice = Model.Prices.FirstOrDefault(p => !p.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
+    var vipPrice = Model.Prices.FirstOrDefault(p => p.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
+
+    var hasStandard = Model.Seats.Any(s => !s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
+    var hasVip = Model.Seats.Any(s => s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
 }
 
 <div class="container mt-4">
-    <div class="mb-3">
-        <a asp-action="Index" class="btn btn-outline-secondary">🗓 До розкладу</a>
-    </div>
-
-    <h2 class="mb-4">🎬 @Model.MovieTitle</h2>
-
     <div class="row g-4">
         <div class="col-lg-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="mb-3">ℹ️ Деталі сеансу</h5>
-                    <p><b>Кінотеатр:</b> @Model.CinemaName</p>
-                    <p><b>Зал:</b> @Model.HallName</p>
-                    <p><b>Початок:</b> @Model.StartTime.ToString("dd.MM HH:mm")</p>
-                    <hr />
-                    <h6>💸 Вартість:</h6>
-                    <ul class="list-group list-group-flush mb-3">
-                        @foreach (var p in Model.Prices) {
-                            <li class="list-group-item d-flex justify-content-between px-0">
-                                <span>@p.CategoryName</span>
-                                <span class="fw-bold text-success">@p.Price ₴</span>
-                            </li>
-                        }
-                    </ul>
-                    <a asp-controller="Tickets" asp-action="Book" asp-route-sessionId="@Model.SessionId" class="btn btn-success w-100 py-2">
-                        Придбати квитки 🎟
-                    </a>
+            <div class="card border-0 shadow-sm sticky-top" style="border-radius: 20px; top: 20px; background: transparent;">
+                <div class="poster-wrapper shadow-sm">
+                    <img src="@(string.IsNullOrEmpty(Model.Posterurl) ? "https://placehold.co/400x600?text=No+Poster" : Model.Posterurl)" 
+                         class="poster-img" 
+                         alt="@Model.MovieTitle">
+                    
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-warning text-dark px-3 py-2 fw-bold shadow-sm">@Model.AgeRestriction</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-body text-center">
-                    <h5 class="mb-4">Схема залу</h5>
-                    <div class="fw-bold mb-4 border-bottom pb-2 mx-5">ЕКРАН</div>
-                    
-                    <div class="w-100" style="overflow-x:auto;">
-                        <div style="min-width: 620px; display:flex; flex-direction:column; gap:12px; align-items:center;">
-                            @for (int r = 1; r <= Model.Rows; r++) {
-                                <div style="display:flex; align-items:center; gap:10px;">
-                                    <div class="small text-muted" style="width:40px;">@r</div>
-                                    @for (int n = 1; n <= Model.SeatsPerRow; n++) {
-                                        var seat = Model.Seats.FirstOrDefault(x => x.Row == r && x.Number == n);
-                                        if (seat != null) {
-                                            <button type="button" @(seat.IsTaken ? "disabled" : "") 
-                                                    class="btn btn-sm @(seat.IsTaken ? "btn-secondary opacity-50" : "btn-outline-dark")"
-                                                    style="width:38px; height:32px; font-size: 12px;">@n</button>
-                                        }
-                                    }
-                                    <div class="small text-muted" style="width:40px;">@r</div>
-                                </div>
-                            }
-                        </div>
+            <div class="ps-2 mb-4">
+                <h1 class="fw-bold text-dark mb-1 display-5">@Model.MovieTitle</h1>
+                
+                <div class="d-flex flex-wrap align-items-center gap-2 text-muted mb-1">
+                    <i class="bi bi-geo-alt-fill text-primary"></i>
+                    <span>Луцьк, @Model.CinemaName</span>
+                    <span class="text-primary opacity-50">|</span>
+                    <i class="bi bi-door-open-fill text-primary"></i>
+                    <span>Зал @Model.HallName</span>
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <div class="fw-bold text-dark fs-5">
+                        <i class="bi bi-calendar-event text-primary me-1"></i>
+                        @Model.StartTime.ToString("dd MMMM")
+                        <span class="ms-2">@Model.StartTime.ToString("HH:mm") — @Model.EndTime.ToString("HH:mm")</span>
                     </div>
-                    <div class="mt-4 small text-muted text-center border-top pt-3">
-                        ⚪️ Оберіть вільне місце для переходу до оплати
+                    <span class="badge bg-primary px-3 rounded-pill">@Model.Duration хв.</span>
+                    <span class="badge bg-dark px-3 rounded-pill">@(Model.Duration > 120 ? "3D" : "2D")</span> 
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
+                <div class="d-flex justify-content-center gap-5 mb-4 flex-wrap">
+                    @if (hasStandard)
+                    {
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="seat-legend bg-standard"></div>
+                            <div class="d-flex flex-column text-black">
+                                <span class="category-label fw-bold">Звичайне</span>
+                                <span class="price-value">@standardPrice.ToString("0") ₴</span>
+                            </div>
+                        </div>
+                    }
+                    @if (hasVip)
+                    {
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="seat-legend bg-vip-green"></div>
+                            <div class="d-flex flex-column text-black">
+                                <span class="category-label fw-bold">VIP</span>
+                                <span class="price-value">@vipPrice.ToString("0") ₴</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="screen-container text-center mb-4">
+                    <div class="screen-curve mx-auto"></div>
+                    <span class="screen-text text-uppercase">Екран</span>
+                </div>
+
+                <div class="hall-scroll-container">
+                    <div class="hall-layout">
+                        @for (int r = 1; r <= Model.Rows; r++)
+                        {
+                            var rowSeats = Model.Seats.Where(s => s.Row == r).OrderBy(s => s.Number).ToList();
+                            var isVipRow = rowSeats.All(s => s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
+            
+                            <div class="seat-row">
+                                <div class="seats-row-wrapper @(isVipRow ? "vip-style" : "standard-style")">
+                                    @foreach (var seat in rowSeats)
+                                    {
+                                        var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
+                                        string seatTypeClass = seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard");
+
+                                        <button class="btn shadow-none seat-btn @seatTypeClass" 
+                                                data-id="@seat.SeatId" data-row="@r" data-num="@seat.Number"
+                                                data-price="@(isVip ? vipPrice : standardPrice)"
+                                                @(seat.IsTaken ? "disabled" : "")
+                                                title="@(seat.IsTaken ? "Зайнято" : $"Ряд {r}, Місце {seat.Number}")">
+                                            @if (seat.IsTaken) { <i class="bi bi-x-lg"></i> } else { @seat.Number }
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<button id="cart-fab" class="btn btn-warning shadow-lg d-none position-fixed animate__animated animate__bounceIn" 
+        style="bottom: 30px; right: 30px; width: 70px; height: 70px; border-radius: 50%; z-index: 1050;"
+        onclick="toggleCart()">
+    <i class="bi bi-cart3 fs-2"></i>
+    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
+        0
+    </span>
+</button>
+
+<div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="cartOffcanvas" data-bs-backdrop="false" style="border-radius: 30px 0 0 30px; width: 380px;">
+    <div class="offcanvas-header border-bottom p-4 flex-column align-items-start">
+        <div class="d-flex justify-content-between w-100 align-items-center">
+            <h5 class="offcanvas-title fw-bold m-0"><i class="bi bi-ticket-perforated me-2"></i>Ваше замовлення</h5>
+            <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas"></button>
+        </div>
+    
+        <div id="reservation-timer" class="d-none mt-3 w-100 text-center">
+            <div class="d-inline-flex align-items-center justify-content-center">
+                <i class="bi bi-clock-history text-danger me-2 fs-4"></i>
+                <span id="timer-display" class="timer-minimal text-danger">10:00</span>
+            </div>
+        </div>
+    </div>
+    <div class="offcanvas-body p-4">
+        <div id="cart-items-container" class="d-flex flex-column gap-3 mb-4">
+        </div>
+        
+        <div id="payment-block" class="border-top pt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <span class="text-muted fw-bold fs-5">До оплати:</span>
+                <span class="fs-3 fw-bold text-success"><span id="cart-total">0</span> ₴</span>
+            </div>
+            <button class="btn btn-warning btn-lg w-100 py-3 fw-bold rounded-pill shadow-sm hover-up">
+                ПЕРЕЙТИ ДО ОПЛАТИ <i class="bi bi-arrow-right-short ms-1 fs-4"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* --- 1. АФІША ТА ПОСТЕР --- */
+    .poster-wrapper {
+        width: 100%;
+        height: 550px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
+        background-color: #f8f9fa;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .poster-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.5s ease;
+    }
+
+    .poster-wrapper:hover .poster-img {
+        transform: scale(1.05);
+    }
+
+    /* --- 2. ЛЕГЕНДА ТА КАТЕГОРІЇ --- */
+    .seat-legend { 
+        width: 32px; 
+        height: 26px; 
+        border-radius: 7px; 
+    }
+
+    .bg-standard, .is-standard { 
+        background-color: #6c757d !important; 
+        color: white; 
+    }
+
+    .bg-vip-green, .is-vip { 
+        background-color: #198754 !important; 
+        color: white; 
+    }
+
+    .price-value { 
+        font-size: 1.2rem; 
+        font-weight: 900; 
+        color: #000;
+    }
+
+    .category-label {
+        font-size: 0.85rem;
+        color: #000;
+    }
+
+    /* --- 3. СХЕМА ЗАЛУ ТА МІСЦЯ --- */
+    .screen-curve { 
+        width: 80%; 
+        height: 5px; 
+        background: #343a40; 
+        border-radius: 50% / 100% 100% 0 0; 
+    }
+
+    .screen-text { 
+        font-size: 11px; 
+        font-weight: 800; 
+        letter-spacing: 6px; 
+        color: #495057; 
+    }
+
+    .hall-scroll-container { 
+        max-height: 550px; 
+        overflow: auto; 
+        padding: 5px 0; 
+        scrollbar-width: thin;
+    }
+
+    .hall-layout { 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        min-width: max-content; 
+        padding: 20px 40px; 
+    }
+
+    .seat-row { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        margin-bottom: 8px; 
+    }
+
+    .seats-row-wrapper { 
+        display: flex; 
+        gap: 8px; 
+    }
+
+    .standard-style { gap: 8px; }
+    .vip-style { gap: 18px; margin-top: 10px; }
+
+    .seat-btn { 
+        width: 36px;
+        height: 30px; 
+        padding: 0;
+        border-radius: 7px; 
+        border: none; 
+        font-size: 13px;
+        font-weight: bold; 
+        line-height: 30px;
+        text-align: center;
+        transition: all 0.2s ease; 
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .is-taken { 
+        background-color: #e9ecef !important; 
+        color: #adb5bd !important; 
+        cursor: not-allowed; 
+        border: 1px solid #dee2e6 !important; 
+    }
+
+    .seat-btn:not(:disabled):hover { 
+        transform: translateY(-3px) scale(1.15); 
+        z-index: 10; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+    }
+
+    .seat-btn.selected { 
+        background-color: #ffc107 !important; 
+        color: #000 !important; 
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(255,193,7,0.5); 
+    }
+
+    .row-label { width: 30px; font-size: 12px; text-align: center; }
+
+    /* --- 4. ТАЙМЕР (МІНІМАЛІСТИЧНИЙ) --- */
+    .timer-minimal {
+        font-size: 2.2rem;
+        font-weight: 800;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -1px;
+        line-height: 1;
+    }
+
+    .timer-urgent {
+        animation: pulse-red 1s infinite;
+    }
+
+    @@keyframes pulse-red {
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.05); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* --- 5. КОШИК ТА ОПЛАТА --- */
+    .cart-item { 
+        background: #f8f9fa; 
+        border-radius: 15px; 
+        padding: 15px; 
+        border: 1px solid #eee; 
+        transition: 0.3s;
+    }
+
+    .cart-item:hover {
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    #payment-block {
+        transition: all 0.3s ease;
+    }
+
+    .hover-up:hover { 
+        transform: translateY(-2px); 
+        transition: 0.3s; 
+    }
+
+    /* --- 6. АДАПТИВНІСТЬ --- */
+    @@media (max-width: 991.98px) {
+        .poster-wrapper { 
+            height: 450px; 
+            max-width: 350px; 
+            margin: 0 auto; 
+        }
+        .timer-minimal {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const seats = document.querySelectorAll('.seat-btn:not([disabled])');
+        const cartEl = document.getElementById('cartOffcanvas');
+        const bsOffcanvas = new bootstrap.Offcanvas(cartEl);
+        const cartContainer = document.getElementById('cart-items-container');
+        const totalDisplay = document.getElementById('cart-total');
+        const cartFab = document.getElementById('cart-fab');
+        const cartBadge = document.getElementById('cart-badge');
+        const timerContainer = document.getElementById('reservation-timer');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        let selectedSeats = [];
+        let reservationTimer = null;
+        const RESERVATION_TIME = 10 * 60;
+        let timeLeft = RESERVATION_TIME;
+
+        window.toggleCart = () => bsOffcanvas.toggle();
+
+        function startTimer() {
+            if (reservationTimer) return;
+            
+            timeLeft = RESERVATION_TIME;
+            timerContainer.classList.remove('d-none');
+            
+            reservationTimer = setInterval(() => {
+                timeLeft--;
+    
+                let minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+    
+                timerDisplay.innerText = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    
+                if (timeLeft < 60) {
+                    timerDisplay.classList.add('timer-urgent');
+                } else {
+                    timerDisplay.classList.remove('timer-urgent');
+                }
+
+                if (timeLeft <= 0) {
+                    clearAllBooking();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(reservationTimer);
+            reservationTimer = null;
+            timerContainer.classList.add('d-none');
+            timerDisplay.classList.remove('animate__animated', 'animate__pulse', 'animate__infinite');
+        }
+
+        function clearAllBooking() {
+            selectedSeats.forEach(s => {
+                const btn = document.querySelector(`[data-id="${s.id}"]`);
+                if (btn) btn.classList.remove('selected');
+            });
+            selectedSeats = [];
+            updateUI();
+            
+            if (cartEl.classList.contains('show')) {
+                bsOffcanvas.hide();
+            }
+            stopTimer();
+        }
+
+        seats.forEach(seat => {
+            seat.addEventListener('click', function () {
+                const id = this.dataset.id;
+                const index = selectedSeats.findIndex(s => s.id === id);
+
+                if (index > -1) {
+                    removeSeat(id);
+                } else {
+                    if (selectedSeats.length >= 6) {
+                        return; 
+                    }
+                    addSeat({
+                        id: id, 
+                        row: this.dataset.row, 
+                        num: this.dataset.num, 
+                        price: parseFloat(this.dataset.price)
+                    });
+                }
+            });
+        });
+
+        function addSeat(seat) {
+            if (selectedSeats.length === 0) startTimer();
+            
+            selectedSeats.push(seat);
+            const btn = document.querySelector(`[data-id="${seat.id}"]`);
+            if (btn) btn.classList.add('selected');
+            
+            updateUI();
+            
+            if (!cartEl.classList.contains('show')) {
+                bsOffcanvas.show();
+            }
+        }
+
+        window.removeSeat = function(id) {
+            const index = selectedSeats.findIndex(s => s.id === id);
+            if (index > -1) {
+                selectedSeats.splice(index, 1);
+                const btn = document.querySelector(`[data-id="${id}"]`);
+                if (btn) btn.classList.remove('selected');
+                
+                updateUI();
+                
+                if (selectedSeats.length === 0) {
+                    bsOffcanvas.hide();
+                    stopTimer();
+                }
+            }
+        }
+
+        function updateUI() {
+            cartContainer.innerHTML = selectedSeats.map(s => `
+                <div class="cart-item d-flex justify-content-between align-items-center animate__animated animate__fadeInRight">
+                    <div>
+                        <div class="fw-bold fs-6">Ряд ${s.row}, Місце ${s.num}</div>
+                        <div class="text-success fw-bold small">${s.price} ₴</div>
+                    </div>
+                    <button onclick="removeSeat('${s.id}')" class="btn btn-outline-danger btn-sm border-0 rounded-circle">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            const total = selectedSeats.reduce((sum, s) => sum + s.price, 0);
+            totalDisplay.innerText = total.toLocaleString();
+
+            if (selectedSeats.length > 0) {
+                cartFab.classList.remove('d-none');
+                cartBadge.innerText = selectedSeats.length;
+            } else {
+                cartFab.classList.add('d-none');
+            }
+        }
+
+        document.addEventListener('mousedown', function (event) {
+            const isClickInside = cartEl.contains(event.target);
+            const isClickOnSeat = event.target.closest('.seat-btn');
+            const isClickOnFab = event.target.closest('#cart-fab');
+
+            if (!isClickInside && !isClickOnSeat && !isClickOnFab && cartEl.classList.contains('show')) {
+                bsOffcanvas.hide();
+            }
+        });
+    });
+</script>
