@@ -1,9 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
 using Cinema.Infrastructure.Entities.Enums;
 using Cinema.Web.Models.Sessions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 
 namespace Cinema.Web.Areas.Admin.Controllers;
 
@@ -459,9 +461,9 @@ public class SessionsController : Controller
             return NotFound();
 
         var seats = await _context.Seats
+            .AsNoTracking()
+            .Include(s => s.Pricecategory)
             .Where(s => s.Hallid == session.Hallid)
-            .OrderBy(s => s.Rownumber)
-            .ThenBy(s => s.Seatnumber)
             .ToListAsync();
 
         var takenSeatIds = await _context.Tickets
@@ -481,6 +483,17 @@ public class SessionsController : Controller
             MovieId = session.Movie?.Id ?? 0,
             MovieTitle = session.Movie?.Title ?? "—",
             Duration = session.Movie?.Duration ?? 0,
+            Posterurl = session.Movie?.Posterurl,
+
+            AgeRestriction = session.Movie?.Agerating switch
+            {
+                AgeRating.G => "0+",
+                AgeRating.PG => "6+",
+                AgeRating.PG13 => "12+",
+                AgeRating.R => "16+",
+                AgeRating.NC17 => "18+",
+                _ => "0+"
+            },
 
             Rows = session.Hall?.Rows ?? 0,
             SeatsPerRow = session.Hall?.Seatsperrow ?? 0,
@@ -497,7 +510,8 @@ public class SessionsController : Controller
                 SeatId = s.Id,
                 Row = s.Rownumber ?? 0,
                 Number = s.Seatnumber ?? 0,
-                IsTaken = takenSeatIds.Contains(s.Id)
+                IsTaken = takenSeatIds.Contains(s.Id),
+                CategoryName = s.Pricecategory?.Name ?? "Стандарт"
             }).ToList(),
 
             IsAdminView = true
@@ -505,5 +519,4 @@ public class SessionsController : Controller
 
         return View(vm);
     }
-
 }
