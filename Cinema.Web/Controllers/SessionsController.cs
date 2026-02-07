@@ -98,9 +98,9 @@ namespace Cinema.Web.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var session = await _context.Sessions
-                .Include(s => s.Movie)
+                .Include(s => s.Movie) // Обов'язково підключаємо дані про фільм
                 .Include(s => s.Hall)
-                    .ThenInclude(h => h.Cinema)
+                .ThenInclude(h => h.Cinema)
 
                 // ✅ НОВЕ: підтягуємо ціни + категорії
                 .Include(s => s.Sessionprices)
@@ -113,6 +113,8 @@ namespace Cinema.Web.Controllers
 
             // місця в залі
             var seats = await _context.Seats
+                .AsNoTracking()
+                .Include(s => s.Pricecategory)
                 .Where(s => s.Hallid == session.Hallid)
                 .OrderBy(s => s.Rownumber)
                 .ThenBy(s => s.Seatnumber)
@@ -143,6 +145,7 @@ namespace Cinema.Web.Controllers
 
                 MovieId = movie?.Id ?? 0,
                 MovieTitle = movie?.Title ?? "—",
+                Posterurl = session.Movie.Posterurl,
                 Duration = duration,
 
                 AgeRestriction = movie?.Agerating switch
@@ -179,7 +182,8 @@ namespace Cinema.Web.Controllers
                     SeatId = s.Id,
                     Row = s.Rownumber ?? 0,
                     Number = s.Seatnumber ?? 0,
-                    IsTaken = takenSeatIds.Contains(s.Id)
+                    IsTaken = takenSeatIds.Contains(s.Id),
+                    CategoryName = s.Pricecategory?.Name ?? "Стандарт"
                 }).ToList()
             };
             vm.IsAdminView = false;
