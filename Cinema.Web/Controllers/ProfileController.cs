@@ -57,7 +57,7 @@ namespace Cinema.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditProfile(ProfileViewModel model, IFormFile? Avatar)
+        public async Task<IActionResult> EditProfile(ProfileViewModel model)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
@@ -66,19 +66,6 @@ namespace Cinema.Web.Controllers
             user.LastName = model.User.LastName;   // нове поле
             user.Email = model.User.Email;
             user.PhoneNumber = model.User.PhoneNumber;
-
-            if (Avatar != null && Avatar.Length > 0)
-            {
-                var fileName = $"{user.Id}_avatar.png";
-                var path = Path.Combine("wwwroot/images/avatars", fileName);
-
-                using (var stream = new FileStream(path, FileMode.Create))
-                {
-                    await Avatar.CopyToAsync(stream);
-                }
-
-                user.AvatarPath = $"/images/avatars/{fileName}";
-            }
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
@@ -102,12 +89,6 @@ namespace Cinema.Web.Controllers
             if (!string.IsNullOrEmpty(user.LastName))
                 await _userManager.AddClaimAsync(user, new Claim("LastName", user.LastName));
 
-            var avatarClaim = claims.FirstOrDefault(c => c.Type == "AvatarPath");
-            if (avatarClaim != null)
-                await _userManager.RemoveClaimAsync(user, avatarClaim);
-            if (!string.IsNullOrEmpty(user.AvatarPath))
-                await _userManager.AddClaimAsync(user, new Claim("AvatarPath", user.AvatarPath));
-
             await _signInManager.RefreshSignInAsync(user);
 
             TempData["ProfileUpdated"] = true;
@@ -128,6 +109,5 @@ namespace Cinema.Web.Controllers
             TempData["TicketReturned"] = true;
             return RedirectToAction("Index");
         }
-
     }
 }
