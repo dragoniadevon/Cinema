@@ -122,7 +122,7 @@ namespace Cinema.Web.Controllers
 
             // зайняті місця
             var takenSeatIds = await _context.Tickets
-                .Where(t => t.Sessionid == id)
+                .Where(t => t.Sessionid == id && !t.IsReturned) // <--- Додаємо && !t.IsReturned
                 .Select(t => t.Seatid)
                 .ToListAsync();
 
@@ -183,6 +183,7 @@ namespace Cinema.Web.Controllers
                     Row = s.Rownumber ?? 0,
                     Number = s.Seatnumber ?? 0,
                     IsTaken = takenSeatIds.Contains(s.Id),
+                    IsBlocked = s.IsBlocked,
                     CategoryName = s.Pricecategory?.Name ?? "Стандарт"
                 }).ToList()
             };

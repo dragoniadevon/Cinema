@@ -451,38 +451,33 @@ public class SessionsController : Controller
     {
         var session = await _context.Sessions
             .Include(s => s.Movie)
-            .Include(s => s.Hall)
-                .ThenInclude(h => h.Cinema)
-            .Include(s => s.Sessionprices)
-                .ThenInclude(sp => sp.Category)
+            .Include(s => s.Hall).ThenInclude(h => h.Cinema)
+            .Include(s => s.Tickets).ThenInclude(t => t.User)
+            .Include(s => s.Sessionprices).ThenInclude(sp => sp.Category)
             .FirstOrDefaultAsync(s => s.Id == id);
 
-        if (session == null)
-            return NotFound();
+        if (session == null) return NotFound();
 
         var seats = await _context.Seats
             .AsNoTracking()
             .Include(s => s.Pricecategory)
             .Where(s => s.Hallid == session.Hallid)
+            .OrderBy(s => s.Rownumber).ThenBy(s => s.Seatnumber)
             .ToListAsync();
 
         var takenSeatIds = await _context.Tickets
-            .Where(t => t.Sessionid == id)
+            .Where(t => t.Sessionid == id && !t.IsReturned) // Тепер повернуті місця будуть вільними на схемі
             .Select(t => t.Seatid)
             .ToListAsync();
 
         var vm = new SessionDetailsVm
         {
             SessionId = session.Id,
-            StartTime = session.Starttime,
-            EndTime = session.Endtime,
-
+            MovieTitle = session.Movie?.Title ?? "—",
             CinemaName = session.Hall?.Cinema?.Name ?? "—",
             HallName = session.Hall?.Name ?? "—",
-
-            MovieId = session.Movie?.Id ?? 0,
-            MovieTitle = session.Movie?.Title ?? "—",
-            Duration = session.Movie?.Duration ?? 0,
+            StartTime = session.Starttime,
+            EndTime = session.Endtime,
             Posterurl = session.Movie?.Posterurl,
 
             AgeRestriction = session.Movie?.Agerating switch
@@ -505,18 +500,79 @@ public class SessionsController : Controller
                 Price = sp.Price
             }).ToList(),
 
-            Seats = seats.Select(s => new SeatDetailsVm
-            {
-                SeatId = s.Id,
-                Row = s.Rownumber ?? 0,
-                Number = s.Seatnumber ?? 0,
-                IsTaken = takenSeatIds.Contains(s.Id),
-                CategoryName = s.Pricecategory?.Name ?? "Стандарт"
+            Seats = seats.Select(s => {
+                // Шукаємо квиток саме для цього місця у поточному сеансі
+                // Шукаємо тільки АКТИВНИЙ квиток для Side Panel
+                var ticket = session.Tickets.FirstOrDefault(t => t.Seatid == s.Id && !t.IsReturned);
+
+                return new SeatDetailsVm
+                {
+                    SeatId = s.Id,
+                    Row = s.Rownumber ?? 0,
+                    Number = s.Seatnumber ?? 0,
+                    IsTaken = ticket != null,
+                    IsBlocked = s.IsBlocked, // Ваша нова колонка з міграції
+                    CategoryName = s.Pricecategory?.Name ?? "Стандарт",
+
+                    // Передаємо дані квитка для Side Panel
+                    Price = ticket?.Price ?? 0,
+                    CustomerName = ticket != null ? $"{ticket.User?.FirstName} {ticket.User?.LastName}" : null,
+                    CustomerEmail = ticket?.User?.Email,
+                    PurchaseDate = ticket?.Bookingtime // Використовуємо поле Bookingtime з вашої сутності Ticket
+                };
             }).ToList(),
 
             IsAdminView = true
         };
 
         return View(vm);
+    }
+
+    // ==========================================
+    // CANCEL TICKET: Видаляє квиток та звільняє місце
+    // ==========================================
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelTicket(int seatId, int sessionId)
+    {
+        try
+        {
+            // Шукаємо активний квиток (не повернутий) для цього місця на цей сеанс
+            var ticket = await _context.Tickets
+                .FirstOrDefaultAsync(t => t.Seatid == seatId && t.Sessionid == sessionId && !t.IsReturned);
+
+            if (ticket == null)
+                return Json(new { success = false, message = "Активний квиток не знайдено." });
+
+            // Позначаємо квиток як повернутий. 
+            // Це звільняє місце на схемі, але зберігає дані в базі.
+            ticket.IsReturned = true;
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            // Якщо виникне системна помилка, ми побачимо її текст
+            return Json(new { success = false, message = "Помилка сервера: " + ex.Message });
+        }
+    }
+
+    // ==========================================
+    // TOGGLE BLOCK: Блокує/розблокує місце (технічна несправність)
+    // ==========================================
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleBlockSeat(int seatId)
+    {
+        var seat = await _context.Seats.FindAsync(seatId);
+        if (seat == null) return NotFound();
+
+        // Припустимо, у вас є поле IsBlocked у таблиці Seats
+        // Якщо немає, його потрібно додати через міграцію
+        seat.IsBlocked = !seat.IsBlocked;
+
+        await _context.SaveChangesAsync();
+        return Json(new { success = true, isBlocked = seat.IsBlocked });
     }
 }
