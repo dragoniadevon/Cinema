@@ -83,25 +83,41 @@
                     <div class="hall-layout">
                         @for (int r = 1; r <= Model.Rows; r++)
                         {
-                            var rowSeats = Model.Seats.Where(s => s.Row == r).OrderBy(s => s.Number).ToList();
-                            var isVipRow = rowSeats.All(s => s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
-            
                             <div class="seat-row">
-                                <div class="seats-row-wrapper @(isVipRow ? "vip-style" : "standard-style")">
-                                    @foreach (var seat in rowSeats)
+                                @* Додано номери рядів для зручності *@
+                                <span class="row-label text-muted fw-bold me-2">@r</span>
+                
+                                <div class="seats-row-wrapper">
+                                    @foreach (var seat in Model.Seats.Where(s => s.Row == r).OrderBy(s => s.Number))
                                     {
                                         var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
-                                        string seatTypeClass = seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard");
 
-                                        <button class="btn shadow-none seat-btn @seatTypeClass" 
-                                                data-id="@seat.SeatId" data-row="@r" data-num="@seat.Number"
+                                        // Визначаємо клас: пріоритет у заблокованого місця
+                                        string seatTypeClass = seat.IsBlocked ? "is-blocked" : (seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard"));
+
+                                        // Місце не можна купити, якщо воно зайняте АБО заблоковане
+                                        bool isDisabled = seat.IsTaken || seat.IsBlocked;
+
+                                        <button class="btn shadow-none seat-btn @seatTypeClass"
+                                                data-id="@seat.SeatId" 
+                                                data-row="@r" 
+                                                data-num="@seat.Number"
                                                 data-price="@(isVip ? vipPrice : standardPrice)"
-                                                @(seat.IsTaken ? "disabled" : "")
-                                                title="@(seat.IsTaken ? "Зайнято" : $"Ряд {r}, Місце {seat.Number}")">
-                                            @if (seat.IsTaken) { <i class="bi bi-x-lg"></i> } else { @seat.Number }
+                                                @(isDisabled ? "disabled" : "")
+                                                title="@(seat.IsBlocked ? "Технічна перерва" : (seat.IsTaken ? "Зайнято" : $"Ряд {r}, Місце {seat.Number}"))">
+                            
+                                            @if (seat.IsBlocked) {
+                                                <i class="bi bi-slash-circle"></i>
+                                            } else if (seat.IsTaken) {
+                                                <i class="bi bi-x-lg"></i>
+                                            } else {
+                                                @seat.Number
+                                            }
                                         </button>
                                     }
                                 </div>
+                
+                                <span class="row-label text-muted fw-bold ms-2">@r</span>
                             </div>
                         }
                     </div>
@@ -340,6 +356,20 @@
             font-size: 1.8rem;
         }
     }
+
+    /* Стиль для заблокованого місця (клієнтська сторона) */
+.seat-btn.is-blocked {
+    background-color: #212529 !important; /* Чорний колір */
+    color: #ffc107 !important;           /* Жовта іконка для контрасту */
+    opacity: 1 !important;
+    cursor: not-allowed;
+    border: 1px solid #000 !important;
+}
+
+/* Додамо також невелику анімацію для іконки, щоб виглядало професійно */
+.is-blocked i {
+    font-size: 0.9rem;
+}
 </style>
 
 <script>

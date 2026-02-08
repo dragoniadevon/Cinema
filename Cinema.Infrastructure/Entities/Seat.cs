@@ -13,6 +13,8 @@ public partial class Seat
 
     public short? Seatnumber { get; set; }
 
+    public bool IsBlocked { get; set; } = false;
+
     public int? Pricecategoryid { get; set; }
 
     public virtual Pricecategory? Pricecategory { get; set; }

@@ -45,5 +45,12 @@ public class SeatDetailsVm
     public int Row { get; set; }
     public int Number { get; set; }
     public bool IsTaken { get; set; }
+    public bool IsBlocked { get; set; } // Нове: для технічних несправностей
     public string CategoryName { get; set; } = "Стандарт";
+    public decimal Price { get; set; } // Нове: ціна цього конкретного місця
+
+    // Додаткові дані для адміна при кліку
+    public string? CustomerName { get; set; }
+    public string? CustomerEmail { get; set; }
+    public DateTime? PurchaseDate { get; set; }
 }
