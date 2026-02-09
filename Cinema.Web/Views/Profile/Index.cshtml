@@ -35,23 +35,7 @@
                     }
 
                     <form asp-action="EditProfile" method="post" enctype="multipart/form-data">
-                        @Html.AntiForgeryToken()
-
-                        <!-- Аватар -->
-                        <div class="mb-3">
-                            <img src="@(Model.User.AvatarPath ?? "~/images/default-avatar.png")"
-                                 class="avatar rounded-circle shadow-sm border border-2 border-primary"
-                                 style="object-fit: cover; width: 140px; height: 140px;"
-                                 alt="Avatar">
-                        </div>
-
-                        <!-- Красива кнопка для завантаження -->
-                        <div class="mb-3">
-                            <label for="avatarUpload" class="btn btn-outline-primary w-100 fw-bold">
-                                ➕ Додати аватар
-                            </label>
-                            <input type="file" id="avatarUpload" name="Avatar" class="d-none" />
-                        </div>
+                        @Html.AntiForgeryToken()                       
 
                         <div class="mb-3 text-start">
                             <label class="form-label">Ім’я</label>
@@ -135,7 +119,7 @@
                                     <!-- кнопка повернення -->
                                     <form asp-action="ReturnTicket" asp-route-id="@ticket.Id" method="post" class="mt-2">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-outline-danger w-100">
+                                        <button type="submit" class="btn btn-outline-danger w-50">
                                             🔄 Повернути квиток
                                         </button>
                                     </form>
@@ -204,28 +188,10 @@
 </div>
 
 
-<script>
-    // відкриває діалог вибору файлу при кліку на кнопку
-    document.querySelector("label[for='avatarUpload']").addEventListener("click", function () {
-        document.getElementById("avatarUpload").click();
-    });
 
-    // автоматично відправляє форму після вибору файлу
-    document.getElementById("avatarUpload").addEventListener("change", function () {
-        this.closest("form").submit();
-    });
-</script>
 
 <style>
-    /* Hover ефект для аватара */
-    img.avatar {
-        transition: transform 0.3s, box-shadow 0.3s;
-    }
-    img.avatar:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 10px rgba(0, 123, 255, 0.6);
-    }
-
+    
     /* Анімація вкладок */
     .tab-pane {
         transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
