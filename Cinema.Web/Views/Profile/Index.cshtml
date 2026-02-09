@@ -23,19 +23,20 @@
                                     <div class="toast-body">
                                         ✅ Профіль оновлено успішно!
                                     </div>
-                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                                            data-bs-dismiss="toast"></button>
                                 </div>
                             </div>
                         </div>
                         <script>
-                            const toastEl = document.getElementById('profileToast');
-                            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-                            toast.show();
+                                                const toastEl = document.getElementById('profileToast');
+                                                const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+                                                toast.show();
                         </script>
                     }
 
                     <form asp-action="EditProfile" method="post" enctype="multipart/form-data">
-                        @Html.AntiForgeryToken()                       
+                        @Html.AntiForgeryToken()
 
                         <div class="mb-3 text-start">
                             <label class="form-label">Ім’я</label>
@@ -72,135 +73,178 @@
             </div>
         </div>
 
-       <!-- Блок квитків -->
-<div class="col-md-8">
-    <div class="card shadow-lg border-0 rounded-4">
-        <div class="card-body p-4">
-            <h4 class="fw-bold mb-3">🎟 Мої квитки</h4>
+        <!-- Блок квитків -->
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-3">🎟 Мої квитки</h4>
 
-            @if (!Model.Tickets.Any())
-            {
-                <div class="alert alert-info text-center">
-                    У вас ще немає куплених квитків.
-                </div>
-            }
-            else
-            {
-                <ul class="nav nav-tabs mb-3" id="ticketTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button" role="tab">
-                            Активні
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive" type="button" role="tab">
-                            Архівні
-                        </button>
-                    </li>
-                </ul>
+                    @if (!Model.Tickets.Any())
+                    {
+                        <div class="alert alert-info text-center">
+                            У вас ще немає куплених квитків.
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="nav nav-tabs mb-3" id="ticketTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="active-tab" data-bs-toggle="tab"
+                                        data-bs-target="#active" type="button" role="tab">
+                                    Активні
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive"
+                                        type="button" role="tab">
+                                    Архівні
+                                </button>
+                            </li>
+                        </ul>
 
-                <div class="tab-content">
-                    <!-- Активні квитки -->
-                    <div class="tab-pane fade show active" id="active" role="tabpanel">
-                        @foreach (var ticket in Model.Tickets.Where(t => t.Session.Starttime >= DateTime.Now && !t.IsReturned))
-                        {
-                            <div class="card mb-3 shadow-sm">
-                                <div class="card-body">
-                                    <h5>@ticket.Session.Movie!.Title</h5>
-                                    <p class="text-muted">
-                                        📍 @ticket.Session.Hall!.Cinema!.Name • Зал: @ticket.Session.Hall.Name
-                                    </p>
-                                    <p>🏙 Місто: @ticket.Session.Hall!.Cinema!.City</p>
-                                    <p>🕒 @ticket.Session.Starttime.ToString("dd.MM.yyyy HH:mm")</p>
-                                    <p>💺 Ряд @ticket.Seat!.Rownumber, Місце @ticket.Seat.Seatnumber</p>
-                                    <p class="fw-bold">💵 @ticket.Price.ToString("C")</p>
-                                    <p id="countdown-@ticket.Id" class="text-primary fw-bold"></p>
+                        <div class="tab-content">
+                            <!-- Активні квитки -->
+                            <div class="tab-pane fade show active" id="active" role="tabpanel">
+                                @foreach (var ticket in Model.Tickets.Where(t =>
+                                    t.Session.Starttime.ToUniversalTime() >= DateTime.UtcNow &&
+                                    !t.IsReturned))
+                                {
+                                    <div class="card mb-3 shadow-sm">
+                                        <div class="card-body">
+                                            @{
+                                                var minutesLeft = 10 - (int)(DateTime.UtcNow - ticket.Bookingtime).TotalMinutes;
+                                            }
+                                            <h5>@ticket.Session.Movie!.Title</h5>
+                                            <p class="text-muted">
+                                                📍 @ticket.Session.Hall!.Cinema!.Name • Зал: @ticket.Session.Hall.Name
+                                            </p>
+                                            <p>🏙 Місто: @ticket.Session.Hall!.Cinema!.City</p>
+                                            <p>🕒 @ticket.Session.Starttime.ToString("dd.MM.yyyy HH:mm")</p>
+                                            <p>💺 Ряд @ticket.Seat!.Rownumber, Місце @ticket.Seat.Seatnumber</p>
+                                            <p class="fw-bold">💵 @ticket.Price.ToString("C")</p>
+                                            <p id="countdown-@ticket.Id" class="text-primary fw-bold"></p>
+                                            @if (ticket.Status == (short)TicketStatus.Reserved && minutesLeft > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark mb-2">🕒 Заброньовано</span>
 
-                                    <!-- кнопка повернення -->
-                                    <form asp-action="ReturnTicket" asp-route-id="@ticket.Id" method="post" class="mt-2">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-outline-danger w-50">
-                                            🔄 Повернути квиток
-                                        </button>
-                                    </form>
+                                                <div class="text-danger fw-bold mb-2">
+                                                    Залишилось: @minutesLeft хв
+                                                </div>
 
-                                    <script>
-                                        (function () {
-                                            const targetDate = new Date("@ticket.Session.Starttime.ToString("yyyy-MM-ddTHH:mm:ss")");
-                                            const countdownElement = document.getElementById("countdown-@ticket.Id");
+                                                <div class="d-flex gap-2 mb-3">
+                                                    <a asp-controller="Payments" asp-action="Pay" asp-route-ticketIds="@ticket.Id"
+                                                           class="btn btn-success btn-sm">
+                                                        💳 Оплатити
+                                                    </a>
 
-                                            function updateCountdown() {
-                                                const now = new Date();
-                                                const diff = targetDate - now;
-
-                                                if (diff <= 0) {
-                                                    countdownElement.innerText = "🎬 Сеанс вже почався!";
-                                                    return;
-                                                }
-
-                                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                                                const minutes = Math.floor((diff / (1000 * 60)) % 60);
-
-                                                countdownElement.innerText = `⏳ До початку залишилось: ${days} дн. ${hours} год. ${minutes} хв.`;
+                                                    <form asp-controller="Tickets" asp-action="CancelReservation" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="ticketId" value="@ticket.Id" />
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                            ❌ Скасувати бронь
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            }
+                                            @if (ticket.Status == (short)TicketStatus.Reserved && minutesLeft <= 0)
+                                            {
+                                                <span class="badge bg-secondary mb-3">Бронь минула</span>
                                             }
 
-                                            updateCountdown();
-                                            setInterval(updateCountdown, 60000);
-                                        })();
-                                    </script>
-                                </div>
-                            </div>
-                        }
-                    </div>
+                                            <!-- кнопка повернення -->
+                                            @if (ticket.Status == (short)TicketStatus.Paid &&
+                                                                                            ticket.Session.Starttime.ToUniversalTime() > DateTime.UtcNow)
+                                            {
+                                                <form asp-action="ReturnTicket" asp-route-id="@ticket.Id" method="post"
+                                                      class="mt-2">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-danger w-50">
+                                                        🔄 Повернути квиток
+                                                    </button>
+                                                </form>
+                                            }
 
-                    <!-- Архівні квитки -->
-                    <div class="tab-pane fade" id="archive" role="tabpanel">
-                        @foreach (var ticket in Model.Tickets.Where(t => t.Session.Starttime < DateTime.Now || t.IsReturned))
-                        {
-                            <div class="card mb-3 shadow-sm">
-                                <div class="card-body">
-                                    <h5>@ticket.Session.Movie!.Title</h5>
-                                    <p class="text-muted">
-                                        📍 @ticket.Session.Hall!.Cinema!.Name • Зал: @ticket.Session.Hall.Name
-                                    </p>
-                                    <p>🏙 Місто: @ticket.Session.Hall!.Cinema!.City</p>
-                                    <p>🕒 @ticket.Session.Starttime.ToString("dd.MM.yyyy HH:mm")</p>
-                                    <p>💺 Ряд @ticket.Seat!.Rownumber, Місце @ticket.Seat.Seatnumber</p>
-                                    <p class="fw-bold">💵 @ticket.Price.ToString("C")</p>
+                                            <script>
+                                                                                    (function () {
+                                                                                        const targetDate = new Date("@ticket.Session.Starttime.ToString("yyyy-MM-ddTHH:mm:ss")");
+                                                                                        const countdownElement = document.getElementById("countdown-@ticket.Id");
 
-                                    @if (ticket.IsReturned)
-                                    {
-                                        <span class="badge bg-warning">Повернений</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">Минув</span>
-                                    }
-                                </div>
+                                                                                        function updateCountdown() {
+                                                                                            const now = new Date();
+                                                                                            const diff = targetDate - now;
+
+                                                                                            if (diff <= 0) {
+                                                                                                countdownElement.innerText = "🎬 Сеанс вже почався!";
+                                                                                                return;
+                                                                                            }
+
+                                                                                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                                                                            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                                                                                            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+                                                                                            countdownElement.innerText = `⏳ До початку залишилось: ${days} дн. ${hours} год. ${minutes} хв.`;
+                                                                                        }
+
+                                                                                        updateCountdown();
+                                                                                        setInterval(updateCountdown, 60000);
+                                                                                    })();
+                                            </script>
+                                        </div>
+                                    </div>
+                                }
                             </div>
-                        }
-                    </div>
+
+                            <!-- Архівні квитки -->
+                            <div class="tab-pane fade" id="archive" role="tabpanel">
+                                @foreach (var ticket in Model.Tickets.Where(t =>
+                                                                t.Status == (short)TicketStatus.Cancelled ||
+                                                                t.Session.Starttime.ToUniversalTime() < DateTime.UtcNow
+                                                            ))
+                                {
+                                    <div class="card mb-3 shadow-sm">
+                                        <div class="card-body">
+                                            <h5>@ticket.Session.Movie!.Title</h5>
+                                            <p class="text-muted">
+                                                📍 @ticket.Session.Hall!.Cinema!.Name • Зал: @ticket.Session.Hall.Name
+                                            </p>
+                                            <p>🏙 Місто: @ticket.Session.Hall!.Cinema!.City</p>
+                                            <p>🕒 @ticket.Session.Starttime.ToString("dd.MM.yyyy HH:mm")</p>
+                                            <p>💺 Ряд @ticket.Seat!.Rownumber, Місце @ticket.Seat.Seatnumber</p>
+                                            <p class="fw-bold">💵 @ticket.Price.ToString("C")</p>
+
+                                            @if (ticket.IsReturned)
+                                            {
+                                                <span class="badge bg-warning">Повернений</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Минув</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
-            }
+            </div>
         </div>
-    </div>
-</div>
 
 
 
 
-<style>
-    
-    /* Анімація вкладок */
-    .tab-pane {
-        transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-    }
-    .tab-pane.active {
-        opacity: 1;
-        transform: translateX(0);
-    }
-    .tab-pane:not(.active) {
-        opacity: 0
-    }
-</style>
+        <style>
+                    /* Анімація вкладок */
+                    .tab-pane {
+                        transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+                    }
+
+                    .tab-pane.active {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+
+                    .tab-pane:not(.active) {
+                        opacity: 0
+                    }
+        </style>

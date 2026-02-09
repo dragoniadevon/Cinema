@@ -103,7 +103,8 @@ namespace Cinema.Web.Controllers
                             CinemaName = cinemaGroup.First().Hall?.Cinema?.Name ?? "Кінотеатр",
                             Movies = cinemaGroup
                                 .GroupBy(s => s.Movieid)
-                                .Select(movieGroup => {
+                                .Select(movieGroup =>
+                                {
                                     var firstSession = movieGroup.First();
                                     return new SessionsByMovieVm
                                     {
@@ -162,6 +163,8 @@ namespace Cinema.Web.Controllers
 
             if (session == null)
                 return NotFound();
+
+            await CleanupExpiredReservationsForSession(id);
 
             var seats = await _context.Seats
                 .AsNoTracking()
@@ -242,7 +245,27 @@ namespace Cinema.Web.Controllers
             vm.IsAdminView = false;
             return View(vm);
         }
+        private async Task CleanupExpiredReservationsForSession(int sessionId)
+        {
+            var now = DateTime.UtcNow;
 
+            var expiredTickets = await _context.Tickets
+                .Where(t =>
+                    t.Sessionid == sessionId &&
+                    t.Status == (short)TicketStatus.Reserved &&
+                    now > t.Bookingtime.AddMinutes(10))
+                .ToListAsync();
+
+            if (!expiredTickets.Any())
+                return;
+
+            foreach (var ticket in expiredTickets)
+            {
+                ticket.Status = (short)TicketStatus.Cancelled;
+            }
+
+            await _context.SaveChangesAsync();
+        }
 
     }
 }

@@ -1,0 +1,23 @@
+@model OrderConfirmationVm
+
+@{
+    ViewData["Title"] = "Замовлення підтверджено";
+}
+
+<h2 class="mb-4">Замовлення підтверджено ✅</h2>
+
+@foreach (var t in Model.Tickets)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            🎬 <b>@t.MovieTitle</b><br />
+            Квиток №@t.TicketId<br />
+            Ряд @t.Row, Місце @t.Seat<br />
+            Ціна: @t.Price ₴
+        </div>
+    </div>
+}
+
+<a asp-controller="Profile" asp-action="Index" class="btn btn-primary">
+    До профілю
+</a>

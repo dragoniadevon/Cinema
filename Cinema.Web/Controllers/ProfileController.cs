@@ -62,6 +62,8 @@ namespace Cinema.Web.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
 
+            await CleanupExpiredReservations();
+
             user.FirstName = model.User.FirstName;
             user.LastName = model.User.LastName;   // нове поле
             user.Email = model.User.Email;
@@ -100,14 +102,61 @@ namespace Cinema.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReturnTicket(int id)
         {
-            var ticket = await _context.Tickets.FindAsync(id);
-            if (ticket == null) return NotFound();
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
 
-            ticket.IsReturned = true; // позначаємо як повернений
+            var ticket = await _context.Tickets
+                .Include(t => t.Session)
+                .FirstOrDefaultAsync(t => t.Id == id && t.Userid == user.Id);
+
+            if (ticket == null)
+                return NotFound();
+
+            // ✅ можна повертати тільки оплачені квитки
+            if (ticket.Status != (short)TicketStatus.Paid)
+            {
+                TempData["Error"] = "Цей квиток не можна повернути.";
+                return RedirectToAction("Index");
+            }
+
+            // ⏰ не можна після початку сеансу
+            if (ticket.Session.Starttime <= DateTime.Now)
+            {
+                TempData["Error"] = "Сеанс уже почався. Повернення неможливе.";
+                return RedirectToAction("Index");
+            }
+
+            ticket.Status = (short)TicketStatus.Cancelled;
+            ticket.IsReturned = true; // можна залишити, але тільки як “історію”
+
             await _context.SaveChangesAsync();
 
             TempData["TicketReturned"] = true;
             return RedirectToAction("Index");
         }
+
+
+        private async Task CleanupExpiredReservations()
+        {
+            var now = DateTime.UtcNow;
+
+            var expiredTickets = await _context.Tickets
+                .Where(t =>
+                    t.Status == (short)TicketStatus.Reserved &&
+                    now > t.Bookingtime.AddMinutes(10))
+                .ToListAsync();
+
+            if (!expiredTickets.Any())
+                return;
+
+            foreach (var ticket in expiredTickets)
+            {
+                ticket.Status = (short)TicketStatus.Cancelled;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
     }
 }

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Cinema.Web.Models.Payments;
 
 namespace Cinema.Web.Controllers;
 
@@ -9,59 +11,124 @@ namespace Cinema.Web.Controllers;
 public class PaymentsController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public PaymentsController(AppDbContext db)
+    public PaymentsController(AppDbContext db, UserManager<ApplicationUser> userManager)
     {
         _db = db;
+        _userManager = userManager;
     }
 
-    // GET: /Payments/Pay?ticketId=5
-    public async Task<IActionResult> Pay(int ticketId)
+    [Authorize]
+    public async Task<IActionResult> Pay(string ticketIds)
     {
-        var ticket = await _db.Tickets
+        if (string.IsNullOrWhiteSpace(ticketIds))
+            return RedirectToAction("Index", "Profile");
+
+        var ids = ticketIds
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(int.Parse)
+            .ToList();
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Challenge();
+
+        var tickets = await _db.Tickets
             .Include(t => t.Seat)
             .Include(t => t.Session)
                 .ThenInclude(s => s.Movie)
-            .FirstOrDefaultAsync(t => t.Id == ticketId);
+            .Where(t =>
+                ids.Contains(t.Id) &&
+                t.Userid == user.Id &&
+                t.Status == (short)TicketStatus.Reserved)
+            .ToListAsync();
 
-        if (ticket == null)
-            return NotFound();
+        if (!tickets.Any())
+            return RedirectToAction("Index", "Profile");
 
-        return View(ticket);
-    }
+        // ⏱ Перевірка таймера (10 хв)
+        var now = DateTime.UtcNow;
+        var expired = tickets.Any(t =>
+            now > t.Bookingtime.AddMinutes(10));
 
-    // POST: /Payments/PayConfirm
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> PayConfirm(int ticketId)
-    {
-        var ticket = await _db.Tickets
-            .Include(t => t.Payment)
-            .FirstOrDefaultAsync(t => t.Id == ticketId);
-
-        if (ticket == null)
-            return NotFound();
-
-        // если уже оплачено
-        if (ticket.Payment != null)
+        if (expired)
         {
-            TempData["Info"] = "Цей квиток вже оплачено.";
-            return RedirectToAction("Confirmation", "Tickets", new { id = ticketId });
+            TempData["Error"] = "Час бронювання минув.";
+            return RedirectToAction("Index", "Profile");
         }
 
-        var payment = new Payment
+        var vm = new PaymentVm
         {
-            Ticketid = ticketId,
-            Amount = ticket.Price,
-            Paymentdate = DateTime.UtcNow,
-            Status = 1 // 1 = Paid
+            Tickets = tickets.Select(t => new TicketPaymentVm
+            {
+                TicketId = t.Id,
+                MovieTitle = t.Session.Movie.Title,
+                Row = t.Seat.Rownumber ?? 0,
+                SeatNumber = t.Seat.Seatnumber ?? 0,
+                Price = t.Price
+            }).ToList(),
+
+            TotalAmount = tickets.Sum(t => t.Price),
+            MinutesLeft = 10 - (int)(now - tickets.Min(t => t.Bookingtime)).TotalMinutes
         };
 
-        ticket.Status = 2; // 2 = Paid
+        return View(vm);
+    }
 
-        _db.Payments.Add(payment);
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Confirm(List<int> ticketIds)
+    {
+        if (ticketIds == null || ticketIds.Count == 0)
+            return RedirectToAction("Index", "Profile");
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Challenge();
+
+        var tickets = await _db.Tickets
+            .Include(t => t.Payment)
+            .Where(t =>
+                ticketIds.Contains(t.Id) &&
+                t.Userid == user.Id &&
+                t.Status == (short)TicketStatus.Reserved)
+            .ToListAsync();
+
+        if (!tickets.Any())
+            return RedirectToAction("Index", "Profile");
+
+        var now = DateTime.UtcNow;
+
+        foreach (var ticket in tickets)
+        {
+            if (now > ticket.Bookingtime.AddMinutes(10))
+            {
+                TempData["Error"] = "Час бронювання минув.";
+                return RedirectToAction("Index", "Profile");
+            }
+
+            var payment = new Payment
+            {
+                Ticketid = ticket.Id,
+                Amount = ticket.Price,
+                Paymentdate = now,
+                Status = (short)PaymentStatus.Paid
+            };
+
+            ticket.Status = (short)TicketStatus.Paid;
+
+            _db.Payments.Add(payment);
+        }
+
         await _db.SaveChangesAsync();
 
-        return RedirectToAction("Confirmation", "Tickets", new { id = ticketId });
+        return RedirectToAction(
+            "OrderConfirmation",
+            "Tickets",
+            new { ticketIds = string.Join(",", ticketIds) }
+        );
     }
+
 }

@@ -139,4 +139,151 @@ public class TicketsController : Controller
 
         return View(ticket);
     }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reserve(ReserveTicketsRequest request)
+    {
+        if (!ModelState.IsValid || request.SeatIds.Count == 0)
+        {
+            TempData["Error"] = "Не обрано жодного місця.";
+            return RedirectToAction("Details", "Sessions", new { id = request.SessionId });
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Challenge();
+
+        var session = await _db.Sessions
+            .Include(s => s.Hall)
+            .FirstOrDefaultAsync(s => s.Id == request.SessionId);
+
+        if (session == null)
+            return NotFound();
+
+        var categoryId = session.Hall?.Halltype == 2 ? 2 : 1;
+
+        var sessionPrice = await _db.Sessionprices
+            .FirstOrDefaultAsync(sp =>
+                sp.Sessionid == request.SessionId &&
+                sp.Categoryid == categoryId);
+
+        if (sessionPrice == null)
+        {
+            TempData["Error"] = "Для цього сеансу не задано ціну.";
+            return RedirectToAction("Details", "Sessions", new { id = request.SessionId });
+        }
+
+        foreach (var seatId in request.SeatIds)
+        {
+            var ticket = new Ticket
+            {
+                Userid = user.Id,
+                Sessionid = request.SessionId,
+                Seatid = seatId,
+                Price = sessionPrice.Price,
+                Status = (short)TicketStatus.Reserved,
+                Bookingtime = DateTime.UtcNow,
+                IsReturned = false
+            };
+
+            _db.Tickets.Add(ticket);
+        }
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Error"] = "Деякі місця вже були заброньовані іншими користувачами.";
+            return RedirectToAction("Details", "Sessions", new { id = request.SessionId });
+        }
+
+        var ticketIds = await _db.Tickets
+            .Where(t =>
+                t.Userid == user.Id &&
+                t.Sessionid == request.SessionId &&
+                t.Status == (short)TicketStatus.Reserved &&
+                request.SeatIds.Contains(t.Seatid))
+            .Select(t => t.Id)
+            .ToListAsync();
+
+        return RedirectToAction(
+            "Pay",
+            "Payments",
+            new { ticketIds = string.Join(",", ticketIds) }
+        );
+    }
+
+    [Authorize]
+    public async Task<IActionResult> OrderConfirmation(string ticketIds)
+    {
+        if (string.IsNullOrWhiteSpace(ticketIds))
+            return RedirectToAction("Index", "Profile");
+
+        var ids = ticketIds
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(int.Parse)
+            .ToList();
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Challenge();
+
+        var tickets = await _db.Tickets
+            .Include(t => t.Seat)
+            .Include(t => t.Session)
+                .ThenInclude(s => s.Movie)
+            .Where(t =>
+                ids.Contains(t.Id) &&
+                t.Userid == user.Id &&
+                t.Status == (short)TicketStatus.Paid)
+            .ToListAsync();
+
+        if (!tickets.Any())
+            return RedirectToAction("Index", "Profile");
+
+        var vm = new OrderConfirmationVm
+        {
+            Tickets = tickets.Select(t => new TicketConfirmationItemVm
+            {
+                TicketId = t.Id,
+                MovieTitle = t.Session.Movie.Title,
+                Row = t.Seat.Rownumber ?? 0,
+                Seat = t.Seat.Seatnumber ?? 0,
+                Price = t.Price
+            }).ToList()
+        };
+
+        return View(vm);
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelReservation(int ticketId)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Challenge();
+
+        var ticket = await _db.Tickets
+            .FirstOrDefaultAsync(t =>
+                t.Id == ticketId &&
+                t.Userid == user.Id &&
+                t.Status == (short)TicketStatus.Reserved);
+
+        if (ticket == null)
+            return RedirectToAction("Index", "Profile");
+
+        ticket.Status = (short)TicketStatus.Cancelled;
+
+        await _db.SaveChangesAsync();
+
+        TempData["Info"] = "Бронювання скасовано.";
+
+        return RedirectToAction("Index", "Profile");
+    }
 }
