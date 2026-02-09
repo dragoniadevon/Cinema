@@ -151,50 +151,55 @@
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm sticky-top" style="top: 20px; z-index: 1000;">
-                <div class="card-body p-4">
-                    <h5 class="mb-3 fw-bold text-dark border-bottom pb-2 text-center">
-                        <i class="bi bi-clock-history me-2"></i> Розклад у м. @(ViewBag.SelectedCity ?? "всі міста")
-                    </h5>
+            <div class="card border-0 shadow-sm sticky-top rounded-4" style="top: 20px; z-index: 1000;">
+                <div class="card-body p-3">
+                    <h6 class="mb-3 fw-bold text-dark text-center">
+                        <i class="bi bi-calendar3 me-2 text-primary"></i>Розклад у м.@ViewBag.SelectedCity
+                    </h6>
 
-                    <form method="get" id="dateFilterForm" class="mb-4">
-                        <input type="hidden" name="city" value="@ViewBag.SelectedCity" />
-
-                        <select name="date"
-                                class="form-select form-select-sm border-primary shadow-none fw-bold"
-                                onchange="this.form.submit()">
-                            @for (int i = 0; i < 7; i++)
+                    <div class="d-flex overflow-auto gap-2 mb-4 pb-2 scrollbar-hidden" style="white-space: nowrap;">
+                        @{
+                            var availableDates = (List<DateTime>)ViewBag.AvailableDates;
+                        }
+                        @if (availableDates != null && availableDates.Any())
+                        {
+                            @foreach (var dateValue in availableDates)
                             {
-                                var dateValue = DateTime.Today.AddDays(i);
                                 var dateStr = dateValue.ToString("yyyy-MM-dd");
-                                var displayDate = i == 0
-                                    ? "Сьогодні"
-                                    : (i == 1 ? "Завтра" : dateValue.ToString("dd MMMM, dddd"));
+                                var isActive = ViewBag.SelectedDate == dateStr;
 
-                                <option value="@dateStr" selected="@(ViewBag.SelectedDate == dateStr)">
-                                    @displayDate
-                                </option>
+                                <a href="@Url.Action("Details", new { id = Model.Id, date = dateStr, city = ViewBag.SelectedCity })"
+                                   class="btn btn-sm @(isActive ? "btn-primary shadow-sm" : "btn-light") rounded-4 px-2 py-2 flex-grow-1 border-0"
+                                   style="min-width: 70px; transition: 0.3s;">
+                                    <div style="font-size: 0.65rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        @dateValue.ToString("ddd")
+                                    </div>
+                                    <div class="fw-bold" style="font-size: 1.1rem;">@dateValue.Day</div>
+                                </a>
                             }
-                        </select>
-                    </form>
+                        }
+                    </div>
 
                     @if (ViewBag.Sessions != null && ((List<Session>)ViewBag.Sessions).Any())
-{                  var groupedSessions = ((List<Session>)ViewBag.Sessions)
-                            .GroupBy(s => s.Hall.Cinema.Name);
-        @foreach (var cinemaGroup in groupedSessions)
+                    {
+                        var groupedSessions = ((List<Session>)ViewBag.Sessions).GroupBy(s => s.Hall.Cinema.Name);
+
+                        @foreach (var cinemaGroup in groupedSessions)
                         {
                             <div class="mb-4">
-                                <h6 class="text-primary small fw-bold mb-2 border-start border-3 border-primary ps-2">
-                                    @cinemaGroup.Key
-                                </h6>
+                                <div class="small fw-bolder text-muted text-uppercase mb-2" style="font-size: 0.7rem; letter-spacing: 1px;">
+                                    <i class="bi bi-geo-alt-fill text-primary me-1"></i> @cinemaGroup.Key
+                                </div>
 
-                                <div class="d-flex flex-wrap gap-2">
+                                <div class="d-flex flex-wrap gap-4">
                                     @foreach (var session in cinemaGroup)
                                     {
-                                        <a asp-controller="Sessions"
-                                           asp-action="Details"
-                                           asp-route-id="@session.Id"
-                                           class="btn btn-sm btn-outline-primary fw-bold px-3">
+                                        var minPrice = session.Sessionprices?.Any() == true ? session.Sessionprices.Min(p => p.Price) : 0;
+
+                                        <a asp-controller="Sessions" asp-action="Details" asp-route-id="@session.Id"
+                                           class="client-session-minimal fw-bold text-decoration-none"
+                                           style="font-size: 1.4rem;" 
+                                           title="від @minPrice.ToString("0") ₴">
                                             @session.Starttime.ToString("HH:mm")
                                         </a>
                                     }
@@ -204,10 +209,9 @@
                     }
                     else
                     {
-                        <div class="text-center py-4">
-                            <p class="small text-muted mb-0">
-                                Сеансів у місті @ViewBag.SelectedCity на цю дату не знайдено.
-                            </p>
+                        <div class="text-center py-5">
+                            <i class="bi bi- moon-stars display-6 text-muted opacity-25"></i>
+                            <p class="small text-muted mt-2">Сеансів більше немає</p>
                         </div>
                     }
                 </div>
@@ -230,5 +234,36 @@
     .form-select-sm {
         cursor: pointer;
         background-color: #f8f9ff;
+    }
+    .fw-black { font-weight: 900; }
+    .rounded-4 { border-radius: 20px !important; }
+    .scrollbar-hidden::-webkit-scrollbar { display: none; }
+    .scrollbar-hidden { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .hover-blue:hover {
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+        color: white !important;
+        transform: translateY(-2px);
+    }
+
+    .hover-blue:hover .text-muted {
+        color: rgba(255,255,255,0.8) !important;
+    }
+
+    .transition-all { transition: all 0.2s ease; }
+    .client-session-minimal {
+        background: transparent !important;
+        color: #212529;
+        transition: all 0.2s ease;
+        display: inline-block;
+        line-height: 1;
+        padding: 0;
+        border: none;
+    }
+
+    .client-session-minimal:hover {
+        color: #0d6efd !important;
+        transform: scale(1.2);
     }
 </style>

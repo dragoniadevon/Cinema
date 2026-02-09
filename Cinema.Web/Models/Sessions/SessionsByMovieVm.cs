@@ -10,5 +10,7 @@ namespace Cinema.Web.Models.Sessions
         public int? Duration { get; set; }
 
         public List<Session> Sessions { get; set; }
+        public string Agerating { get; set; }
+        public string Format { get; set; }
     }
 }

@@ -1,85 +1,82 @@
 @model IEnumerable<global::Cinema.Web.Models.Sessions.SessionsByDateVm>
 @{
     ViewData["Title"] = "Розклад сеансів";
-    // Тепер SelectedDate ніколи не порожній (приходить з контролера)
     var selectedDateStr = ViewBag.SelectedDate as string;
     var availableDates = (List<DateTime>)ViewBag.AllAvailableDates ?? new List<DateTime>();
 }
 
 <div class="container mt-4">
     <div class="mb-5 text-center">
-        <h1 class="fw-bold display-5">🗓️ Розклад сеансів</h1>
-        <p class="text-muted">Оберіть зручний час для перегляду</p>
+        @if (ViewBag.CinemaName != null)
+        {
+            <h1 class="fw-bold display-5 mb-1">
+                <i class="bi bi-camera-reels me-2 text-primary"></i>Кінотеатр @ViewBag.CinemaName
+            </h1>
+            <p class="text-muted fs-5">
+                <i class="bi bi-geo-alt text-danger me-1"></i>
+                @ViewBag.CinemaCity, @ViewBag.CinemaAddress
+            </p>
+        }
+        else
+        {
+            <h1 class="fw-bold display-5">🗓️ Розклад сеансів</h1>
+            <p class="text-muted">Оберіть зручний час для перегляду</p>
+        }
     </div>
 
-    <div class="mx-auto mb-5" style="max-width: 700px;">
-        <div class="d-flex flex-wrap align-items-center bg-white p-2 rounded-4 shadow-sm border justify-content-center gap-2">
-            
-            <div class="d-flex flex-wrap gap-2 justify-content-center">
-                @foreach (var date in availableDates.Take(7))
-                {
-                    var dateValue = date.ToString("yyyy-MM-dd");
-                    var isActive = selectedDateStr == dateValue;
-                    
-                    <a href="@Url.Action("Index", "Sessions", new { date = dateValue, cinemaId = ViewBag.SelectedCinemaId })" 
-                       class="btn @(isActive ? "btn-primary shadow-sm" : "btn-light text-dark border-0") rounded-3 px-3 d-flex flex-column align-items-center justify-content-center"
-                       style="min-width: 70px; height: 50px; transition: 0.2s;">
-                        <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem; opacity: 0.7;">
-                            @(date.Date == DateTime.Today ? "Сьогодні" : date.ToString("ddd"))
-                        </span>
-                        <span class="fw-bold" style="font-size: 0.9rem;">@date.ToString("dd.MM")</span>
-                    </a>
-                }
-            </div>
-
-            @if (availableDates.Count > 7)
+    <div class="mx-auto mb-4" style="max-width: 750px;">
+        <div class="d-flex flex-wrap align-items-center justify-content-center gap-2">
+            @foreach (var date in availableDates.Take(7))
             {
-                var moreDates = availableDates.Skip(7).ToList();
-                var selectedInMore = moreDates.FirstOrDefault(d => d.ToString("yyyy-MM-dd") == selectedDateStr);
-                var isMoreActive = selectedInMore != default(DateTime);
+                var dateValue = date.ToString("yyyy-MM-dd");
+                var isActive = selectedDateStr == dateValue;
+                <a href="@Url.Action("Index", "Sessions", new { date = dateValue, cinemaId = ViewBag.SelectedCinemaId, format = ViewBag.SelectedFormat, hallType = ViewBag.SelectedHallType })" 
+                   class="btn @(isActive ? "btn-primary shadow-sm" : "btn-outline-light text-dark") rounded-4 px-3 d-flex flex-column align-items-center justify-content-center border-0"
+                   style="min-width: 75px; height: 55px; transition: 0.3s; background: @(isActive ? "" : "#f8f9fa");">
+                    <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem; opacity: 0.7;">
+                        @(date.Date == DateTime.Today ? "Сьогодні" : date.ToString("ddd"))
+                    </span>
+                    <span class="fw-bold" style="font-size: 0.95rem;">@date.ToString("dd.MM")</span>
+                </a>
+            }
+        </div>
+    </div>
 
-                <div class="dropdown">
-                    <button class="btn @(isMoreActive ? "btn-primary shadow-sm" : "btn-outline-secondary") dropdown-toggle rounded-3 fw-bold d-flex flex-column align-items-center justify-content-center" 
-                            type="button" data-bs-toggle="dropdown" style="height: 50px; min-width: 80px;">
-                        @if (isMoreActive) {
-                            <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem;">@selectedInMore.ToString("ddd")</span>
-                            <span class="fw-bold" style="font-size: 0.9rem;">@selectedInMore.ToString("dd.MM")</span>
-                        } else {
-                            <span>Ще</span>
-                        }
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" style="max-height: 300px; overflow-y: auto;">
-                        @foreach (var date in moreDates) {
-                            var dateValue = date.ToString("yyyy-MM-dd");
-                            <li>
-                                <a class="dropdown-item py-2 d-flex align-items-center @(selectedDateStr == dateValue ? "active bg-primary text-white" : "")" 
-                                   href="@Url.Action("Index", "Sessions", new { date = dateValue, cinemaId = ViewBag.SelectedCinemaId })">
-                                   <i class="bi bi-calendar-check me-2"></i>
-                                   <div>
-                                       <div class="fw-bold">@date.ToString("dd MMMM")</div>
-                                       <div class="small opacity-75">@date.ToString("dddd")</div>
-                                   </div>
-                                </a>
-                            </li>
-                        }
-                    </ul>
-                </div>
+    <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
+        <div class="d-flex gap-1 align-items-center bg-light p-1 rounded-pill">
+            @foreach (var f in new[] { "all", "2D", "3D" }) {
+                <a href="@Url.Action("Index", new { cinemaId = ViewBag.SelectedCinemaId, date = ViewBag.SelectedDate, format = f, hallType = ViewBag.SelectedHallType })" 
+                   class="btn rounded-pill px-3 py-1 btn-sm fw-bold border-0 @(ViewBag.SelectedFormat == f || (f == "all" && ViewBag.SelectedFormat == null) ? "btn-dark text-white shadow-sm" : "text-muted")"
+                   style="font-size: 0.75rem;">
+                    @(f == "all" ? "Всі формати" : f)
+                </a>
+            }
+        </div>
+
+        <div class="d-flex gap-1 align-items-center bg-light p-1 rounded-pill">
+            @foreach (var h in new[] { new { id="all", n="Всі зали" }, new { id="standard", n="Звичайна" }, new { id="vip", n="VIP" } }) {
+                <a href="@Url.Action("Index", new { cinemaId = ViewBag.SelectedCinemaId, date = ViewBag.SelectedDate, format = ViewBag.SelectedFormat, hallType = h.id })" 
+                   class="btn rounded-pill px-3 py-1 btn-sm fw-bold border-0 @(ViewBag.SelectedHallType == h.id || (h.id == "all" && ViewBag.SelectedHallType == null) ? "btn-primary text-white shadow-sm" : "text-muted")"
+                   style="font-size: 0.75rem;">
+                    @h.n
+                </a>
             }
         </div>
     </div>
 
     @if (!Model.Any()) {
         <div class="text-center py-5">
-            <h4 class="text-muted">На сьогодні сеансів більше немає 🍿</h4>
-            <p class="small text-muted">Спробуйте обрати іншу дату зверху</p>
+            <div class="display-1 mb-3">🍿</div>
+            <h4 class="text-muted">Сеансів не знайдено</h4>
+            <p class="small text-muted">Спробуйте змінити фільтри або дату</p>
         </div>
     }
 
     @foreach (var dateGroup in Model)
     {
-        <div class="mb-4 mt-5">
-            <h3 class="fw-bold text-dark border-bottom pb-3 mb-4">
-                <span class="text-primary me-2">📅</span>@dateGroup.Date.ToString("dd MMMM yyyy, dddd")
+        <div class="mb-4 mt-2">
+            <h3 class="fw-bold text-dark border-bottom pb-3 mb-4" style="letter-spacing: -1px;">
+                <span class="text-primary me-2">📅</span>@dateGroup.Date.ToString("dd MMMM, dddd")
             </h3>
         </div>
 
@@ -88,26 +85,42 @@
             {
                 var movie = movieGroup.First();
                 var posterUrl = movie.Sessions.FirstOrDefault()?.Movie?.Posterurl;
+    
                 <div class="col">
-                    <div class="card h-100 border-0 shadow-sm border-bottom border-primary border-3" style="border-radius: 20px; overflow: hidden;">
+                    <div class="card h-100 border-0 shadow-sm rounded-5 hover-card overflow-hidden bg-white">
                         <div class="row g-0 h-100">
-                            <div class="col-5">
-                                <img src="@(string.IsNullOrEmpty(posterUrl) ? "/images/no-poster.png" : posterUrl)" class="w-100 h-100 object-fit-cover" style="min-height: 180px;">
+                            <div class="col-5 position-relative overflow-hidden">
+                                <a href="@Url.Action("Details", "Movies", new { id = movie.MovieId })" class="d-block h-100">
+                                    <img src="@(string.IsNullOrEmpty(posterUrl) ? "/images/no-poster.png" : posterUrl)" 
+                                         class="w-100 h-100 object-fit-cover poster-zoom" 
+                                         style="min-height: 230px;">
+                                </a>
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-warning text-dark fw-bold rounded-3 shadow-sm" style="font-size: 0.65rem;">
+                                        @movie.Agerating
+                                    </span>
+                                </div>
                             </div>
                             <div class="col-7">
                                 <div class="card-body d-flex flex-column h-100 p-3">
-                                    <h6 class="card-title fw-bold text-dark mb-1">@movie.Title</h6>
-                                    <p class="small text-muted mb-3"><i class="bi bi-clock me-1"></i>@movie.Duration хв.</p>
-                                    <div class="mt-auto">
-                                        <div class="d-flex flex-wrap gap-2">
-                                            @foreach (var session in movieGroup.SelectMany(m => m.Sessions).OrderBy(s => s.Starttime)) {
-                                                <a asp-action="Details" asp-route-id="@session.Id" 
-                                                   class="btn btn-sm btn-outline-dark rounded-3 px-2 py-1 fw-bold" style="font-size: 0.75rem;">
-                                                    @session.Starttime.ToString("HH:mm")
-                                                </a>
-                                            }
-                                        </div>
+                                    <h6 class="card-title fw-bold text-dark mb-1 text-truncate-2">@movie.Title</h6>
+                                    <p class="small text-muted mb-2">
+                                        <i class="bi bi-clock-history me-1"></i>@movie.Duration хв.
+                                    </p>
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        @foreach (var session in movieGroup.SelectMany(m => m.Sessions).OrderBy(s => s.Starttime)) 
+                                        {
+                                            var minPrice = session.Sessionprices?.Any() == true ? session.Sessionprices.Min(p => p.Price) : 0;
+                
+                                            <a asp-action="Details" asp-controller="Sessions" asp-route-id="@session.Id" 
+                                               class="btn btn-sm border-0 p-0 fw-bold client-session-minimal" 
+                                               style="font-size: 1.15rem;"
+                                               title="від @minPrice.ToString("0") ₴">
+                                                @session.Starttime.ToString("HH:mm")
+                                            </a>
+                                        }
                                     </div>
+                                    <div class="mt-auto"></div>
                                 </div>
                             </div>
                         </div>
@@ -117,3 +130,63 @@
         </div>
     }
 </div>
+
+<style>
+    .rounded-5 { border-radius: 25px !important; }
+    .rounded-4 { border-radius: 18px !important; }
+
+    .hover-card { 
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); 
+        border: 1px solid #f0f0f0 !important;
+        position: relative;
+        background: #fff;
+    }
+
+    .hover-card:hover { 
+        transform: translateY(-5px); 
+        box-shadow: 0 12px 25px rgba(0,0,0,0.08) !important;
+    }
+
+    .col-5.position-relative {
+        overflow: hidden;
+        border-radius: 25px 0 0 25px;
+    }
+
+    .poster-zoom { 
+        transition: transform 0.6s ease; 
+        object-fit: cover;
+    }
+
+    .hover-card:hover .poster-zoom { 
+        transform: scale(1.1); 
+    }
+
+    .client-session-minimal {
+        background: transparent !important;
+        color: #212529;
+        transition: all 0.2s ease;
+        box-shadow: none !important;
+        text-decoration: none;
+        display: inline-block;
+        line-height: 1.2;
+        padding: 0;
+    }
+
+    .client-session-minimal:hover {
+        color: #0d6efd !important;
+        transform: scale(1.1);
+    }
+
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 2.8em;
+        line-height: 1.3;
+    }
+
+    .overflow-hidden {
+        overflow: hidden !important;
+    }
+</style>
