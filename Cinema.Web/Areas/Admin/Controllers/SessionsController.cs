@@ -24,10 +24,8 @@ public class SessionsController : Controller
     {
         ViewBag.Movies = await _context.Movies.OrderBy(m => m.Title).ToListAsync();
 
-        // ПЕРЕДАЄМО ПОВНІ ОБ'ЄКТИ
         ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive).ToListAsync();
 
-        // ДОДАЄМО МІСТА
         ViewBag.Cities = await _context.Cinemas
             .Where(c => c.Isactive)
             .Select(c => c.City)
@@ -64,25 +62,18 @@ public class SessionsController : Controller
 
         if (mode == "past")
         {
-            // АРХІВ: Тільки ті, що були активні на момент завершення (тобто відбулися)
-            // Навіть якщо зал зараз архівний, ми показуємо цей сеанс тут, бо він БУВ успішним.
             query = query.Where(s =>
                 s.Isactive == true &&
                 s.Endtime < DateTime.Now);
         }
         else if (mode == "cancelled")
         {
-            // СКАСОВАНІ: 
-            // 1. Сеанс було скасовано вручну АБО зал заархівували ПЕРЕД початком сеансу.
-            // 2. І при цьому сеанс або майбутній, або має квитки до повернення.
             query = query.Where(s =>
                 (s.Isactive == false || s.Hall.Isactive == false) &&
                 (s.Endtime >= DateTime.Now || s.Tickets.Any(t => s.Isactive == false)));
-            // Примітка: остання умова залежить від того, чи ви видаляєте порожні минулі сеанси.
         }
-        else // active
+        else
         {
-            // Тільки ті, де і сеанс активний, і зал працює.
             query = query.Where(s =>
                 s.Isactive == true &&
                 s.Hall.Isactive == true &&
@@ -121,12 +112,33 @@ public class SessionsController : Controller
                             .Where(s => s.Movie != null)
                             .GroupBy(s => s.Movieid)
                             .OrderBy(g => g.First().Movie.Title)
-                            .Select(movieGroup => new SessionsByMovieVm
+                            .Select(movieGroup =>
                             {
-                                MovieId = movieGroup.Key ?? 0,
-                                Title = movieGroup.First().Movie.Title,
-                                Duration = movieGroup.First().Movie.Duration,
-                                Sessions = movieGroup.OrderBy(s => s.Starttime).ToList()
+                                var firstSession = movieGroup.First();
+
+                                return new SessionsByMovieVm
+                                {
+                                    MovieId = movieGroup.Key ?? 0,
+                                    Title = firstSession.Movie.Title,
+                                    Duration = firstSession.Movie.Duration,
+                                    Agerating = firstSession.Movie.Agerating switch
+                                    {
+                                        AgeRating.G => "0+",
+                                        AgeRating.PG => "6+",
+                                        AgeRating.PG13 => "12+",
+                                        AgeRating.R => "16+",
+                                        AgeRating.NC17 => "18+",
+                                        _ => "0+"
+                                    },
+                                    // ✅ ПЕРЕТВОРЕННЯ ФОРМАТУ В 2D / 3D
+                                    Format = (SessionFormat)firstSession.Format switch
+                                    {
+                                        SessionFormat.TwoD => "2D",
+                                        SessionFormat.ThreeD => "3D",
+                                        _ => firstSession.Format.ToString()
+                                    },
+                                    Sessions = movieGroup.OrderBy(s => s.Starttime).ToList()
+                                };
                             }).ToList()
                     }).ToList()
             })
@@ -199,15 +211,20 @@ public class SessionsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateSessionViewModel model)
     {
-        if (!ModelState.IsValid) { FillCreateViewBags(model); return View(model); }
+        if (!ModelState.IsValid)
+        {
+            FillCreateViewBags(model);
+            return View(model);
+        }
 
         var movie = await _context.Movies.FindAsync(model.MovieId);
         var hall = await _context.Halls.FindAsync(model.HallId);
 
-        if (movie == null)
+        if (movie == null || hall == null)
         {
-            ModelState.AddModelError("", "Фільм не знайдено.");
-            FillCreateViewBags(model); return View(model);
+            ModelState.AddModelError("", "Фільм або зал не знайдено.");
+            FillCreateViewBags(model);
+            return View(model);
         }
 
         if (movie.Releasedate.HasValue)
@@ -217,15 +234,16 @@ public class SessionsController : Controller
             if (model.StartTime < releaseDateTime)
             {
                 ModelState.AddModelError("StartTime",
-                    $"Не вдалося створити сеанс. Дата релізу цього фільму: {releaseDateTime:dd.MM.yyyy}. Сеанси раніше цієї дати заборонені.");
+                    $"Увага! Реліз фільму заплановано на {releaseDateTime:dd.MM.yyyy}. Створення сеансів до цієї дати неможливе.");
+
                 FillCreateViewBags(model);
                 return View(model);
             }
         }
 
         int iterations = model.RepeatDaily ? 7 : 1;
-
         using var transaction = await _context.Database.BeginTransactionAsync();
+
         try
         {
             for (int i = 0; i < iterations; i++)
@@ -234,13 +252,15 @@ public class SessionsController : Controller
                 DateTime currentEnd = currentStart.AddMinutes(movie.Duration ?? 0);
 
                 bool isOverlapping = await _context.Sessions.AnyAsync(s =>
-                    s.Hallid == hall.Id && currentStart < s.Endtime && currentEnd > s.Starttime);
+                    s.Hallid == hall.Id && s.Isactive == true &&
+                    currentStart < s.Endtime && currentEnd > s.Starttime);
 
                 if (isOverlapping)
                 {
-                    ModelState.AddModelError("", $"Накладання на дату {currentStart:dd.MM}. Створення зупинено.");
+                    ModelState.AddModelError("StartTime", $"Конфлікт розкладу: у залі {hall.Name} вже є сеанс на дату {currentStart:dd.MM HH:mm}.");
                     await transaction.RollbackAsync();
-                    FillCreateViewBags(model); return View(model);
+                    FillCreateViewBags(model);
+                    return View(model);
                 }
 
                 var session = new Session
@@ -256,25 +276,30 @@ public class SessionsController : Controller
                 _context.Sessions.Add(session);
                 await _context.SaveChangesAsync();
 
-                var prices = model.Prices.Where(p => p.Price > 0).Select(p => new Sessionprice
-                {
-                    Sessionid = session.Id,
-                    Categoryid = p.PriceCategoryId,
-                    Price = p.Price
-                }).ToList();
+                var prices = model.Prices
+                    .Where(p => p.Price > 0)
+                    .Select(p => new Sessionprice
+                    {
+                        Sessionid = session.Id,
+                        Categoryid = p.PriceCategoryId,
+                        Price = p.Price
+                    }).ToList();
 
                 if (prices.Any()) _context.Sessionprices.AddRange(prices);
             }
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
+
+            TempData["SuccessMessage"] = "Сеанс(и) успішно створено!";
             return RedirectToAction(nameof(Index));
         }
-        catch
+        catch (Exception)
         {
             await transaction.RollbackAsync();
-            ModelState.AddModelError("", "Помилка при масовому створенні.");
-            FillCreateViewBags(model); return View(model);
+            ModelState.AddModelError("", "Виникла помилка під час збереження даних у базу.");
+            FillCreateViewBags(model);
+            return View(model);
         }
     }
 
@@ -295,12 +320,11 @@ public class SessionsController : Controller
         {
             Id = session.Id,
             MovieId = session.Movieid ?? 0,
-            CinemaId = session.Hall?.Cinemaid ?? 0, // Не забудьте це!
+            CinemaId = session.Hall?.Cinemaid ?? 0,
             HallId = session.Hallid ?? 0,
             StartTime = session.Starttime,
             Format = (SessionFormat)session.Format,
 
-            // Ініціалізуємо Prices для відображення в View
             Prices = allCategories.Select(c => new SessionPriceInput
             {
                 PriceCategoryId = c.Id,
@@ -320,7 +344,6 @@ public class SessionsController : Controller
     {
         if (!ModelState.IsValid)
         {
-            // Створюємо тимчасовий об'єкт для FillEditViewBags
             var tempSession = new Session { Hallid = model.HallId };
             await FillEditViewBags(tempSession);
             return View(model);
@@ -377,7 +400,6 @@ public class SessionsController : Controller
             session.Endtime = model.StartTime.AddMinutes(movie.Duration ?? 0);
             session.Format = (short)model.Format;
 
-            // Оновлюємо ціни через нову колекцію Prices
             _context.Sessionprices.RemoveRange(session.Sessionprices);
 
             if (model.Prices != null)
@@ -418,7 +440,6 @@ public class SessionsController : Controller
         session.Isactive = false;
         await _context.SaveChangesAsync();
 
-        // ТАКОЖ ТУТ
         return RedirectToAction(nameof(Index));
     }
 
@@ -434,17 +455,32 @@ public class SessionsController : Controller
         _context.Sessions.Remove(session);
         await _context.SaveChangesAsync();
 
-        // ЗАМІСТЬ return Json(...) використовуємо:
         return RedirectToAction(nameof(Index));
     }
 
     private void FillCreateViewBags(CreateSessionViewModel model)
     {
-        ViewBag.Movies = _context.Movies.ToList();
+        ViewBag.Movies = _context.Movies.OrderBy(m => m.Title).ToList();
+
+        ViewBag.Cities = _context.Cinemas
+            .Where(c => c.Isactive)
+            .Select(c => c.City)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+
         ViewBag.Cinemas = _context.Cinemas.Where(c => c.Isactive).ToList();
-        ViewBag.Halls = model.CinemaId > 0
-            ? _context.Halls.Where(h => h.Cinemaid == model.CinemaId && h.Isactive).ToList()
-            : new List<Hall>();
+
+        if (model.CinemaId > 0)
+        {
+            ViewBag.Halls = _context.Halls
+                .Where(h => h.Cinemaid == model.CinemaId && h.Isactive)
+                .ToList();
+        }
+        else
+        {
+            ViewBag.Halls = new List<Hall>();
+        }
     }
 
     public async Task<IActionResult> Details(int id)
@@ -466,7 +502,7 @@ public class SessionsController : Controller
             .ToListAsync();
 
         var takenSeatIds = await _context.Tickets
-            .Where(t => t.Sessionid == id && !t.IsReturned) // Тепер повернуті місця будуть вільними на схемі
+            .Where(t => t.Sessionid == id && !t.IsReturned)
             .Select(t => t.Seatid)
             .ToListAsync();
 
@@ -474,7 +510,11 @@ public class SessionsController : Controller
         {
             SessionId = session.Id,
             MovieTitle = session.Movie?.Title ?? "—",
+            Duration = session.Movie?.Duration ?? 0,
+            Format = (SessionFormat)session.Format,
+
             CinemaName = session.Hall?.Cinema?.Name ?? "—",
+            CinemaCity = session.Hall?.Cinema?.City ?? "—",
             HallName = session.Hall?.Name ?? "—",
             StartTime = session.Starttime,
             EndTime = session.Endtime,
@@ -501,8 +541,6 @@ public class SessionsController : Controller
             }).ToList(),
 
             Seats = seats.Select(s => {
-                // Шукаємо квиток саме для цього місця у поточному сеансі
-                // Шукаємо тільки АКТИВНИЙ квиток для Side Panel
                 var ticket = session.Tickets.FirstOrDefault(t => t.Seatid == s.Id && !t.IsReturned);
 
                 return new SeatDetailsVm
@@ -511,14 +549,13 @@ public class SessionsController : Controller
                     Row = s.Rownumber ?? 0,
                     Number = s.Seatnumber ?? 0,
                     IsTaken = ticket != null,
-                    IsBlocked = s.IsBlocked, // Ваша нова колонка з міграції
+                    IsBlocked = s.IsBlocked,
                     CategoryName = s.Pricecategory?.Name ?? "Стандарт",
 
-                    // Передаємо дані квитка для Side Panel
                     Price = ticket?.Price ?? 0,
                     CustomerName = ticket != null ? $"{ticket.User?.FirstName} {ticket.User?.LastName}" : null,
                     CustomerEmail = ticket?.User?.Email,
-                    PurchaseDate = ticket?.Bookingtime // Використовуємо поле Bookingtime з вашої сутності Ticket
+                    PurchaseDate = ticket?.Bookingtime
                 };
             }).ToList(),
 
@@ -537,15 +574,12 @@ public class SessionsController : Controller
     {
         try
         {
-            // Шукаємо активний квиток (не повернутий) для цього місця на цей сеанс
             var ticket = await _context.Tickets
                 .FirstOrDefaultAsync(t => t.Seatid == seatId && t.Sessionid == sessionId && !t.IsReturned);
 
             if (ticket == null)
                 return Json(new { success = false, message = "Активний квиток не знайдено." });
 
-            // Позначаємо квиток як повернутий. 
-            // Це звільняє місце на схемі, але зберігає дані в базі.
             ticket.IsReturned = true;
 
             await _context.SaveChangesAsync();
@@ -553,7 +587,6 @@ public class SessionsController : Controller
         }
         catch (Exception ex)
         {
-            // Якщо виникне системна помилка, ми побачимо її текст
             return Json(new { success = false, message = "Помилка сервера: " + ex.Message });
         }
     }
@@ -568,8 +601,6 @@ public class SessionsController : Controller
         var seat = await _context.Seats.FindAsync(seatId);
         if (seat == null) return NotFound();
 
-        // Припустимо, у вас є поле IsBlocked у таблиці Seats
-        // Якщо немає, його потрібно додати через міграцію
         seat.IsBlocked = !seat.IsBlocked;
 
         await _context.SaveChangesAsync();

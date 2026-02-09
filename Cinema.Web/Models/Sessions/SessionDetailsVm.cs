@@ -1,4 +1,6 @@
-﻿namespace Cinema.Web.Models.Sessions;
+﻿using Cinema.Infrastructure.Entities.Enums;
+
+namespace Cinema.Web.Models.Sessions;
 
 public class SessionDetailsVm
 {
@@ -6,8 +8,9 @@ public class SessionDetailsVm
     public int SessionId { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
-
+    public int CinemaId { get; set; }
     public string CinemaName { get; set; } = "—";
+    public string CinemaCity { get; set; } = "—";
     public string HallName { get; set; } = "—";
 
     // === Інформація про фільм ===
@@ -30,6 +33,7 @@ public class SessionDetailsVm
 
     public bool IsAdminView { get; set; }
     public string? Posterurl { get; set; }
+    public SessionFormat Format { get; set; }
 }
 
 public class SessionPriceVm

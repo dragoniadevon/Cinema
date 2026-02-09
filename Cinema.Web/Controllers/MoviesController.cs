@@ -21,9 +21,8 @@ public class MoviesController : Controller
 
     // ================== ДЕТАЛІ ФІЛЬМУ ДЛЯ КЛІЄНТА ==================
     // Додано підтримку параметрів 'city' та 'date' для точної фільтрації
-    public async Task<IActionResult> Details(int id, string city, string date, int? cinemaId)
+    public async Task<IActionResult> Details(int id, string city, string date)
     {
-        // Отримуємо дані фільму
         var movie = await _context.Movies
             .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
             .Include(m => m.MovieActors).ThenInclude(ma => ma.Actor)
@@ -31,25 +30,35 @@ public class MoviesController : Controller
 
         if (movie == null) return NotFound();
 
-        // 1. Отримуємо місто з Cookie, якщо воно не передано в URL
         string currentCity = city ?? Request.Cookies["selectedCity"];
+        var now = DateTime.Now;
 
-        // 2. Визначаємо дату фільтрації
-        DateTime filterDate;
-        if (!DateTime.TryParse(date, out filterDate))
+        var availableDatesQuery = _context.Sessions
+            .Where(s => s.Movieid == id && s.Isactive == true && s.Starttime > now);
+
+        if (!string.IsNullOrEmpty(currentCity))
         {
-            filterDate = DateTime.Today;
+            availableDatesQuery = availableDatesQuery.Where(s => s.Hall.Cinema.City == currentCity);
         }
 
-        // 3. Базовий запит: отримуємо ВСІ активні сеанси фільму в обраному МІСТІ
+        var availableDates = await availableDatesQuery
+            .Select(s => s.Starttime.Date)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToListAsync();
+
+        DateTime filterDate;
+        if (!DateTime.TryParse(date, out filterDate) || !availableDates.Contains(filterDate.Date))
+        {
+            filterDate = availableDates.FirstOrDefault();
+            if (filterDate == default) filterDate = DateTime.Today;
+        }
+
         var sessionsQuery = _context.Sessions
             .Include(s => s.Hall).ThenInclude(h => h.Cinema)
-            .Where(s => s.Movieid == id && s.Isactive == true);
+            .Include(s => s.Sessionprices)
+            .Where(s => s.Movieid == id && s.Isactive == true && s.Starttime.Date == filterDate.Date && s.Starttime > now);
 
-        // Фільтр за датою
-        sessionsQuery = sessionsQuery.Where(s => s.Starttime.Date == filterDate.Date);
-
-        // Якщо місто вибрано, показуємо сеанси лише в цьому місті (у всіх кінотеатрах міста)
         if (!string.IsNullOrEmpty(currentCity))
         {
             sessionsQuery = sessionsQuery.Where(s => s.Hall.Cinema.City == currentCity);
@@ -60,10 +69,10 @@ public class MoviesController : Controller
             .ThenBy(s => s.Starttime)
             .ToListAsync();
 
-        // Передаємо дані у ViewBag
         ViewBag.Sessions = sessions;
         ViewBag.SelectedCity = currentCity;
         ViewBag.SelectedDate = filterDate.ToString("yyyy-MM-dd");
+        ViewBag.AvailableDates = availableDates;
 
         return View(movie);
     }

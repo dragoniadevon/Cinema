@@ -15,36 +15,55 @@ public class PosterCarouselViewComponent : ViewComponent
 
     public async Task<IViewComponentResult> InvokeAsync(int? cinemaId)
     {
-        // 1. Отримуємо поточний час (дата + година + хвилина)
         var now = DateTime.Now;
 
-        // 2. Починаємо формувати запит
-        var query = _db.Sessions
-            .Include(s => s.Movie)
-            .Include(s => s.Hall)
-            // 🔥 Фільтруємо: тільки активні та тільки ТІ, ЩО ЩЕ НЕ РОЗПОЧАЛИСЯ
-            .Where(s => s.Isactive == true && s.Starttime > now);
-
-        // 3. Фільтруємо за кінотеатром, якщо він обраний
-        if (cinemaId.HasValue)
-        {
-            query = query.Where(s => s.Hall!.Cinemaid == cinemaId.Value);
-        }
-
-        // 4. Групуємо та вибираємо дані для афіш
-        var movies = await query
-            .Select(s => s.Movie)
-            .Distinct()
-            .Select(m => new PosterCarouselItemVm
-            {
-                MovieId = m!.Id,
-                Title = m.Title,
-                PosterUrl = m.Posterurl,
-                TrailerUrl = m.Trailerurl
-            })
+        var movies = await _db.Movies
+            .Include(m => m.Sessions)
+                .ThenInclude(s => s.Sessionprices)
+            .Include(m => m.Sessions)
+                .ThenInclude(s => s.Hall)
+            .Where(m => m.Sessions.Any(s =>
+                s.Isactive == true &&
+                s.Starttime > now &&
+                (!cinemaId.HasValue || s.Hall.Cinemaid == cinemaId)))
             .ToListAsync();
 
-        return View(movies);
+        string cinemaName = "Всі кінотеатри";
+        if (cinemaId.HasValue)
+        {
+            var cinema = await _db.Cinemas.FirstOrDefaultAsync(c => c.Id == cinemaId);
+            if (cinema != null) cinemaName = cinema.Name;
+        }
+
+        var model = movies.Select(m => new PosterCarouselItemVm
+        {
+            MovieId = m.Id,
+            Title = m.Title,
+            PosterUrl = m.Posterurl,
+            TrailerUrl = m.Trailerurl,
+            SelectedCinemaName = cinemaName,
+            SelectedCinemaId = cinemaId,
+            AvailableDates = m.Sessions
+                .Where(s => s.Isactive == true && (!cinemaId.HasValue || s.Hall.Cinemaid == cinemaId))
+                .Select(s => s.Starttime.Date)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList(),
+            TodaySessions = m.Sessions
+                .Where(s => s.Isactive == true &&
+                            s.Starttime.Date == now.Date &&
+                            s.Starttime > now &&
+                            (!cinemaId.HasValue || s.Hall.Cinemaid == cinemaId))
+                .OrderBy(s => s.Starttime)
+                .Select(s => new HomeSessionVm
+                {
+                    SessionId = s.Id,
+                    StartTime = s.Starttime,
+                    MinPrice = s.Sessionprices.Any() ? s.Sessionprices.Min(p => p.Price) : 0
+                }).ToList()
+        }).ToList();
+
+        return View(model);
     }
 
 }

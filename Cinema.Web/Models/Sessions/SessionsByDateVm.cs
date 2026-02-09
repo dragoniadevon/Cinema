@@ -10,5 +10,8 @@ namespace Cinema.Web.Models.Sessions
         public bool IsAdminView { get; set; }
 
         public List<SessionsByCinemaVm> Cinemas { get; set; }
+        public string? SelectedCinemaName { get; set; }
+        public string? SelectedCinemaCity { get; set; }
+        public string? SelectedCinemaAddress { get; set; }
     }
 }

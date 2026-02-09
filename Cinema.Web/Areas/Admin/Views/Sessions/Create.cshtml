@@ -5,7 +5,6 @@
     ViewData["Title"] = "➕ Додати сеанс";
 }
 
-@* Додайте цей стиль, щоб Select2 не ламав верстку *@
 <style>
     .select2-container .select2-selection--single { height: 38px !important; line-height: 38px !important; border: 1px solid #dee2e6 !important; }
     .select2-container--default .select2-selection--single .select2-selection__arrow { height: 37px !important; }
@@ -24,7 +23,7 @@
 
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label fw-bold">🎬 Фільм</label>
+                            <label class="form-label fw-bold">Фільм</label>
                             <select asp-for="MovieId" class="form-select js-movie-select" required>
                                 <option value="">— Оберіть фільм —</option>
                                 @foreach (var movie in (List<global::Cinema.Infrastructure.Entities.Movie>)ViewBag.Movies)
@@ -34,9 +33,8 @@
                             </select>
                         </div>
 
-                        @* МІСТО *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">📍 Місто</label>
+                            <label class="form-label fw-bold">Місто</label>
                             <select id="citySelect" class="form-select shadow-sm">
                                 <option value="">— Оберіть місто —</option>
                                 @foreach (var city in (List<string>)ViewBag.Cities)
@@ -46,9 +44,8 @@
                             </select>
                         </div>
 
-                        @* КІНОТЕАТР *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">🏢 Кінотеатр</label>
+                            <label class="form-label fw-bold">Кінотеатр</label>
                             <select asp-for="CinemaId" id="cinemaSelect" class="form-select shadow-sm" disabled required>
                                 <option value="">— Спочатку оберіть місто —</option>
                                 @foreach (var cinema in (List<global::Cinema.Infrastructure.Entities.Cinema>)ViewBag.Cinemas)
@@ -60,20 +57,21 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">🚪 Зал</label>
+                            <label class="form-label fw-bold">Зал</label>
                             <select asp-for="HallId" id="hallSelect" class="form-select" required>
                                 <option value="">— Спочатку оберіть кінотеатр —</option>
                             </select>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">📅 Час початку</label>
+                            <label class="form-label fw-bold">Час початку</label>
                             <input asp-for="StartTime" type="datetime-local" class="form-control" required 
                                    value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
+                            <span asp-validation-for="StartTime" class="text-danger small"></span>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">📺 Формат</label>
+                            <label class="form-label fw-bold">Формат</label>
                             <select asp-for="Format" class="form-select" asp-items="Html.GetEnumSelectList<global::Cinema.Infrastructure.Entities.Enums.SessionFormat>()" required></select>
                         </div>
 
@@ -87,7 +85,6 @@
                         </div>
                     </div>
 
-                    @* ЦІНИ НА КВИТКИ — ОНОВЛЕНЕ ОФОРМЛЕННЯ ЯК У РЕДАГУВАННІ *@
                     <hr class="my-4" />
                     <h5 class="mb-3 text-primary fw-bold">💰 Ціни на квитки</h5>
                     <div id="pricesContainer" class="p-3 bg-light rounded border border-primary border-opacity-25 shadow-sm">
@@ -128,18 +125,15 @@
 
 @section Scripts {
     <script>
-        // Ініціалізація елементів
         const citySelect = document.getElementById("citySelect");
         const cinemaSelect = document.getElementById("cinemaSelect");
         const hallSelect = document.getElementById("hallSelect");
         const submitBtn = document.getElementById("submitBtn");
         const priceRows = document.querySelectorAll(".price-row");
 
-        // 1. ЛОГІКА МІСТА
         citySelect.addEventListener("change", function () {
             const selectedCity = this.value;
             
-            // Скидаємо підлеглі списки
             cinemaSelect.value = "";
             cinemaSelect.disabled = !selectedCity;
             
@@ -148,7 +142,6 @@
 
             let foundCinemas = 0;
 
-            // Фільтрація опцій кінотеатрів
             [...cinemaSelect.options].forEach(option => {
                 if (option.value === "") return;
                 
@@ -165,10 +158,9 @@
                 ? "— Оберіть кінотеатр —" 
                 : "У цьому місті немає активних кінотеатрів";
             
-            updatePriceVisibility(); // Приховати ціни при зміні міста
+            updatePriceVisibility();
         });
 
-        // 2. ЛОГІКА КІНОТЕАТРУ (AJAX)
         cinemaSelect.addEventListener("change", function () {
             const cinemaId = this.value;
             
@@ -192,7 +184,7 @@
                         const option = document.createElement("option");
                         option.value = h.id;
                         option.textContent = h.name;
-                        option.dataset.hallType = h.halltype; // Переконайтеся, що в JSON приходить halltype
+                        option.dataset.hallType = h.halltype;
                         hallSelect.appendChild(option);
                     });
                     
@@ -204,7 +196,6 @@
                 });
         });
 
-        // 3. ЛОГІКА ЦІН ТА ВАЛІДАЦІЇ
         function updatePriceVisibility() {
             const selectedHall = hallSelect.options[hallSelect.selectedIndex];
             const hallType = selectedHall ? parseInt(selectedHall.dataset.hallType) : null;
@@ -219,7 +210,6 @@
                 const category = row.dataset.category;
                 let show = false;
 
-                // 1-Standard, 2-VIP, 3-Mixed
                 if (hallType === 1) show = (category === "Standard");
                 else if (hallType === 2) show = (category === "VIP");
                 else if (hallType === 3) show = (category === "Standard" || category === "VIP");
@@ -235,30 +225,25 @@
                 .filter(row => row.style.display === "flex")
                 .map(row => row.querySelector(".price-input"));
 
-            // Якщо вибрано зал, але немає видимих цін (помилка налаштування) - блокуємо
             if (hallSelect.value && visibleInputs.length === 0) {
                 submitBtn.disabled = true;
                 return;
             }
 
-            // Валідація: всі видимі ціни мають бути > 0
             const allPricesValid = visibleInputs.every(input => {
                 const val = parseFloat(input.value.replace(',', '.'));
                 return !isNaN(val) && val > 0;
             });
 
-            // Кнопка активна лише якщо вибрано зал і ціни валідні
             submitBtn.disabled = !(hallSelect.value && allPricesValid);
         }
 
-        // Слухачі для ручного введення цін
         document.querySelectorAll(".price-input").forEach(input => {
             input.addEventListener("input", validatePrices);
         });
 
         hallSelect.addEventListener("change", updatePriceVisibility);
 
-        // Ініціалізація сторонніх бібліотек
         $(document).ready(function() {
             if ($.fn.select2) {
                 $('.js-movie-select').select2({ 
@@ -267,7 +252,6 @@
                     allowClear: true 
                 });
             }
-            // Початковий стан
             updatePriceVisibility();
         });
     </script>

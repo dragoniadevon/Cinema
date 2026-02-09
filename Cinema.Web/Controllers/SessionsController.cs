@@ -1,8 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
 using Cinema.Infrastructure.Entities.Enums;
 using Cinema.Web.Models.Sessions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.SqlServer.Server;
+using Microsoft.VisualBasic;
 
 namespace Cinema.Web.Controllers
 {
@@ -16,17 +18,18 @@ namespace Cinema.Web.Controllers
         }
 
         // ================= INDEX =================
-        public async Task<IActionResult> Index(int? cinemaId, string city, DateTime? date, string mode = "active")
+        public async Task<IActionResult> Index(int? cinemaId, string city, DateTime? date, string format = "all", string hallType = "all", string mode = "active")
         {
             mode = string.IsNullOrEmpty(mode) ? "active" : mode;
             ViewBag.CurrentMode = mode;
+            ViewBag.SelectedFormat = format;
+            ViewBag.SelectedHallType = hallType;
 
             var baseQuery = _context.Sessions
                 .AsNoTracking()
                 .Include(s => s.Hall).ThenInclude(h => h.Cinema)
                 .AsQueryable();
 
-            // Фільтри режиму
             if (mode == "past")
                 baseQuery = baseQuery.Where(s => s.Isactive == true && s.Endtime < DateTime.Now);
             else if (mode == "cancelled")
@@ -40,7 +43,33 @@ namespace Cinema.Web.Controllers
             if (cinemaId.HasValue)
                 baseQuery = baseQuery.Where(s => s.Hall.Cinemaid == cinemaId.Value);
 
-            // Список дат для кнопок
+            if (format == "2D")
+                baseQuery = baseQuery.Where(s => s.Format == (short)SessionFormat.TwoD);
+            else if (format == "3D")
+                baseQuery = baseQuery.Where(s => s.Format == (short)SessionFormat.ThreeD);
+
+            if (hallType == "standard")
+            {
+                baseQuery = baseQuery.Where(s => s.Hall.Halltype == (short)HallType.Standard
+                                              || s.Hall.Halltype == (short)HallType.Mixed);
+            }
+            else if (hallType == "vip")
+            {
+                baseQuery = baseQuery.Where(s => s.Hall.Halltype == (short)HallType.VIP);
+            }
+
+            ViewBag.Cities = await baseQuery
+                .Select(s => s.Hall.Cinema.City)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+
+            var cinemasQuery = _context.Cinemas.Where(c => c.Isactive == true);
+            if (!string.IsNullOrEmpty(city))
+            {
+                cinemasQuery = cinemasQuery.Where(c => c.City == city);
+            }
+            ViewBag.Cinemas = await cinemasQuery.OrderBy(c => c.Name).ToListAsync();
             ViewBag.AllAvailableDates = await baseQuery
                 .Select(s => s.Starttime.Date)
                 .Distinct()
@@ -53,11 +82,9 @@ namespace Cinema.Web.Controllers
 
             IQueryable<Session> finalQuery = query;
 
-            // ВИЗНАЧАЄМО ОБРАНУ ДАТУ (якщо null — то сьогодні)
             DateTime activeDate = date ?? DateTime.Today;
             finalQuery = finalQuery.Where(s => s.Starttime.Date == activeDate.Date);
 
-            // Передаємо рядок для порівняння у View
             ViewBag.SelectedDate = activeDate.ToString("yyyy-MM-dd");
 
             var sessions = await finalQuery.OrderBy(s => s.Starttime).ToListAsync();
@@ -76,12 +103,24 @@ namespace Cinema.Web.Controllers
                             CinemaName = cinemaGroup.First().Hall?.Cinema?.Name ?? "Кінотеатр",
                             Movies = cinemaGroup
                                 .GroupBy(s => s.Movieid)
-                                .Select(movieGroup => new SessionsByMovieVm
-                                {
-                                    MovieId = movieGroup.Key ?? 0,
-                                    Title = movieGroup.First().Movie?.Title ?? "Фільм",
-                                    Duration = movieGroup.First().Movie?.Duration,
-                                    Sessions = movieGroup.OrderBy(s => s.Starttime).ToList()
+                                .Select(movieGroup => {
+                                    var firstSession = movieGroup.First();
+                                    return new SessionsByMovieVm
+                                    {
+                                        MovieId = movieGroup.Key ?? 0,
+                                        Title = firstSession.Movie?.Title ?? "Фільм",
+                                        Duration = firstSession.Movie?.Duration,
+                                        Agerating = firstSession.Movie?.Agerating switch
+                                        {
+                                            AgeRating.G => "0+",
+                                            AgeRating.PG => "6+",
+                                            AgeRating.PG13 => "12+",
+                                            AgeRating.R => "16+",
+                                            AgeRating.NC17 => "18+",
+                                            _ => "0+"
+                                        },
+                                        Sessions = movieGroup.OrderBy(s => s.Starttime).ToList()
+                                    };
                                 }).ToList()
                         }).ToList()
                 }).ToList();
@@ -89,6 +128,20 @@ namespace Cinema.Web.Controllers
             ViewBag.Cities = await _context.Cinemas.Where(c => c.Isactive == true).Select(c => c.City).Distinct().ToListAsync();
             ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive == true).ToListAsync();
             ViewBag.SelectedCinemaId = cinemaId;
+
+            if (cinemaId.HasValue)
+            {
+                var cinema = await _context.Cinemas
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == cinemaId);
+
+                if (cinema != null)
+                {
+                    ViewBag.CinemaName = cinema.Name;
+                    ViewBag.CinemaCity = cinema.City;
+                    ViewBag.CinemaAddress = cinema.Address;
+                }
+            }
 
             return View(model);
         }
@@ -98,11 +151,10 @@ namespace Cinema.Web.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var session = await _context.Sessions
-                .Include(s => s.Movie) // Обов'язково підключаємо дані про фільм
+                .Include(s => s.Movie)
                 .Include(s => s.Hall)
                 .ThenInclude(h => h.Cinema)
 
-                // ✅ НОВЕ: підтягуємо ціни + категорії
                 .Include(s => s.Sessionprices)
                     .ThenInclude(sp => sp.Category)
 
@@ -111,7 +163,6 @@ namespace Cinema.Web.Controllers
             if (session == null)
                 return NotFound();
 
-            // місця в залі
             var seats = await _context.Seats
                 .AsNoTracking()
                 .Include(s => s.Pricecategory)
@@ -120,9 +171,8 @@ namespace Cinema.Web.Controllers
                 .ThenBy(s => s.Seatnumber)
                 .ToListAsync();
 
-            // зайняті місця
             var takenSeatIds = await _context.Tickets
-                .Where(t => t.Sessionid == id && !t.IsReturned) // <--- Додаємо && !t.IsReturned
+                .Where(t => t.Sessionid == id && !t.IsReturned)
                 .Select(t => t.Seatid)
                 .ToListAsync();
 
@@ -139,8 +189,11 @@ namespace Cinema.Web.Controllers
                 SessionId = session.Id,
                 StartTime = start,
                 EndTime = end,
+                Format = (SessionFormat)session.Format,
 
+                CinemaId = session.Hall?.Cinemaid ?? 0,
                 CinemaName = cinema?.Name ?? "—",
+                CinemaCity = cinema?.City ?? "—",
                 HallName = hall?.Name ?? "—",
 
                 MovieId = movie?.Id ?? 0,
@@ -166,7 +219,6 @@ namespace Cinema.Web.Controllers
                 Rows = hall?.Rows ?? 0,
                 SeatsPerRow = hall?.Seatsperrow ?? 0,
 
-                // ✅ НОВЕ: ціни квитків в деталях
                 Prices = session.Sessionprices?
                     .OrderBy(sp => sp.Categoryid)
                     .Select(sp => new SessionPriceVm

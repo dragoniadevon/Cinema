@@ -36,12 +36,20 @@
 
         <div class="col-lg-8">
             <div class="ps-2 mb-4">
+                <div class="mb-3">
+                    <a asp-action="Index" class="btn btn-link text-decoration-none p-0 text-muted hover-dark">
+                        <i class="bi bi-arrow-left-short fs-4"></i> Назад до розкладу
+                    </a>
+                </div>
                 <div class="badge bg-danger mb-2 px-3 py-2 rounded-pill text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Панель адміністратора</div>
+                <button id="admin-lock-btn" class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm" onclick="toggleAdminLockMode()">
+                    <i class="bi bi-shield-lock me-2"></i>Увімкнути режим блокування
+                </button>
                 <h1 class="fw-bold text-dark mb-1 display-5">@Model.MovieTitle</h1>
                 
                 <div class="d-flex flex-wrap align-items-center gap-2 text-muted mb-1">
                     <i class="bi bi-geo-alt-fill text-primary"></i>
-                    <span>Луцьк, @Model.CinemaName</span>
+                    <span>@Model.CinemaCity, @Model.CinemaName</span>
                     <span class="text-primary opacity-50">|</span>
                     <i class="bi bi-door-open-fill text-primary"></i>
                     <span>Зал @Model.HallName</span>
@@ -54,14 +62,10 @@
                         <span class="ms-2">@Model.StartTime.ToString("HH:mm") — @Model.EndTime.ToString("HH:mm")</span>
                     </div>
                     <span class="badge bg-primary px-3 rounded-pill">@Model.Duration хв.</span>
-                    <span class="badge bg-dark px-3 rounded-pill">@(Model.Duration > 120 ? "2D" : "3D")</span> 
+                    <span class="badge bg-dark px-3 rounded-pill">
+                        @(Model.Format == SessionFormat.TwoD ? "2D" : "3D")
+                    </span>
                 </div>
-            </div>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="m-0">Схема залу</h5>
-                <button id="admin-lock-btn" class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm" onclick="toggleAdminLockMode()">
-                    <i class="bi bi-shield-lock me-2"></i>Увімкнути режим блокування
-                </button>
             </div>
             <div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
                 <div class="d-flex justify-content-center gap-5 mb-4 flex-wrap">
@@ -104,7 +108,6 @@
                                     @foreach (var seat in rowSeats)
                                     {
                                         var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
-                                        // Додаємо клас is-blocked, якщо місце заблоковане в БД
                                         string seatTypeClass = seat.IsBlocked ? "is-blocked" : (seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard"));
 
                                         <button type="button" 
@@ -146,8 +149,6 @@
     </div>
 </div>
 
-
-@* --- SIDE PANEL: ДЕТАЛІ КВИТКА --- *@
 <div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="adminSeatPanel" style="border-radius: 30px 0 0 30px; width: 400px;">
     <div class="offcanvas-header border-bottom p-4">
         <h5 class="offcanvas-title fw-bold text-primary"><i class="bi bi-info-circle-fill me-2"></i>Керування місцем</h5>
@@ -160,7 +161,6 @@
                 <span class="badge bg-light text-secondary border px-3 py-2 mt-2 fs-6" id="panel-seat-type">Категорія</span>
             </div>
 
-            @* Блок для зайнятого місця *@
             <div id="sold-info-section" class="d-none">
                 <h6 class="fw-bold text-muted text-uppercase small mb-3">Інформація про покупця</h6>
                 <div class="card bg-light border-0 p-4 mb-4 rounded-4 shadow-sm">
@@ -188,7 +188,6 @@
                 </button>
             </div>
 
-            @* Блок для вільного місця *@
             <div id="free-info-section" class="d-none">
                 <div class="alert alert-info border-0 rounded-4 shadow-sm py-3 text-center">
                     <i class="bi bi-check-circle-fill fs-1 d-block mb-2 text-success"></i>
@@ -244,7 +243,7 @@
     .screen-curve { width: 80%; height: 5px; background: #343a40; border-radius: 50% / 100% 100% 0 0; }
     .screen-text { font-size: 11px; font-weight: 800; letter-spacing: 6px; color: #495057; }
     .hall-scroll-container { max-height: 550px; overflow: auto; padding: 5px 0; }
-    .hall-layout { display: flex; flex-direction: column; align-items: center; min-width: max-content; padding: 20px 40px; }
+    .hall-layout { display: flex; flex-direction: column; align-items: center; min-width: max-content; padding: 20px 40px; user-select: none;}
     .seat-row { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
     .seats-row-wrapper { display: flex; gap: 8px; }
     .vip-style { gap: 18px; margin-top: 10px; }
@@ -254,6 +253,7 @@
         width: 36px; height: 30px; border-radius: 7px; font-size: 13px; font-weight: bold; 
         line-height: 30px; text-align: center; flex-shrink: 0; display: inline-flex; 
         align-items: center; justify-content: center; cursor: default;
+        transition: transform 0.1s ease, background-color 0.2s ease;
     }
     .is-taken { background-color: #e9ecef !important; color: #adb5bd !important; border: 1px solid #dee2e6 !important; }
     .row-label { width: 30px; font-size: 12px; text-align: center; }
@@ -261,23 +261,25 @@
     @@media (max-width: 991.98px) {
         .poster-wrapper { height: 450px; max-width: 350px; margin: 0 auto; }
     }
+    .seat-btn:active {
+        transform: scale(0.9); /* Візуальний відгук на натискання */
+    }
 </style>
 <script>
     let isLockMode = false;
-    let seatsToChange = []; // масив ID вибраних місць
+    let seatsToChange = [];
+    let currentActiveSeatId = null;
 
     function toggleAdminLockMode() {
         const mainBtn = document.getElementById('admin-lock-btn');
         const hallGrid = document.querySelector('.hall-layout');
     
         if (!isLockMode) {
-            // ВХІД У РЕЖИМ
             isLockMode = true;
             hallGrid.classList.add('hall-admin-active');
             mainBtn.classList.replace('btn-dark', 'btn-warning');
             mainBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Застосувати зміни';
         } else {
-            // ВИХІД ТА ЗАСТОСУВАННЯ
             if (seatsToChange.length > 0) {
                 applyBulkLock();
             } else {
@@ -286,30 +288,54 @@
         }
     }
 
-    // Функція кліку по самому кріслу
     function handleSeatClick(btn) {
-        if (!isLockMode) return; // якщо режим не ввімкнено - нічого не робимо
-        if (btn.classList.contains('is-taken')) return; // зайняті не чіпаємо
-
         const seatId = btn.dataset.seatId;
-        const index = seatsToChange.indexOf(seatId);
 
-        if (index > -1) {
-            seatsToChange.splice(index, 1);
-            btn.classList.remove('to-be-blocked');
-        } else {
-            seatsToChange.push(seatId);
-            btn.classList.add('to-be-blocked');
+        if (isLockMode) {
+            if (btn.classList.contains('is-taken')) {
+                alert("Неможливо заблокувати місце, на яке вже куплено квиток.");
+                return;
+            }
+
+            const index = seatsToChange.indexOf(seatId);
+            if (index > -1) {
+                seatsToChange.splice(index, 1);
+                btn.classList.remove('to-be-blocked');
+            } else {
+                seatsToChange.push(seatId);
+                btn.classList.add('to-be-blocked');
+            }
+            return;
         }
+
+        currentActiveSeatId = seatId;
+        const isTaken = btn.dataset.isTaken === "true";
+        const info = JSON.parse(btn.dataset.info);
+
+        document.getElementById('panel-seat-label').innerText = `Ряд ${btn.dataset.row}, Місце ${btn.dataset.num}`;
+        document.getElementById('panel-seat-type').innerText = btn.dataset.category;
+
+        if (isTaken) {
+            document.getElementById('sold-info-section').classList.remove('d-none');
+            document.getElementById('free-info-section').classList.add('d-none');
+            
+            document.getElementById('customer-name').innerText = info.name || "Гість";
+            document.getElementById('customer-email').innerText = info.email || "не вказано";
+            document.getElementById('purchase-price').innerText = info.price + " ₴";
+            document.getElementById('trans-date').innerText = info.date || "---";
+        } else {
+            document.getElementById('sold-info-section').classList.add('d-none');
+            document.getElementById('free-info-section').classList.remove('d-none');
+        }
+
+        const bsPanel = new bootstrap.Offcanvas(document.getElementById('adminSeatPanel'));
+        bsPanel.show();
     }
 
     async function applyBulkLock() {
         if (seatsToChange.length === 0) return;
-
-        // Отримуємо токен захисту (AntiForgeryToken)
         const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-        // Виконуємо запити для кожного вибраного місця паралельно
         const promises = seatsToChange.map(id => 
             fetch(`/Admin/Sessions/ToggleBlockSeat?seatId=${id}`, {
                 method: 'POST',
@@ -322,10 +348,10 @@
 
         try {
             await Promise.all(promises);
-            location.reload(); // Перезавантажуємо сторінку після завершення всіх запитів
+            location.reload();
         } catch (error) {
-            console.error("Помилка при блокуванні:", error);
-            alert("Сталася помилка при збереженні змін.");
+            console.error("Помилка:", error);
+            alert("Сталася помилка при збереженні.");
         }
     }
 
@@ -335,93 +361,38 @@
         document.getElementById('admin-lock-btn').classList.replace('btn-warning', 'btn-dark');
         document.getElementById('admin-lock-btn').innerHTML = '<i class="bi bi-shield-lock me-2"></i>Увімкнути режим блокування';
         document.querySelector('.hall-layout').classList.remove('hall-admin-active');
+        document.querySelectorAll('.to-be-blocked').forEach(el => el.classList.remove('to-be-blocked'));
     }
 
-    // Змінна для збереження поточного ID місця
-let currentActiveSeatId = null;
+    async function cancelTicketAction() {
+        if (!confirm("Ви впевнені, що хочете скасувати цей квиток? Місце стане вільним.")) return;
 
-function handleSeatClick(btn) {
-    // Якщо ввімкнено режим блокування - використовуємо твою стару логіку блокування
-    if (isLockMode) {
-        // ... (твоя функція вибору для блокування)
-        const seatId = btn.dataset.seatId;
-        const index = seatsToChange.indexOf(seatId);
-        if (index > -1) {
-            seatsToChange.splice(index, 1);
-            btn.classList.remove('to-be-blocked');
-        } else {
-            seatsToChange.push(seatId);
-            btn.classList.add('to-be-blocked');
-        }
-        return;
-    }
-
-    // ЛОГІКА ДЕТАЛЕЙ КВИТКА (звичайний клік в адмінці)
-    currentActiveSeatId = btn.dataset.seatId;
-    const isTaken = btn.dataset.isTaken === "true";
-    const info = JSON.parse(btn.dataset.info);
-
-    document.getElementById('panel-seat-label').innerText = `Ряд ${btn.dataset.row}, Місце ${btn.dataset.num}`;
-    document.getElementById('panel-seat-type').innerText = btn.dataset.category;
-
-    if (isTaken) {
-        document.getElementById('sold-info-section').classList.remove('d-none');
-        document.getElementById('free-info-section').classList.add('d-none');
+        const tokenElement = document.querySelector('#antiforgery-container input[name="__RequestVerificationToken"]');
+        if (!tokenElement) return;
+        const token = tokenElement.value;
         
-        document.getElementById('customer-name').innerText = info.name || "Гість";
-        document.getElementById('customer-email').innerText = info.email || "не вказано";
-        document.getElementById('purchase-price').innerText = info.price + " ₴";
-        document.getElementById('trans-date').innerText = info.date || "---";
-    } else {
-        document.getElementById('sold-info-section').classList.add('d-none');
-        document.getElementById('free-info-section').classList.remove('d-none');
-    }
+        try {
+            const params = new URLSearchParams();
+            params.append('seatId', currentActiveSeatId);
+            params.append('sessionId', '@Model.SessionId');
 
-    const bsPanel = new bootstrap.Offcanvas(document.getElementById('adminSeatPanel'));
-    bsPanel.show();
-}
+            const response = await fetch(`/Admin/Sessions/CancelTicket`, {
+                method: 'POST',
+                headers: { 
+                    'RequestVerificationToken': token,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: params
+            });
 
-async function cancelTicketAction() {
-    if (!confirm("Ви впевнені, що хочете скасувати цей квиток? Місце стане вільним.")) return;
-
-    // Отримуємо токен з нашого контейнера
-    const tokenElement = document.querySelector('#antiforgery-container input[name="__RequestVerificationToken"]');
-    if (!tokenElement) {
-        alert("Помилка безпеки: токен не знайдено.");
-        return;
-    }
-    const token = tokenElement.value;
-    
-    try {
-        // Використовуємо URLSearchParams для надійної передачі параметрів
-        const params = new URLSearchParams();
-        params.append('seatId', currentActiveSeatId);
-        params.append('sessionId', '@Model.SessionId');
-
-        const response = await fetch(`/Admin/Sessions/CancelTicket`, {
-            method: 'POST',
-            headers: { 
-                'RequestVerificationToken': token,
-                'Content-Type': 'application/x-www-form-urlencoded', // Важливо для [HttpPost]
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: params // Передаємо дані в тілі запиту
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-                location.reload(); 
-            } else {
-                alert(result.message || "Помилка при скасуванні");
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) location.reload(); 
+                else alert(result.message);
             }
-        } else {
-            // Якщо сервер повернув 400, 404 або 500
-            alert(`Помилка сервера: Код ${response.status}`);
+        } catch (e) {
+            console.error(e);
         }
-    } catch (e) {
-        console.error(e);
-        alert("Помилка виконання запиту. Перевірте консоль браузера (F12).");
     }
-}
 </script>

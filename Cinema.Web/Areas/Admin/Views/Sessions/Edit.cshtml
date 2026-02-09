@@ -19,9 +19,8 @@
                     @Html.ValidationSummary(false, "", new { @class = "text-danger mb-3 small" })
 
                     <div class="row g-3">
-                        @* ВИБІР ФІЛЬМУ *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">🎬 Фільм</label>
+                            <label class="form-label fw-bold">Фільм</label>
                             <select asp-for="MovieId" class="form-select shadow-sm js-movie-select">
                                 @foreach (var movie in (List<Movie>)ViewBag.Movies)
                                 {
@@ -30,9 +29,8 @@
                             </select>
                         </div>
 
-                        @* МІСТО *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">📍 Місто</label>
+                            <label class="form-label fw-bold">Місто</label>
                             <select id="citySelect" class="form-select shadow-sm">
                                 <option value="">— Оберіть місто —</option>
                                 @foreach (var city in (List<string>)ViewBag.Cities)
@@ -42,13 +40,11 @@
                             </select>
                         </div>
 
-                        @* КІНОТЕАТР *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">🏢 Кінотеатр</label>
+                            <label class="form-label fw-bold">Кінотеатр</label>
                             <select asp-for="CinemaId" id="cinemaSelect" class="form-select shadow-sm">
                                 @foreach (var cinema in (List<global::Cinema.Infrastructure.Entities.Cinema>)ViewBag.Cinemas)
                                 {
-                                    @* Додаємо перевірку: якщо це не поточний кінотеатр, ховаємо його *@
                                     <option value="@cinema.Id" 
                                             data-city="@cinema.City" 
                                             style="@(cinema.Id == Model.CinemaId ? "" : "display:none")"
@@ -59,14 +55,11 @@
                             </select>
                         </div>
 
-                        @* ВИБІР ЗАЛУ *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">🚪 Зал</label>
-                            @* Знайдіть блок вибору ЗАЛУ та оновіть option *@
+                            <label class="form-label fw-bold">Зал</label>
                             <select asp-for="HallId" id="hallSelect" class="form-select shadow-sm">
                                 @foreach (var hall in (List<Hall>)ViewBag.Halls)
                                 {
-                                    @* ВАЖЛИВО: додано data-hall-type *@
                                     <option value="@hall.Id" data-hall-type="@hall.Halltype" 
                                             selected="@(hall.Id == Model.HallId)">
                                         @hall.Name
@@ -75,27 +68,24 @@
                             </select>
                         </div>
 
-                        @* ЧАС ПОЧАТКУ ТА ФОРМАТ ЗАЛИШАЮТЬСЯ БЕЗ ЗМІН *@
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">📅 Час початку</label>
+                            <label class="form-label fw-bold">Час початку</label>
                             <input asp-for="StartTime" type="datetime-local" class="form-control shadow-sm"
                                    value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">📺 Формат</label>
+                            <label class="form-label fw-bold">Формат</label>
                             <select asp-for="Format" class="form-select shadow-sm" 
                                     asp-items="Html.GetEnumSelectList<SessionFormat>()"></select>
                         </div>
                     </div>
 
-                    @* ЦІНИ *@
                     <hr class="my-4" />
                     <h5 class="mb-3 text-primary fw-bold">💰 Ціни на квитки</h5>
                     <div id="pricesContainer" class="p-3 bg-light rounded border border-primary border-opacity-25 shadow-sm">
                         @if (Model.Prices != null)
                         {
-                            @* Знайдіть цикл відображення цін і оновіть інпут *@
                             @for (int i = 0; i < Model.Prices.Count; i++)
                             {
                                 <div class="row mb-3 price-row align-items-center" data-category="@Model.Prices[i].CategoryName">
@@ -106,7 +96,6 @@
                                     </div>
                                     <div class="col-sm-7">
                                         <div class="input-group input-group-sm shadow-sm">
-                                            @* ДОДАЙТЕ КЛАС price-input СЮДИ *@
                                             <input asp-for="Prices[i].Price" 
                                                    class="form-control text-end fw-bold price-input" 
                                                    type="number" step="1" min="0" />
@@ -142,8 +131,6 @@
                 const city = selectedCinema.dataset.city;
                 citySelect.value = city;
                 filterCinemas(city);
-        
-                // ВАЖЛИВО: Оновлюємо видимість цін одразу після ініціалізації локації
                 updatePriceVisibility();
             }
         }
@@ -157,7 +144,6 @@
 
         function updatePriceVisibility() {
             const selectedHall = hallSelect.options[hallSelect.selectedIndex];
-            // Зчитуємо тип залу з атрибута data-hall-type
             const hallType = selectedHall ? parseInt(selectedHall.getAttribute("data-hall-type")) : null;
 
             priceRows.forEach(row => {
@@ -166,7 +152,6 @@
                 const cat = row.dataset.category;
                 let show = false;
 
-                // Логіка фільтрації категорій
                 if (hallType === 1) show = (cat === "Standard");
                 else if (hallType === 2) show = (cat === "VIP");
                 else if (hallType === 3) show = (cat === "Standard" || cat === "VIP");
@@ -189,8 +174,6 @@
             submitBtn.disabled = !(hallSelect.value && allPricesValid);
         }
 
-        // --- СЛУХАЧІ ПОДІЙ ---
-
         citySelect.addEventListener("change", function () {
             filterCinemas(this.value);
             cinemaSelect.value = "";
@@ -210,7 +193,6 @@
                         const opt = document.createElement("option");
                         opt.value = h.id;
                         opt.textContent = h.name;
-                        // Використовуємо h.halltype (звірте регістр з JSON вашого контролера)
                         opt.setAttribute("data-hall-type", h.halltype); 
                         hallSelect.appendChild(opt);
                     });
@@ -225,9 +207,10 @@
         });
 
         $(document).ready(function() {
-            if ($.fn.select2) { $('.js-movie-select').select2({ width: '100%' }); }
+            if ($.fn.select2) { 
+                $('.js-movie-select').select2({ width: '100%' }); 
+            }
             
-            // Запуск ініціалізації після завантаження DOM
             initLocation();
         });
     </script>

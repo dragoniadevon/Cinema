@@ -19,8 +19,7 @@
 
                         <div class="poster-multiplex-overlay">
                             <div class="overlay-header">
-                                <a asp-controller="Movies" asp-action="Details" asp-route-id="@movie.MovieId"
-                                       class="action-item">
+                                <a asp-controller="Movies" asp-action="Details" asp-route-id="@movie.MovieId" class="action-item">
                                     <i class="bi bi-info-circle"></i>
                                     <span>Детальніше</span>
                                 </a>
@@ -33,6 +32,61 @@
                                 }
                             </div>
 
+                            <div class="overlay-schedule text-center w-100 px-2" 
+                                 data-movie-id="@movie.MovieId" 
+                                 data-cinema-id="@movie.SelectedCinemaId">
+     
+                                <div class="cinema-name-giant mb-1">
+                                    @movie.SelectedCinemaName.ToUpper()
+                                </div>
+
+                                <div class="dropdown mb-4">
+                                    <button class="btn btn-sm text-white border-0 fw-bold home-date-btn text-uppercase p-0 dropdown-toggle shadow-none" 
+                                            type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-calendar3 me-1"></i> 
+                                        <span class="selected-date-text">СЬОГОДНІ</span>
+                                    </button>
+        
+                                    @{
+                                        var futureDates = movie.AvailableDates.Where(d => d.Date >= DateTime.Today).ToList();
+                                    }
+
+                                    @if (futureDates.Count > 1)
+                                    {
+                                        <ul class="dropdown-menu shadow-lg border-0 rounded-4 mt-2 scrollable-menu">
+                                            @foreach (var date in futureDates)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item fw-bold py-2 @(date.Date == DateTime.Today ? "text-primary" : "")" 
+                                                       href="javascript:void(0)" 
+                                                       onclick="updateHomeSessions(this, '@date.ToString("yyyy-MM-dd")', '@date.ToString("ddd, dd MMMM").ToUpper()')">
+                                                        @date.ToString("ddd, dd MMMM").ToUpper()
+                                                    </a>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                                <div class="d-flex flex-wrap justify-content-center gap-4 session-container">
+                                    @if (movie.TodaySessions.Any())
+                                    {
+                                        @foreach (var session in movie.TodaySessions)
+                                        {
+                                            <a asp-controller="Sessions" asp-action="Details" asp-route-id="@session.SessionId"
+                                               class="home-session-time" title="від @session.MinPrice.ToString("0") ₴">
+                                                @session.StartTime.ToString("HH:mm")
+                                            </a>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="no-sessions-info animate-fade">
+                                            <i class="bi bi-clock-history d-block mb-1"></i>
+                                            <span>СЕАНСІВ НЕМАЄ</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
                             <div class="overlay-footer">
                                 <h3 class="poster-title">@movie.Title</h3>
                             </div>
@@ -250,6 +304,103 @@ else
             font-size: 1.2rem;
         }
     }
+    .overlay-schedule {
+        opacity: 0;
+        transform: scale(0.9);
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        margin: auto 0;
+        z-index: 10;
+        pointer-events: none;
+    }
+    .poster-card:hover .overlay-schedule {
+        opacity: 1;
+        transform: scale(1);
+        pointer-events: auto;
+    }
+    .cinema-name-giant {
+        color: #fff;
+        font-size: 2.2rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+        line-height: 0.9;
+        margin-bottom: 10px;
+        text-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    }
+    .home-date-btn::after { display: none; }
+    .home-date-btn:hover { text-decoration: underline; }
+    .scrollable-menu {
+        display: none; 
+        max-height: 160px !important;
+        overflow-y: auto !important;
+        background: rgba(0, 0, 0, 0.3) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        width: 220px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37) !important;
+    }
+    .dropdown-menu.show.scrollable-menu {
+        display: block !important;
+    }
+    .scrollable-menu .dropdown-item {
+        color: rgba(255, 255, 255, 0.9) !important;
+        transition: 0.2s;
+    }
+    .scrollable-menu .dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: #fff !important;
+    }
+    .scrollable-menu .dropdown-item.text-primary {
+        color: #0d6efd !important;
+    }
+    .scrollable-menu::-webkit-scrollbar { width: 4px; }
+    .scrollable-menu::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 10px; }
+    .home-session-time {
+        color: #fff;
+        font-size: 1.8rem;
+        font-weight: 900;
+        text-decoration: none !important;
+        transition: all 0.2s ease;
+    }
+    .home-session-time:hover { color: #0d6efd !important; transform: translateY(-3px); }
+    .no-sessions-msg {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-top: 5px;
+    }
+    .session-container {
+        min-height: 40px;
+        transition: all 0.3s ease;
+    }
+    .scrollable-menu .dropdown-item.active-date {
+        background: rgba(13, 110, 253, 0.2) !important;
+        color: #0d6efd !important;
+    }
+    .no-sessions-info {
+        color: rgba(255, 255, 255, 0.6);
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        padding: 10px 0;
+    }
+    .no-sessions-info i {
+        font-size: 1.4rem;
+        color: #ffc107;
+        opacity: 0.8;
+    }
+    .animate-fade {
+        animation: fadeInHome 0.4s ease-in-out;
+    }
+    @@keyframes fadeInHome {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 
 <script>
@@ -265,5 +416,48 @@ else
                 behavior: 'smooth'
             });
         }
+    }
+    async function updateHomeSessions(element, dateValue, labelText) {
+        const card = element.closest('.poster-card');
+        const container = card.querySelector('.session-container');
+        const dateSpan = card.querySelector('.selected-date-text');
+
+        const movieId = card.querySelector('.overlay-schedule').dataset.movieId;
+        const cinemaId = card.querySelector('.overlay-schedule').dataset.cinemaId;
+
+        dateSpan.innerText = labelText;
+        container.style.opacity = '0.3';
+
+        try {
+            const response = await fetch(`/Home/GetSessionsForDate?movieId=${movieId}&cinemaId=${cinemaId}&date=${dateValue}`);
+            const sessions = await response.json();
+
+            container.innerHTML = '';
+            container.style.opacity = '1';
+
+            if (sessions && sessions.length > 0) {
+                sessions.forEach(s => {
+                    const link = document.createElement('a');
+                    link.href = `/Sessions/Details/${s.sessionId}`;
+                    link.className = 'home-session-time';
+                    link.innerText = s.startTime;
+                    link.title = `від ${s.minPrice} ₴`;
+                    container.appendChild(link);
+                });
+            } else {
+                container.innerHTML = `
+                    <div class="no-sessions-info animate-fade">
+                        <i class="bi bi-clock-history d-block mb-1"></i>
+                        <span>СЕАНСІВ НЕМАЄ</span>
+                    </div>`;
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            container.style.opacity = '1';
+            container.innerHTML = '<span class="text-danger small">ПОМИЛКА МЕРЕЖІ</span>';
+        }
+
+        const dd = bootstrap.Dropdown.getInstance(card.querySelector('.home-date-btn'));
+        if (dd) dd.hide();
     }
 </script>

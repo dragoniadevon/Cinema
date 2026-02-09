@@ -29,11 +29,19 @@
 
         <div class="col-lg-8">
             <div class="ps-2 mb-4">
+                <div class="mb-3">
+                    <a asp-action="Index" 
+                       asp-route-cinemaId="@Model.CinemaId" 
+                       asp-route-date="@Model.StartTime.ToString("yyyy-MM-dd")" 
+                       class="btn btn-link text-decoration-none p-0 text-muted hover-dark">
+                        <i class="bi bi-arrow-left-short fs-4"></i> Назад до розкладу
+                    </a>
+                </div>
                 <h1 class="fw-bold text-dark mb-1 display-5">@Model.MovieTitle</h1>
                 
                 <div class="d-flex flex-wrap align-items-center gap-2 text-muted mb-1">
                     <i class="bi bi-geo-alt-fill text-primary"></i>
-                    <span>Луцьк, @Model.CinemaName</span>
+                    <span>@Model.CinemaCity, @Model.CinemaName</span>
                     <span class="text-primary opacity-50">|</span>
                     <i class="bi bi-door-open-fill text-primary"></i>
                     <span>Зал @Model.HallName</span>
@@ -46,7 +54,9 @@
                         <span class="ms-2">@Model.StartTime.ToString("HH:mm") — @Model.EndTime.ToString("HH:mm")</span>
                     </div>
                     <span class="badge bg-primary px-3 rounded-pill">@Model.Duration хв.</span>
-                    <span class="badge bg-dark px-3 rounded-pill">@(Model.Duration > 120 ? "3D" : "2D")</span> 
+                    <span class="badge bg-dark px-3 rounded-pill">
+                        @(Model.Format == SessionFormat.ThreeD ? "3D" : "2D")
+                    </span>
                 </div>
             </div>
 
@@ -84,18 +94,14 @@
                         @for (int r = 1; r <= Model.Rows; r++)
                         {
                             <div class="seat-row">
-                                @* Додано номери рядів для зручності *@
-                                <span class="row-label text-muted fw-bold me-2">@r</span>
                 
                                 <div class="seats-row-wrapper">
                                     @foreach (var seat in Model.Seats.Where(s => s.Row == r).OrderBy(s => s.Number))
                                     {
                                         var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
 
-                                        // Визначаємо клас: пріоритет у заблокованого місця
                                         string seatTypeClass = seat.IsBlocked ? "is-blocked" : (seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard"));
 
-                                        // Місце не можна купити, якщо воно зайняте АБО заблоковане
                                         bool isDisabled = seat.IsTaken || seat.IsBlocked;
 
                                         <button class="btn shadow-none seat-btn @seatTypeClass"
@@ -116,8 +122,6 @@
                                         </button>
                                     }
                                 </div>
-                
-                                <span class="row-label text-muted fw-bold ms-2">@r</span>
                             </div>
                         }
                     </div>
@@ -357,16 +361,13 @@
         }
     }
 
-    /* Стиль для заблокованого місця (клієнтська сторона) */
 .seat-btn.is-blocked {
-    background-color: #212529 !important; /* Чорний колір */
-    color: #ffc107 !important;           /* Жовта іконка для контрасту */
+    background-color: #212529 !important;
+    color: #ffc107 !important;
     opacity: 1 !important;
     cursor: not-allowed;
     border: 1px solid #000 !important;
 }
-
-/* Додамо також невелику анімацію для іконки, щоб виглядало професійно */
 .is-blocked i {
     font-size: 0.9rem;
 }
