@@ -33,29 +33,37 @@ namespace Cinema.Web.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
 
-            ViewBag.SelectedCity = Request.Cookies["selectedCity"] ?? "Оберіть місто";
-            ViewBag.SelectedCinemaId = Request.Cookies["selectedCinemaId"];
-
-            var userIdString = _userManager.GetUserId(User);
-            if (!int.TryParse(userIdString, out var userId))
-                return RedirectToAction("Login", "Account");
+            var userId = user.Id;
+            var now = DateTime.UtcNow;
 
             var tickets = await _context.Tickets
+                .Include(t => t.Payment)
                 .Include(t => t.Session).ThenInclude(s => s.Movie)
                 .Include(t => t.Session).ThenInclude(s => s.Hall).ThenInclude(h => h.Cinema)
                 .Include(t => t.Seat)
                 .Where(t => t.Userid == userId)
-                .OrderByDescending(t => t.Session!.Starttime)
+                .OrderByDescending(t => t.Bookingtime)
                 .ToListAsync();
 
             var vm = new ProfileViewModel
             {
                 User = user,
-                Tickets = tickets
+
+                ActiveTickets = tickets.Where(t =>
+                    (t.Status == (short)TicketStatus.Paid) ||
+                    (t.Status == (short)TicketStatus.Reserved &&
+                     now <= t.Bookingtime.AddMinutes(10))
+                ).ToList(),
+
+                HistoryTickets = tickets.Where(t =>
+                    t.Status == (short)TicketStatus.Cancelled ||
+                    t.Session.Starttime.ToUniversalTime() < now
+                ).ToList()
             };
 
             return View(vm);
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
