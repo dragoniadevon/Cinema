@@ -1,126 +1,224 @@
 ﻿@model Hall
 
+@{
+    var standardPrice = 0; 
+    var vipPrice = 0;
+    
+    var hasStandard = Model.Seats.Any(s => s.Pricecategoryid != (int)SeatCategory.VIP);
+    var hasVip = Model.Seats.Any(s => s.Pricecategoryid == (int)SeatCategory.VIP);
+}
+
 <div class="container mt-5">
-    <div class="card shadow-sm border-0">
-        <div class="card-body hall-scheme">
-            <div class="text-center small text-muted mb-2 fw-bold text-uppercase" style="letter-spacing: 2px;">Екран</div>
-            <div class="screen-line"></div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0">Схема залу: @Model.Name</h2>
+    </div>
 
-            <div class="rows-stack">
-                @foreach (var rowGroup in Model.Seats.OrderBy(s => s.Rownumber).GroupBy(s => s.Rownumber))
-                {
-                    var seatsInThisRow = rowGroup.Count();
-                    var totalPossible = Model.Seatsperrow ?? 1;
+    <div id="antiforgery-container">
+        @Html.AntiForgeryToken()
+    </div>
 
-                    <div class="row-container">
-                        <div class="row-name">Ряд @rowGroup.Key</div>
-
-                        <div class="seats-grid">
-                            @{
-                                int offset = (totalPossible - seatsInThisRow) / 2;
-                            }
-                            
-                            @for (int i = 0; i < offset; i++) { <div class="seat-unit vip-offset"></div> }
-
-                            @foreach (var seat in rowGroup.OrderBy(s => s.Seatnumber))
-                            {
-                                var isVip = seat.Pricecategoryid == (int)SeatCategory.VIP;
-                                var seatClass = isVip ? "st-vip" : "st-standard";
-
-                                <div class="seat-unit @seatClass" title="Місце @seat.Seatnumber">
-                                    @seat.Seatnumber
-                                </div>
-                            }
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
+                <div class="d-flex justify-content-center gap-5 mb-4 flex-wrap">
+                    @if (hasStandard)
+                    {
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="seat-legend bg-standard"></div>
+                            <div class="d-flex flex-column text-black">
+                                <span class="category-label fw-bold">Звичайне</span>
+                            </div>
                         </div>
+                    }
+                    @if (hasVip)
+                    {
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="seat-legend bg-vip-green" style="width: 38px; height: 32px;"></div>
+                            <div class="d-flex flex-column text-black">
+                                <span class="category-label fw-bold">VIP</span>
+                            </div>
+                            <button id="admin-lock-btn" class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm" onclick="toggleHallLockMode()">
+                                <i class="bi bi-shield-lock me-2"></i>Режим обслуговування місць
+                            </button>
+                        </div>
+                    }
+                </div>
 
-                        <div class="row-name text-end">Ряд @rowGroup.Key</div>
+                <div class="screen-container text-center mb-5">
+                    <div class="screen-curve mx-auto"></div>
+                    <span class="screen-text text-uppercase">Екран</span>
+                </div>
+
+                <div class="hall-scroll-container">
+                    <div class="hall-layout">
+                        @foreach (var rowGroup in Model.Seats.OrderBy(s => s.Rownumber).GroupBy(s => s.Rownumber))
+                        {
+                            var rowSeats = rowGroup.OrderBy(s => s.Seatnumber).ToList();
+                            var isVipRow = rowSeats.All(s => s.Pricecategoryid == (int)SeatCategory.VIP);
+
+                            <div class="seat-row mb-2 @(isVipRow ? "vip-row-margin" : "")">
+                                <div class="seats-row-wrapper @(isVipRow ? "vip-style" : "standard-style")">
+                                    @foreach (var seat in rowSeats)
+                                    {
+                                        var isVip = seat.Pricecategoryid == (int)SeatCategory.VIP;
+                                        string seatTypeClass = seat.IsBlocked ? "is-blocked" : (isVip ? "is-vip" : "is-standard");
+                                        
+                                        <div class="seat-btn @seatTypeClass @(isVip ? "vip-size" : "")" 
+                                             data-seat-id="@seat.Id"
+                                             data-bs-toggle="tooltip" 
+                                             title="Ряд @rowGroup.Key, Місце @seat.Seatnumber @(seat.IsBlocked ? "(Заблоковано)" : "")"
+                                             onclick="handleHallSeatClick(this)">
+                                            @if (seat.IsBlocked) { <i class="bi bi-tools"></i> }
+                                            else { @seat.Seatnumber }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
                     </div>
-                }
-            </div>
+                </div>
 
-            <div class="mt-5 d-flex justify-content-center gap-4 border-top pt-4">
-                <div class="d-flex align-items-center gap-2">
-                    <div style="width:16px; height:16px; background:#6c757d; border-radius:3px;"></div>
-                    <span class="small text-muted">Стандарт</span>
+                <div class="mt-4 pt-3 border-top d-flex justify-content-around text-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Всього місць</div>
+                        <div class="fs-4 fw-bold text-dark">@Model.Seats.Count</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Рядів</div>
+                        <div class="fs-4 fw-bold text-primary">@(Model.Seats.Any() ? Model.Seats.Max(s => s.Rownumber) : 0)</div>
+                    </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <div style="width:16px; height:16px; background:#ffc107; border-radius:3px;"></div>
-                    <span class="small text-muted">VIP</span>
-                </div>
-                <div class="small text-muted ms-auto">Всього: <strong>@Model.Seats.Count</strong></div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .hall-scheme {
-        --max-seats: @(Model.Seatsperrow ?? 1);
-        --gap: 6px;
-        
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 40px 20px;
-        background: #ffffff;
-        border-radius: 8px;
+    .seat-legend { width: 32px; height: 26px; border-radius: 7px; }
+    .bg-standard, .is-standard { background-color: #6c757d !important; color: white; }
+    .bg-vip-green, .is-vip { background-color: #198754 !important; color: white; }
+    .seat-btn.is-blocked { 
+        background-color: #000000 !important; 
+        color: #ffc107 !important; 
+        border: 1px solid #333 !important;
     }
-
-    .screen-line {
-        width: 100%;
-        height: 4px;
-        background: #e9ecef;
-        margin-bottom: 50px;
-        position: relative;
+    .seat-btn.to-be-changed {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+        border: 2px dashed #000 !important;
+        transform: scale(1.1);
     }
-
-    .row-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-        width: 100%;
+    .hall-admin-active .seat-btn {
+        cursor: pointer !important;
     }
-
-    .row-name {
-        width: 60px;
-        font-size: 0.75rem;
-        color: #adb5bd;
-        font-weight: bold;
-        flex-shrink: 0;
+    .screen-curve { 
+        width: 80%; 
+        height: 5px; 
+        background: #e9ecef; 
+        border-radius: 50% / 100% 100% 0 0; 
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
     }
-
-    .seats-grid {
-        display: grid;
-        grid-template-columns: repeat(var(--max-seats), 1fr);
-        gap: var(--gap);
-        flex-grow: 1;
-        justify-items: center;
+    .screen-text { font-size: 11px; font-weight: 800; letter-spacing: 6px; color: #adb5bd; }
+    .hall-scroll-container { max-height: 600px; overflow: auto; padding: 20px 0; }
+    .hall-layout { display: flex; flex-direction: column; align-items: center; min-width: max-content; }
+    .seat-row { display: flex; align-items: center; justify-content: center; width: 100%; }
+    .seats-row-wrapper { display: flex; gap: 8px; }
+    .vip-style { gap: 16px !important; }
+    .vip-row-margin { margin-bottom: 15px !important; }
+    .vip-size { width: 44px !important; height: 34px !important; font-size: 15px !important; }
+    .seat-btn { 
+        width: 36px; height: 30px; border-radius: 7px; font-size: 13px; font-weight: bold; 
+        line-height: 30px; text-align: center; flex-shrink: 0; display: inline-flex; 
+        align-items: center; justify-content: center; cursor: default;
+        transition: all 0.2s ease;
     }
-
-    .seat-unit {
-        width: 100%;
-        max-width: 45px;
-        aspect-ratio: 1 / 1;
-        
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 4px;
-        color: white;
-        font-weight: 600;
-        font-size: clamp(0.6rem, 1.1vw, 0.85rem);
-        cursor: default;
-        transition: transform 0.1s ease;
+    .seat-btn:hover {
+        transform: translateY(-3px) scale(1.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        z-index: 10;
     }
-
-    .seat-unit:hover { transform: scale(1.05); }
-
-    .st-standard { background-color: #6c757d; }
-    .st-vip { 
-        background-color: #ffc107; 
-        box-shadow: 0 2px 4px rgba(255,193,7,0.2);
-    }
-
-    .vip-offset {
-        visibility: hidden;
+    @@media (max-width: 768px) {
+        .seat-btn { width: 30px; height: 26px; font-size: 11px; }
+        .vip-size { width: 36px !important; height: 30px !important; }
     }
 </style>
+
+@section Scripts {
+    <script>
+        let isLockMode = false;
+        let seatsToChange = [];
+
+        function toggleHallLockMode() {
+            const mainBtn = document.getElementById('admin-lock-btn');
+            const hallGrid = document.querySelector('.hall-layout');
+        
+            if (!isLockMode) {
+                isLockMode = true;
+                hallGrid.classList.add('hall-admin-active');
+                mainBtn.classList.replace('btn-dark', 'btn-warning');
+                mainBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Зберегти зміни';
+            } else {
+                if (seatsToChange.length > 0) {
+                    applyHallBulkLock();
+                } else {
+                    resetHallLockMode();
+                }
+            }
+        }
+
+        function handleHallSeatClick(el) {
+            if (!isLockMode) return;
+
+            const seatId = el.dataset.seatId;
+            const index = seatsToChange.indexOf(seatId);
+
+            if (index > -1) {
+                seatsToChange.splice(index, 1);
+                el.classList.remove('to-be-changed');
+            } else {
+                seatsToChange.push(seatId);
+                el.classList.add('to-be-changed');
+            }
+        }
+
+        async function applyHallBulkLock() {
+            const tokenElement = document.querySelector('#antiforgery-container input[name="__RequestVerificationToken"]');
+            if (!tokenElement) return;
+            const token = tokenElement.value;
+
+            const promises = seatsToChange.map(id => 
+                fetch(`/Admin/Sessions/ToggleBlockSeat?seatId=${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+            );
+
+            try {
+                await Promise.all(promises);
+                location.reload(); 
+            } catch (error) {
+                console.error("Помилка:", error);
+                alert("Сталася помилка при збереженні стану місць.");
+            }
+        }
+
+        function resetHallLockMode() {
+            isLockMode = false;
+            seatsToChange = [];
+            document.getElementById('admin-lock-btn').classList.replace('btn-warning', 'btn-dark');
+            document.getElementById('admin-lock-btn').innerHTML = '<i class="bi bi-shield-lock me-2"></i>Режим обслуговування місць';
+            document.querySelector('.hall-layout').classList.remove('hall-admin-active');
+            document.querySelectorAll('.to-be-changed').forEach(el => el.classList.remove('to-be-changed'));
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+        });
+    </script>
+}

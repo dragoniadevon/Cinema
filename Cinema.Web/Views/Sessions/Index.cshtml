@@ -24,8 +24,11 @@
         }
     </div>
 
+    @* --- ФІЛЬТР ДАТ --- *@
+    @* --- ФІЛЬТР ДАТ --- *@
     <div class="mx-auto mb-4" style="max-width: 750px;">
         <div class="d-flex flex-wrap align-items-center justify-content-center gap-2">
+            @* Виводимо перші 7 доступних дат *@
             @foreach (var date in availableDates.Take(7))
             {
                 var dateValue = date.ToString("yyyy-MM-dd");
@@ -38,6 +41,49 @@
                     </span>
                     <span class="fw-bold" style="font-size: 0.95rem;">@date.ToString("dd.MM")</span>
                 </a>
+            }
+
+            @* Кнопка Dropdown для решти дат *@
+            @if (availableDates.Count > 7)
+            {
+                // Знаходимо, чи обрана дата є серед тих, що в списку "Інші"
+                var activeExtraDate = availableDates.Skip(7).FirstOrDefault(d => d.ToString("yyyy-MM-dd") == selectedDateStr);
+                var hasActiveExtra = activeExtraDate != default(DateTime);
+
+                <div class="dropdown">
+                    <button class="btn @(hasActiveExtra ? "btn-primary shadow-sm" : "btn-outline-light text-dark") rounded-4 px-3 d-flex flex-column align-items-center justify-content-center border-0" 
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                            style="min-width: 75px; height: 55px; transition: 0.3s; background: @(hasActiveExtra ? "" : "#f8f9fa");">
+                    
+                        @if (hasActiveExtra)
+                        {
+                            @* Якщо вибрана дата з розширеного списку, показуємо її дані на кнопці *@
+                            <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem; opacity: 0.9;">@activeExtraDate.ToString("ddd")</span>
+                            <span class="fw-bold" style="font-size: 0.95rem;">@activeExtraDate.ToString("dd.MM")</span>
+                        }
+                        else
+                        {
+                            @* Якщо вибрана дата з перших семи, показуємо стандартний вигляд *@
+                            <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem; opacity: 0.7;">Інші</span>
+                            <i class="bi bi-calendar-plus" style="font-size: 1rem;"></i>
+                        }
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-2 p-2" style="max-height: 300px; overflow-y: auto;">
+                        @foreach (var date in availableDates.Skip(7))
+                        {
+                            var dateValue = date.ToString("yyyy-MM-dd");
+                            <li>
+                                <a class="dropdown-item rounded-3 py-2 @(selectedDateStr == dateValue ? "bg-primary text-white" : "")" 
+                                   href="@Url.Action("Index", "Sessions", new { date = dateValue, cinemaId = ViewBag.SelectedCinemaId, format = ViewBag.SelectedFormat, hallType = ViewBag.SelectedHallType })">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold">@date.ToString("dd MMMM")</span>
+                                        <span class="small opacity-75 text-uppercase ms-3">@date.ToString("ddd")</span>
+                                    </div>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
             }
         </div>
     </div>
@@ -189,4 +235,11 @@
     .overflow-hidden {
         overflow: hidden !important;
     }
+    .dropdown-menu::-webkit-scrollbar {
+    width: 4px;
+}
+.dropdown-menu::-webkit-scrollbar-thumb {
+    background: #ced4da;
+    border-radius: 10px;
+}
 </style>
