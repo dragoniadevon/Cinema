@@ -42,9 +42,6 @@
                     </a>
                 </div>
                 <div class="badge bg-danger mb-2 px-3 py-2 rounded-pill text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Панель адміністратора</div>
-                <button id="admin-lock-btn" class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm" onclick="toggleAdminLockMode()">
-                    <i class="bi bi-shield-lock me-2"></i>Увімкнути режим блокування
-                </button>
                 <h1 class="fw-bold text-dark mb-1 display-5">@Model.MovieTitle</h1>
                 
                 <div class="d-flex flex-wrap align-items-center gap-2 text-muted mb-1">
@@ -82,7 +79,7 @@
                     @if (hasVip)
                     {
                         <div class="d-flex align-items-center gap-3">
-                            <div class="seat-legend bg-vip-green"></div>
+                            <div class="seat-legend bg-vip-green" style="width: 38px; height: 32px;"></div>
                             <div class="d-flex flex-column text-black">
                                 <span class="category-label fw-bold">VIP</span>
                                 <span class="price-value">@vipPrice.ToString("0") ₴</span>
@@ -103,15 +100,16 @@
                             var rowSeats = Model.Seats.Where(s => s.Row == r).OrderBy(s => s.Number).ToList();
                             var isVipRow = rowSeats.All(s => s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
             
-                            <div class="seat-row">
+                            <div class="seat-row @(isVipRow ? "vip-row-margin" : "")">
                                 <div class="seats-row-wrapper @(isVipRow ? "vip-style" : "standard-style")">
                                     @foreach (var seat in rowSeats)
                                     {
                                         var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
-                                        string seatTypeClass = seat.IsBlocked ? "is-blocked" : (seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard"));
+                                        string seatTypeClass = seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard");
+                                        if (seat.IsBlocked) seatTypeClass = "is-blocked";
 
                                         <button type="button" 
-                                                class="seat-btn admin-mode @seatTypeClass" 
+                                                class="seat-btn admin-mode @seatTypeClass @(isVip ? "vip-size" : "")" 
                                                 data-seat-id="@seat.SeatId" 
                                                 data-row="@r" 
                                                 data-num="@seat.Number"
@@ -199,25 +197,12 @@
 </div>
 
 <style>
-    /* Місце, яке вже заблоковане в базі */
     .is-blocked { 
         background-color: #000000 !important; 
         color: #ffc107 !important; 
         border: 1px solid #333 !important;
+        cursor: default !important;
     }
-
-    /* Стан кнопки, коли вона просто обрана для масової дії */
-    .seat-btn.to-be-blocked {
-        background-color: #ffc107 !important;
-        color: #000 !important;
-        border: 2px dashed #000 !important;
-    }
-
-    /* Режим блокування: робимо кнопки курсором "вказівний палець" */
-    .hall-admin-active .seat-btn:not(.is-taken) {
-        cursor: pointer !important;
-    }
-    /* --- 1. АФІША ТА ПОСТЕР --- */
     .poster-wrapper {
         width: 100%;
         height: 550px;
@@ -232,83 +217,42 @@
         object-fit: cover;
         display: block;
     }
-
-    /* --- 2. ЛЕГЕНДА --- */
     .seat-legend { width: 32px; height: 26px; border-radius: 7px; }
     .bg-standard, .is-standard { background-color: #6c757d !important; color: white; }
     .bg-vip-green, .is-vip { background-color: #198754 !important; color: white; }
     .price-value { font-size: 1.2rem; font-weight: 900; }
-
-    /* --- 3. СХЕМА ЗАЛУ --- */
     .screen-curve { width: 80%; height: 5px; background: #343a40; border-radius: 50% / 100% 100% 0 0; }
     .screen-text { font-size: 11px; font-weight: 800; letter-spacing: 6px; color: #495057; }
     .hall-scroll-container { max-height: 550px; overflow: auto; padding: 5px 0; }
-    .hall-layout { display: flex; flex-direction: column; align-items: center; min-width: max-content; padding: 20px 40px; user-select: none;}
+    .hall-layout { display: flex; flex-direction: column; align-items: center; min-width: max-content; padding: 20px 40px; }
     .seat-row { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
     .seats-row-wrapper { display: flex; gap: 8px; }
-    .vip-style { gap: 18px; margin-top: 10px; }
-
-    /* Місця в адмін-режимі (div замість button) */
+    .vip-style { gap: 16px !important; } /* Збільшена відстань між VIP місцями */
+    .vip-row-margin { margin-bottom: 15px !important; } /* Додатковий простір між VIP рядами */
+    .vip-size { width: 44px !important; height: 34px !important; font-size: 15px !important; } /* Більший розмір VIP кнопок */
     .seat-btn { 
         width: 36px; height: 30px; border-radius: 7px; font-size: 13px; font-weight: bold; 
         line-height: 30px; text-align: center; flex-shrink: 0; display: inline-flex; 
-        align-items: center; justify-content: center; cursor: default;
+        align-items: center; justify-content: center; cursor: pointer;
         transition: transform 0.1s ease, background-color 0.2s ease;
+        border: none;
     }
     .is-taken { background-color: #e9ecef !important; color: #adb5bd !important; border: 1px solid #dee2e6 !important; }
-    .row-label { width: 30px; font-size: 12px; text-align: center; }
-
     @@media (max-width: 991.98px) {
         .poster-wrapper { height: 450px; max-width: 350px; margin: 0 auto; }
     }
     .seat-btn:active {
-        transform: scale(0.9); /* Візуальний відгук на натискання */
+        transform: scale(0.9);
     }
 </style>
-<script>
-    let isLockMode = false;
-    let seatsToChange = [];
-    let currentActiveSeatId = null;
 
-    function toggleAdminLockMode() {
-        const mainBtn = document.getElementById('admin-lock-btn');
-        const hallGrid = document.querySelector('.hall-layout');
-    
-        if (!isLockMode) {
-            isLockMode = true;
-            hallGrid.classList.add('hall-admin-active');
-            mainBtn.classList.replace('btn-dark', 'btn-warning');
-            mainBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Застосувати зміни';
-        } else {
-            if (seatsToChange.length > 0) {
-                applyBulkLock();
-            } else {
-                resetLockMode();
-            }
-        }
-    }
+<script>
+    let currentActiveSeatId = null;
 
     function handleSeatClick(btn) {
         const seatId = btn.dataset.seatId;
-
-        if (isLockMode) {
-            if (btn.classList.contains('is-taken')) {
-                alert("Неможливо заблокувати місце, на яке вже куплено квиток.");
-                return;
-            }
-
-            const index = seatsToChange.indexOf(seatId);
-            if (index > -1) {
-                seatsToChange.splice(index, 1);
-                btn.classList.remove('to-be-blocked');
-            } else {
-                seatsToChange.push(seatId);
-                btn.classList.add('to-be-blocked');
-            }
-            return;
-        }
-
         currentActiveSeatId = seatId;
+        
         const isTaken = btn.dataset.isTaken === "true";
         const info = JSON.parse(btn.dataset.info);
 
@@ -330,38 +274,6 @@
 
         const bsPanel = new bootstrap.Offcanvas(document.getElementById('adminSeatPanel'));
         bsPanel.show();
-    }
-
-    async function applyBulkLock() {
-        if (seatsToChange.length === 0) return;
-        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
-        const promises = seatsToChange.map(id => 
-            fetch(`/Admin/Sessions/ToggleBlockSeat?seatId=${id}`, {
-                method: 'POST',
-                headers: {
-                    'RequestVerificationToken': token,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-        );
-
-        try {
-            await Promise.all(promises);
-            location.reload();
-        } catch (error) {
-            console.error("Помилка:", error);
-            alert("Сталася помилка при збереженні.");
-        }
-    }
-
-    function resetLockMode() {
-        isLockMode = false;
-        seatsToChange = [];
-        document.getElementById('admin-lock-btn').classList.replace('btn-warning', 'btn-dark');
-        document.getElementById('admin-lock-btn').innerHTML = '<i class="bi bi-shield-lock me-2"></i>Увімкнути режим блокування';
-        document.querySelector('.hall-layout').classList.remove('hall-admin-active');
-        document.querySelectorAll('.to-be-blocked').forEach(el => el.classList.remove('to-be-blocked'));
     }
 
     async function cancelTicketAction() {

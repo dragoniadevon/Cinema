@@ -75,7 +75,7 @@
                     @if (hasVip)
                     {
                         <div class="d-flex align-items-center gap-3">
-                            <div class="seat-legend bg-vip-green"></div>
+                            <div class="seat-legend bg-vip-green" style="width: 38px; height: 32px;"></div>
                             <div class="d-flex flex-column text-black">
                                 <span class="category-label fw-bold">VIP</span>
                                 <span class="price-value">@vipPrice.ToString("0") ₴</span>
@@ -93,25 +93,26 @@
                     <div class="hall-layout">
                         @for (int r = 1; r <= Model.Rows; r++)
                         {
-                            <div class="seat-row">
-                
-                                <div class="seats-row-wrapper">
-                                    @foreach (var seat in Model.Seats.Where(s => s.Row == r).OrderBy(s => s.Number))
+                            var rowSeats = Model.Seats.Where(s => s.Row == r).OrderBy(s => s.Number).ToList();
+                            var isVipRow = rowSeats.All(s => s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
+            
+                            <div class="seat-row @(isVipRow ? "vip-row-margin" : "")">
+                                <div class="seats-row-wrapper @(isVipRow ? "vip-style" : "standard-style")">
+                                    @foreach (var seat in rowSeats)
                                     {
                                         var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
 
                                         string seatTypeClass = seat.IsBlocked ? "is-blocked" : (seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard"));
-
                                         bool isDisabled = seat.IsTaken || seat.IsBlocked;
 
-                                        <button class="btn shadow-none seat-btn @seatTypeClass"
+                                        <button class="btn shadow-none seat-btn @seatTypeClass @(isVip ? "vip-size" : "")"
                                                 data-id="@seat.SeatId" 
                                                 data-row="@r" 
                                                 data-num="@seat.Number"
                                                 data-price="@(isVip ? vipPrice : standardPrice)"
                                                 @(isDisabled ? "disabled" : "")
                                                 title="@(seat.IsBlocked ? "Технічна перерва" : (seat.IsTaken ? "Зайнято" : $"Ряд {r}, Місце {seat.Number}"))">
-                            
+                                            
                                             @if (seat.IsBlocked) {
                                                 <i class="bi bi-slash-circle"></i>
                                             } else if (seat.IsTaken) {
@@ -135,9 +136,7 @@
         style="bottom: 30px; right: 30px; width: 70px; height: 70px; border-radius: 50%; z-index: 1050;"
         onclick="toggleCart()">
     <i class="bi bi-cart3 fs-2"></i>
-    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
-        0
-    </span>
+    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">0</span>
 </button>
 
 <div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="cartOffcanvas" data-bs-backdrop="false" style="border-radius: 30px 0 0 30px; width: 380px;">
@@ -146,7 +145,6 @@
             <h5 class="offcanvas-title fw-bold m-0"><i class="bi bi-ticket-perforated me-2"></i>Ваше замовлення</h5>
             <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas"></button>
         </div>
-    
         <div id="reservation-timer" class="d-none mt-3 w-100 text-center">
             <div class="d-inline-flex align-items-center justify-content-center">
                 <i class="bi bi-clock-history text-danger me-2 fs-4"></i>
@@ -155,9 +153,7 @@
         </div>
     </div>
     <div class="offcanvas-body p-4">
-        <div id="cart-items-container" class="d-flex flex-column gap-3 mb-4">
-        </div>
-        
+        <div id="cart-items-container" class="d-flex flex-column gap-3 mb-4"></div>
         <div id="payment-block" class="border-top pt-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <span class="text-muted fw-bold fs-5">До оплати:</span>
@@ -171,7 +167,7 @@
 </div>
 
 <style>
-    /* --- 1. АФІША ТА ПОСТЕР --- */
+    /* --- АФІША ТА ПОСТЕР --- */
     .poster-wrapper {
         width: 100%;
         height: 550px;
@@ -181,196 +177,43 @@
         background-color: #f8f9fa;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
+    .poster-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+    .poster-wrapper:hover .poster-img { transform: scale(1.05); }
 
-    .poster-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        transition: transform 0.5s ease;
-    }
+    /* --- ЛЕГЕНДА --- */
+    .seat-legend { width: 32px; height: 26px; border-radius: 7px; }
+    .bg-standard, .is-standard { background-color: #6c757d !important; color: white; }
+    .bg-vip-green, .is-vip { background-color: #198754 !important; color: white; }
+    .price-value { font-size: 1.2rem; font-weight: 900; color: #000; }
 
-    .poster-wrapper:hover .poster-img {
-        transform: scale(1.05);
-    }
+    /* --- СХЕМА ЗАЛУ ТА МІСЦЯ --- */
+    .screen-curve { width: 80%; height: 5px; background: #343a40; border-radius: 50% / 100% 100% 0 0; }
+    .screen-text { font-size: 11px; font-weight: 800; letter-spacing: 6px; color: #495057; }
+    .hall-scroll-container { max-height: 550px; overflow: auto; padding: 5px 0; scrollbar-width: thin; }
+    .hall-layout { display: flex; flex-direction: column; align-items: center; min-width: max-content; padding: 20px 40px; }
+    .seat-row { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+    .seats-row-wrapper { display: flex; }
 
-    /* --- 2. ЛЕГЕНДА ТА КАТЕГОРІЇ --- */
-    .seat-legend { 
-        width: 32px; 
-        height: 26px; 
-        border-radius: 7px; 
-    }
-
-    .bg-standard, .is-standard { 
-        background-color: #6c757d !important; 
-        color: white; 
-    }
-
-    .bg-vip-green, .is-vip { 
-        background-color: #198754 !important; 
-        color: white; 
-    }
-
-    .price-value { 
-        font-size: 1.2rem; 
-        font-weight: 900; 
-        color: #000;
-    }
-
-    .category-label {
-        font-size: 0.85rem;
-        color: #000;
-    }
-
-    /* --- 3. СХЕМА ЗАЛУ ТА МІСЦЯ --- */
-    .screen-curve { 
-        width: 80%; 
-        height: 5px; 
-        background: #343a40; 
-        border-radius: 50% / 100% 100% 0 0; 
-    }
-
-    .screen-text { 
-        font-size: 11px; 
-        font-weight: 800; 
-        letter-spacing: 6px; 
-        color: #495057; 
-    }
-
-    .hall-scroll-container { 
-        max-height: 550px; 
-        overflow: auto; 
-        padding: 5px 0; 
-        scrollbar-width: thin;
-    }
-
-    .hall-layout { 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        min-width: max-content; 
-        padding: 20px 40px; 
-    }
-
-    .seat-row { 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        margin-bottom: 8px; 
-    }
-
-    .seats-row-wrapper { 
-        display: flex; 
-        gap: 8px; 
-    }
-
+    /* Динамічні стилі для типів рядів */
     .standard-style { gap: 8px; }
-    .vip-style { gap: 18px; margin-top: 10px; }
-
+    .vip-style { gap: 16px !important; }
+    .vip-row-margin { margin-bottom: 15px !important; }
+    
     .seat-btn { 
-        width: 36px;
-        height: 30px; 
-        padding: 0;
-        border-radius: 7px; 
-        border: none; 
-        font-size: 13px;
-        font-weight: bold; 
-        line-height: 30px;
-        text-align: center;
-        transition: all 0.2s ease; 
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        width: 36px; height: 30px; border-radius: 7px; border: none; font-size: 13px; font-weight: bold; 
+        line-height: 30px; text-align: center; transition: all 0.2s ease; flex-shrink: 0; 
+        display: inline-flex; align-items: center; justify-content: center;
     }
-
-    .is-taken { 
-        background-color: #e9ecef !important; 
-        color: #adb5bd !important; 
-        cursor: not-allowed; 
-        border: 1px solid #dee2e6 !important; 
-    }
-
-    .seat-btn:not(:disabled):hover { 
-        transform: translateY(-3px) scale(1.15); 
-        z-index: 10; 
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-    }
-
-    .seat-btn.selected { 
-        background-color: #ffc107 !important; 
-        color: #000 !important; 
-        transform: scale(1.1);
-        box-shadow: 0 0 15px rgba(255,193,7,0.5); 
-    }
-
-    .row-label { width: 30px; font-size: 12px; text-align: center; }
-
-    /* --- 4. ТАЙМЕР (МІНІМАЛІСТИЧНИЙ) --- */
-    .timer-minimal {
-        font-size: 2.2rem;
-        font-weight: 800;
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -1px;
-        line-height: 1;
-    }
-
-    .timer-urgent {
-        animation: pulse-red 1s infinite;
-    }
-
-    @@keyframes pulse-red {
-        0% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.7; transform: scale(1.05); }
-        100% { opacity: 1; transform: scale(1); }
-    }
-
-    /* --- 5. КОШИК ТА ОПЛАТА --- */
-    .cart-item { 
-        background: #f8f9fa; 
-        border-radius: 15px; 
-        padding: 15px; 
-        border: 1px solid #eee; 
-        transition: 0.3s;
-    }
-
-    .cart-item:hover {
-        background: #fff;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-
-    #payment-block {
-        transition: all 0.3s ease;
-    }
-
-    .hover-up:hover { 
-        transform: translateY(-2px); 
-        transition: 0.3s; 
-    }
-
-    /* --- 6. АДАПТИВНІСТЬ --- */
-    @@media (max-width: 991.98px) {
-        .poster-wrapper { 
-            height: 450px; 
-            max-width: 350px; 
-            margin: 0 auto; 
-        }
-        .timer-minimal {
-            font-size: 1.8rem;
-        }
-    }
-
-.seat-btn.is-blocked {
-    background-color: #212529 !important;
-    color: #ffc107 !important;
-    opacity: 1 !important;
-    cursor: not-allowed;
-    border: 1px solid #000 !important;
-}
-.is-blocked i {
-    font-size: 0.9rem;
-}
+    .vip-size { width: 44px !important; height: 34px !important; font-size: 15px !important; }
+    .is-taken { background-color: #e9ecef !important; color: #adb5bd !important; cursor: not-allowed; border: 1px solid #dee2e6 !important; }
+    .is-blocked { background-color: #212529 !important; color: #ffc107 !important; cursor: not-allowed; border: 1px solid #000 !important; }
+    .seat-btn:not(:disabled):hover { transform: translateY(-3px) scale(1.15); z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .seat-btn.selected { background-color: #ffc107 !important; color: #000 !important; transform: scale(1.1); box-shadow: 0 0 15px rgba(255,193,7,0.5); border: 2px solid #000 !important; }
+    .timer-minimal { font-size: 2.2rem; font-weight: 800; font-family: sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+    .timer-urgent { animation: pulse-red 1s infinite; }
+    @@keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.7; transform: scale(1.05); } 100% { opacity: 1; } }
+    .cart-item { background: #f8f9fa; border-radius: 15px; padding: 15px; border: 1px solid #eee; }
+    .hover-up:hover { transform: translateY(-2px); transition: 0.3s; }
 </style>
 
 <script>
