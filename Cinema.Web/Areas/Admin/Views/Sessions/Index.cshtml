@@ -1,9 +1,11 @@
-﻿﻿@model IEnumerable<global::Cinema.Web.Models.Sessions.SessionsByDateVm>
+﻿@model IEnumerable<global::Cinema.Web.Models.Sessions.SessionsByDateVm>
 @using global::Cinema.Infrastructure.Entities
+@using global::Cinema.Infrastructure.Entities.Enums
 
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Керування розкладом";
+    var now = DateTime.UtcNow;
 }
 
 <div class="container mt-4">
@@ -141,27 +143,34 @@
                                     </div>
 
                                     <div class="col-7">
-                                        <div class="card-body d-flex flex-column h-100 p-3"> 
+                                        <div class="card-body d-flex flex-column h-100 p-3">
                                             <h6 class="card-title fw-bold text-dark mb-1 text-truncate-2">@firstMovie.Title</h6>
-                                            <p class="small text-muted mb-2">
+                                            <p class="small text-muted mb-3">
                                                 <i class="bi bi-clock-history me-1"></i>@firstMovie.Duration хв.
                                             </p>
-
-                                            <div class="cinema-sessions-list">
+                        
+                                            <div class="cinema-sessions-list flex-grow-1 overflow-auto" style="max-height: 180px;">
                                                 @foreach (var cinemaItem in movieGroup)
                                                 {
-                                                    <div class="mb-3">
-                                                        <div class="cinema-label text-dark mb-1" style="font-size: 0.7rem; line-height: 1.2;">
+                                                    <div class="mb-2">
+                                                        <div class="cinema-label text-dark mb-1" style="font-size: 0.75rem;">
                                                             <i class="bi bi-geo-alt text-primary"></i> 
-                                                            <strong>@cinemaItem.CinemaName</strong>
+                                                            <strong>@cinemaItem.CinemaName</strong> 
+                                                            <span class="text-muted fw-normal ms-1">(@cinemaItem.Movie.Sessions.First().Hall?.Cinema?.City)</span>
                                                         </div>
                                                         <div class="d-flex flex-wrap gap-1">
                                                             @foreach (var session in cinemaItem.Movie.Sessions)
                                                             {
+                                                                @* Обчислюємо наявність реально активних квитків *@
+                                                                var hasActiveTickets = session.Tickets.Any(t =>
+                                                                        t.Status == (short)TicketStatus.Paid ||
+                                                                        (t.Status == (short)TicketStatus.Reserved &&
+                                                                        now <= t.Bookingtime.AddMinutes(10))
+                                                                    );
                                                                 <div class="dropdown">
-                                                                    <button class="btn btn-sm border-0 p-1 fw-bold session-minimal-btn dropdown-toggle" 
-                                                                            data-bs-toggle="dropdown" 
-                                                                            data-bs-boundary="viewport">
+                                                                    <button class="btn btn-sm border-0 p-1 fw-bold session-minimal-btn dropdown-toggle 
+                                                                            @((session.Isactive ?? false) ? (hasActiveTickets ? "text-info" : "text-dark") : "text-danger")" 
+                                                                            type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
                                                                         @session.Starttime.ToString("HH:mm")
                                                                     </button>
                                                                     <ul class="dropdown-menu shadow-lg border-0 rounded-4 p-2">
@@ -298,28 +307,36 @@
 
 <style>
     .rounded-5 { border-radius: 25px !important; }
+
     .hover-card { 
         transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); 
         border: 1px solid #f0f0f0 !important;
     }
+
     .hover-card:hover { 
         transform: translateY(-5px); 
         box-shadow: 0 10px 25px rgba(0,0,0,0.07) !important; 
     }
+
     .poster-zoom { transition: transform 0.6s ease; }
     .hover-card:hover .poster-zoom { transform: scale(1.08); }
+
     .session-minimal-btn { 
         background: transparent !important;
         transition: all 0.2s ease;
         box-shadow: none !important;
         position: relative;
         z-index: 1;
-    }    
+    }
+    
     .session-minimal-btn:hover { 
         color: #0d6efd !important; 
         transform: scale(1.15);
-    }    
+    }
+    
     .session-minimal-btn::after { display: none; }
+
+
     .text-truncate-2 { 
         display: -webkit-box; 
         -webkit-line-clamp: 2; 
@@ -332,34 +349,24 @@
         position: relative;
         z-index: 1050;
     }
+
     .dropdown-menu {
-        position: fixed !important;
+        position: absolute;
         z-index: 1100 !important;
         box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
         border: 1px solid #eee !important;
     }
-    .hover-card {
-        min-height: 230px;
-        display: flex;
-        flex-direction: row;
-        height: 100%;
-    }
+
     .cinema-sessions-list {
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        max-height: 140px !important;
-        padding-right: 8px;
-        margin-top: 5px;
+        overflow: visible !important;
+        max-height: none !important;
     }
-    .cinema-sessions-list::-webkit-scrollbar {
-        width: 3px;
+
+    .card-body {
+        overflow: visible !important;
     }
-    .cinema-sessions-list::-webkit-scrollbar-thumb {
-        background: #ced4da;
-        border-radius: 10px;
-    }
-    .poster-zoom {
-        min-height: 100%;
-        object-fit: cover;
+
+    .movie-card {
+        overflow: visible !important;
     }
 </style>
