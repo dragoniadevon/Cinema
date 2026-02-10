@@ -28,6 +28,8 @@ namespace Cinema.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
+            await CleanupExpiredReservations();
+
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
 
@@ -61,8 +63,6 @@ namespace Cinema.Web.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
-
-            await CleanupExpiredReservations();
 
             user.FirstName = model.User.FirstName;
             user.LastName = model.User.LastName;   // нове поле
@@ -102,34 +102,24 @@ namespace Cinema.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReturnTicket(int id)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return Challenge();
+            var userId = _userManager.GetUserId(User);
+            if (!int.TryParse(userId, out var uid))
+                return RedirectToAction("Login", "Account");
 
             var ticket = await _context.Tickets
-                .Include(t => t.Session)
-                .FirstOrDefaultAsync(t => t.Id == id && t.Userid == user.Id);
+                .FirstOrDefaultAsync(t => t.Id == id && t.Userid == uid);
 
             if (ticket == null)
                 return NotFound();
 
-            // ✅ можна повертати тільки оплачені квитки
+            // Повернути можна тільки оплачені квитки
             if (ticket.Status != (short)TicketStatus.Paid)
             {
-                TempData["Error"] = "Цей квиток не можна повернути.";
-                return RedirectToAction("Index");
-            }
-
-            // ⏰ не можна після початку сеансу
-            if (ticket.Session.Starttime <= DateTime.Now)
-            {
-                TempData["Error"] = "Сеанс уже почався. Повернення неможливе.";
+                TempData["Error"] = "Можна повернути лише оплачений квиток.";
                 return RedirectToAction("Index");
             }
 
             ticket.Status = (short)TicketStatus.Cancelled;
-            ticket.IsReturned = true; // можна залишити, але тільки як “історію”
-
             await _context.SaveChangesAsync();
 
             TempData["TicketReturned"] = true;

@@ -1,9 +1,11 @@
 ﻿@model IEnumerable<global::Cinema.Web.Models.Sessions.SessionsByDateVm>
 @using global::Cinema.Infrastructure.Entities
+@using global::Cinema.Infrastructure.Entities.Enums
 
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Керування розкладом";
+    var now = DateTime.UtcNow;
 }
 
 <div class="container mt-4">
@@ -159,8 +161,15 @@
                                                         <div class="d-flex flex-wrap gap-1">
                                                             @foreach (var session in cinemaItem.Movie.Sessions)
                                                             {
+                                                                @* Обчислюємо наявність реально активних квитків *@
+                                                                var hasActiveTickets = session.Tickets.Any(t =>
+                                                                        t.Status == (short)TicketStatus.Paid ||
+                                                                        (t.Status == (short)TicketStatus.Reserved &&
+                                                                        now <= t.Bookingtime.AddMinutes(10))
+                                                                    );
                                                                 <div class="dropdown">
-                                                                    <button class="btn btn-sm border-0 p-1 fw-bold session-minimal-btn dropdown-toggle @((session.Isactive ?? false) ? (session.Tickets.Any() ? "text-info" : "text-dark") : "text-danger")" 
+                                                                    <button class="btn btn-sm border-0 p-1 fw-bold session-minimal-btn dropdown-toggle 
+                                                                            @((session.Isactive ?? false) ? (hasActiveTickets ? "text-info" : "text-dark") : "text-danger")" 
                                                                             type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
                                                                         @session.Starttime.ToString("HH:mm")
                                                                     </button>

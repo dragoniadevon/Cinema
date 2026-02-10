@@ -174,10 +174,19 @@ namespace Cinema.Web.Controllers
                 .ThenBy(s => s.Seatnumber)
                 .ToListAsync();
 
+            var now = DateTime.UtcNow;
             var takenSeatIds = await _context.Tickets
-                .Where(t => t.Sessionid == id && !t.IsReturned)
+                .Where(t =>
+                    t.Sessionid == id &&
+                    (
+                        t.Status == (short)TicketStatus.Paid ||
+                        (t.Status == (short)TicketStatus.Reserved &&
+                        now <= t.Bookingtime.AddMinutes(10))
+                    )
+                )
                 .Select(t => t.Seatid)
                 .ToListAsync();
+
 
             var movie = session.Movie;
             var hall = session.Hall;

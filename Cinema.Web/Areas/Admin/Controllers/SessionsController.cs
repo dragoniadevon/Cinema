@@ -69,8 +69,7 @@ public class SessionsController : Controller
         else if (mode == "cancelled")
         {
             query = query.Where(s =>
-                (s.Isactive == false || s.Hall.Isactive == false) &&
-                (s.Endtime >= DateTime.Now || s.Tickets.Any(t => s.Isactive == false)));
+                s.Isactive == false || s.Hall.Isactive == false);
         }
         else
         {
@@ -501,10 +500,19 @@ public class SessionsController : Controller
             .OrderBy(s => s.Rownumber).ThenBy(s => s.Seatnumber)
             .ToListAsync();
 
+        var now = DateTime.UtcNow;
         var takenSeatIds = await _context.Tickets
-            .Where(t => t.Sessionid == id && !t.IsReturned)
+            .Where(t =>
+                t.Sessionid == id &&
+                (
+                    t.Status == (short)TicketStatus.Paid ||
+                    (t.Status == (short)TicketStatus.Reserved &&
+                     now <= t.Bookingtime.AddMinutes(10))
+                )
+            )
             .Select(t => t.Seatid)
             .ToListAsync();
+
 
         var vm = new SessionDetailsVm
         {
@@ -540,15 +548,26 @@ public class SessionsController : Controller
                 Price = sp.Price
             }).ToList(),
 
-            Seats = seats.Select(s => {
-                var ticket = session.Tickets.FirstOrDefault(t => t.Seatid == s.Id && !t.IsReturned);
+            Seats = seats.Select(s =>
+            {
+                // Отримуємо квиток, тільки якщо його ID є у списку реально зайнятих місць
+                var isSeatActuallyTaken = takenSeatIds.Contains(s.Id);
+
+                var ticket = session.Tickets.FirstOrDefault(t =>
+                t.Seatid == s.Id &&
+                (
+                    t.Status == (short)TicketStatus.Paid ||
+                    (t.Status == (short)TicketStatus.Reserved &&
+                    DateTime.UtcNow <= t.Bookingtime.AddMinutes(10))
+                ));
+
 
                 return new SeatDetailsVm
                 {
                     SeatId = s.Id,
                     Row = s.Rownumber ?? 0,
                     Number = s.Seatnumber ?? 0,
-                    IsTaken = ticket != null,
+                    IsTaken = isSeatActuallyTaken, // Тепер це значення базується на вашій новій логіці
                     IsBlocked = s.IsBlocked,
                     CategoryName = s.Pricecategory?.Name ?? "Стандарт",
 
@@ -575,12 +594,18 @@ public class SessionsController : Controller
         try
         {
             var ticket = await _context.Tickets
-                .FirstOrDefaultAsync(t => t.Seatid == seatId && t.Sessionid == sessionId && !t.IsReturned);
+            .FirstOrDefaultAsync(t =>
+                t.Seatid == seatId &&
+                t.Sessionid == sessionId &&
+                (
+                    t.Status == (short)TicketStatus.Paid ||
+                    t.Status == (short)TicketStatus.Reserved
+                ));
 
             if (ticket == null)
                 return Json(new { success = false, message = "Активний квиток не знайдено." });
 
-            ticket.IsReturned = true;
+            ticket.Status = (short)TicketStatus.Cancelled;
 
             await _context.SaveChangesAsync();
             return Json(new { success = true });

@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Cinema.Infrastructure.Entities;
+using Cinema.Infrastructure.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Cinema.Web.Models.Payments;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Cinema.Web.Controllers;
 
@@ -31,32 +36,45 @@ public class PaymentsController : Controller
             .ToList();
 
         var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-            return Challenge();
+        if (user == null) return Challenge();
 
         var tickets = await _db.Tickets
             .Include(t => t.Seat)
-            .Include(t => t.Session)
-                .ThenInclude(s => s.Movie)
+            .Include(t => t.Session).ThenInclude(s => s.Movie)
             .Where(t =>
                 ids.Contains(t.Id) &&
                 t.Userid == user.Id &&
-                t.Status == (short)TicketStatus.Reserved)
+                t.Status == (short)TicketStatus.Reserved
+            )
             .ToListAsync();
 
         if (!tickets.Any())
             return RedirectToAction("Index", "Profile");
 
-        // ⏱ Перевірка таймера (10 хв)
+        // 1. ПЕРЕВІРКА НА ЗАСТАРІЛУ БРОНЬ
         var now = DateTime.UtcNow;
-        var expired = tickets.Any(t =>
-            now > t.Bookingtime.AddMinutes(10));
+        var expired = tickets.Any(t => t.Status == (short)TicketStatus.Reserved && now > t.Bookingtime.AddMinutes(10));
 
         if (expired)
         {
-            TempData["Error"] = "Час бронювання минув.";
-            return RedirectToAction("Index", "Profile");
+            // Автоматично звільняємо місця
+            foreach (var t in tickets.Where(x => x.Status == (short)TicketStatus.Reserved))
+            {
+                t.Status = (short)TicketStatus.Cancelled;
+            }
+            await _db.SaveChangesAsync();
+
+            TempData["Error"] = "Час бронювання минув. Будь ласка, оберіть місця знову.";
+            return RedirectToAction("Details", "Sessions", new { id = tickets.First().Sessionid });
         }
+
+        // 2. ПЕРЕВІРКА, ЧИ НЕ ОПЛАЧЕНО ВЖЕ
+        if (tickets.All(t => t.Status == (short)TicketStatus.Paid))
+        {
+            return RedirectToAction("OrderConfirmation", "Tickets", new { ticketIds = ticketIds });
+        }
+
+        var minBookingTime = tickets.Any() ? tickets.Min(t => t.Bookingtime) : DateTime.UtcNow;
 
         var vm = new PaymentVm
         {
@@ -70,7 +88,7 @@ public class PaymentsController : Controller
             }).ToList(),
 
             TotalAmount = tickets.Sum(t => t.Price),
-            MinutesLeft = 10 - (int)(now - tickets.Min(t => t.Bookingtime)).TotalMinutes
+            MinutesLeft = Math.Max(0, 10 - (int)(now - minBookingTime).TotalMinutes)
         };
 
         return View(vm);
@@ -85,50 +103,57 @@ public class PaymentsController : Controller
             return RedirectToAction("Index", "Profile");
 
         var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-            return Challenge();
+        if (user == null) return Challenge();
 
-        var tickets = await _db.Tickets
-            .Include(t => t.Payment)
-            .Where(t =>
-                ticketIds.Contains(t.Id) &&
-                t.Userid == user.Id &&
-                t.Status == (short)TicketStatus.Reserved)
-            .ToListAsync();
-
-        if (!tickets.Any())
-            return RedirectToAction("Index", "Profile");
-
-        var now = DateTime.UtcNow;
-
-        foreach (var ticket in tickets)
+        // Використовуємо транзакцію для безпеки даних
+        using (var transaction = await _db.Database.BeginTransactionAsync())
         {
-            if (now > ticket.Bookingtime.AddMinutes(10))
+            try
             {
-                TempData["Error"] = "Час бронювання минув.";
+                var tickets = await _db.Tickets
+                    .Where(t => ticketIds.Contains(t.Id) && t.Userid == user.Id && t.Status == (short)TicketStatus.Reserved)
+                    .ToListAsync();
+
+                if (!tickets.Any())
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "Час бронювання минув або квиток більше недоступний.";
+                    return RedirectToAction("Index", "Profile");
+                }
+
+                var now = DateTime.UtcNow;
+
+                foreach (var ticket in tickets)
+                {
+                    // Подвійна перевірка часу прямо перед записом в БД
+                    if (now > ticket.Bookingtime.AddMinutes(10))
+                    {
+                        throw new Exception("Timeout");
+                    }
+
+                    var payment = new Payment
+                    {
+                        Ticketid = ticket.Id,
+                        Amount = ticket.Price,
+                        Paymentdate = now,
+                        Status = (short)PaymentStatus.Paid
+                    };
+
+                    ticket.Status = (short)TicketStatus.Paid;
+                    _db.Payments.Add(payment);
+                }
+
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return RedirectToAction("OrderConfirmation", "Tickets", new { ticketIds = string.Join(",", ticketIds) });
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                TempData["Error"] = "Помилка при оплаті або час бронювання вичерпано.";
                 return RedirectToAction("Index", "Profile");
             }
-
-            var payment = new Payment
-            {
-                Ticketid = ticket.Id,
-                Amount = ticket.Price,
-                Paymentdate = now,
-                Status = (short)PaymentStatus.Paid
-            };
-
-            ticket.Status = (short)TicketStatus.Paid;
-
-            _db.Payments.Add(payment);
         }
-
-        await _db.SaveChangesAsync();
-
-        return RedirectToAction(
-            "OrderConfirmation",
-            "Tickets",
-            new { ticketIds = string.Join(",", ticketIds) }
-        );
     }
-
 }
