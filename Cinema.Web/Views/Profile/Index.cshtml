@@ -107,7 +107,7 @@
                                     var expiryTime = ticket.BookingTime?.AddMinutes(10)
                                         .ToString("yyyy-MM-ddTHH:mm:ss");
 
-                                    <div class="card mb-3 ticket-card border-0 shadow-sm @(ticket.IsReserved ? "reserved" : "paid")">
+                                    <div                        class="card mb-3 ticket-card border-0 shadow-sm @(ticket.IsReserved ? "reserved" : "paid")">
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start mb-3">
                                                 <div>
@@ -203,7 +203,7 @@
                                                     }
                                                 </div>
 
-                                                <p id="countdown-@ticket.TicketId"   class="text-primary fw-bold mb-2"
+                                                <p id="countdown-@ticket.TicketId" class="text-primary fw-bold mb-2"
                                                    style="font-size: 0.85rem;"></p>
 
                                                 <script>
@@ -251,48 +251,43 @@
                             <div class="tab-pane fade" id="archive">
                                 @foreach (var ticket in Model.HistoryTickets)
                                 {
-                                    <div class="card mb-3 border-0 bg-light rounded-4">
-                                        <div class="card-body p-3">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div>
-                                                    <h6 class="fw-bold mb-1">@ticket.MovieTitle</h6>
+                                    <div class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card">
+                                        <div class="card-body p-0">
+                                            <div class="row g-0 align-items-center" style="min-height: 100px;">
 
-                                                    <small class="text-muted d-block">
-                                                        <i class="bi bi-geo-alt"></i>
-                                                        @ticket.CinemaName • @ticket.HallName
-                                                    </small>
-
-                                                    <small class="text-muted d-block">
-                                                        🏙 @ticket.CinemaCity
-                                                    </small>
-
-                                                    <small class="text-muted d-block">
-                                                        🕒 @ticket.StartTime.ToString("dd.MM.yyyy HH:mm")
-                                                    </small>
-
-                                                    <small class="text-muted d-block">
-                                                        🎟 Ряд @ticket.Row, Місце @ticket.Seat
-                                                    </small>
+                                                <div class="col-md-5 p-3">
+                                                    <h6 class="fw-bold mb-1 text-dark">@ticket.MovieTitle</h6>
+                                                    <div class="text-muted small">
+                                                        <i class="bi bi-geo-alt"></i>@ticket.CinemaCity • @ticket.CinemaName •
+                                                        @ticket.HallName
+                                                    </div>
+                                                    <div class="text-muted small mt-1">
+                                                        <i class="bi bi-calendar3"></i> @ticket.StartTime.ToString("dd.MM.yyyy                                               HH:mm")
+                                                    </div>
                                                 </div>
 
-                                                <div class="text-end">
-                                                    <span class="badge @ticket.BadgeClass rounded-pill mb-1">
+                                                <div
+                                                    class="col-md-3 p-3 bg-light h-100 d-flex flex-column justify-content-center border-start border-end border-white text-center text-md-start">
+                                                    <div class="small text-muted text-uppercase fw-bold"
+                                                         style="font-size: 0.6rem;">Місце</div>
+                                                    <div class="fw-bold text-dark">Ряд @ticket.Row, Місце @ticket.Seat</div>
+                                                    <div class="mt-1 fw-bold text-primary">@ticket.Price.ToString("N2") ₴</div>
+                                                </div>
+
+                                                <div class="col-md-4 p-3 text-center text-md-end">
+                                                    <span class="badge @ticket.BadgeClass rounded-pill px-3 py-2 mb-2">
                                                         @ticket.ActionText
                                                     </span>
-
-                                                    <small class="d-block text-muted" style="font-size: 0.75rem;">
+                                                    <div class="small text-muted">
+                                                        <i class="bi bi-clock-history"></i>
                                                         @ticket.ActionTime.ToString("dd.MM.yyyy HH:mm")
-                                                    </small>
-
-                                                    <h6 class="fw-bold mt-2 mb-0">
-                                                        @ticket.Price.ToString("N2") ₴
-                                                    </h6>
+                                                    </div>
                                                 </div>
+
                                             </div>
                                         </div>
                                     </div>
                                 }
-
                             </div>
                         </div>
                     }
@@ -345,5 +340,20 @@
 
     .tab-pane {
         transition: opacity 0.4s ease-in-out;
+    }
+
+    .history-card {
+        border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        transition: transform 0.2s ease;
+    }
+
+    .history-card:hover {
+        transform: translateX(5px);
+        background-color: #fafafa;
+    }
+
+    .bi {
+        margin-right: 4px;
+        vertical-align: baseline;
     }
 </style>
