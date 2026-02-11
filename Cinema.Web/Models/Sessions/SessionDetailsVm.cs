@@ -57,4 +57,7 @@ public class SeatDetailsVm
     public string? CustomerName { get; set; }
     public string? CustomerEmail { get; set; }
     public DateTime? PurchaseDate { get; set; }
+    public string? StatusInfo { get; set; } // Для "Оплачено" / "Бронювання"
+    public string? RefundInfo { get; set; } // Для інформації про скасування
+
 }

@@ -111,18 +111,21 @@
                                         string seatTypeClass = seat.IsBlocked ? "is-blocked" : (seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard"));
 
                                         <button type="button" 
-                                                class="seat-btn admin-mode @seatTypeClass" 
-                                                data-seat-id="@seat.SeatId" 
-                                                data-row="@r" 
-                                                data-num="@seat.Number"
-                                                data-category="@seat.CategoryName"
-                                                data-is-taken="@seat.IsTaken.ToString().ToLower()"
-                                                data-info='{"name":"@seat.CustomerName", "email":"@seat.CustomerEmail", "price":"@seat.Price", "date":"@seat.PurchaseDate?.ToString("dd.MM.yyyy HH:mm")"}'
-                                                onclick="handleSeatClick(this)">
-                                            @if (seat.IsBlocked) { <i class="bi bi-tools"></i> }
-                                            else if (seat.IsTaken) { <i class="bi bi-x-lg"></i> }
-                                            else { @seat.Number }
-                                        </button>
+                                            class="seat-btn admin-mode @seatTypeClass @(isVip ? "vip-size" : "")" 
+                                            data-seat-id="@seat.SeatId" 
+                                            data-row="@r" 
+                                            data-num="@seat.Number"
+                                            data-category="@seat.CategoryName"
+                                            data-is-taken="@seat.IsTaken.ToString().ToLower()"
+                                            @* ОЦІ ДВА РЯДКИ ВАЖЛИВІ *@
+                                            data-status="@seat.StatusInfo"
+                                            data-refund="@seat.RefundInfo"
+                                            data-info='{"name":"@seat.CustomerName", "email":"@seat.CustomerEmail", "price":"@seat.Price", "date":"@seat.PurchaseDate?.ToString("dd.MM.yyyy HH:mm")"}'
+                                            onclick="handleSeatClick(this)">
+                                        @if (seat.IsBlocked) { <i class="bi bi-tools"></i> }
+                                        else if (seat.IsTaken) { <i class="bi bi-person-badge"></i> }
+                                        else { @seat.Number }
+                                    </button>
                                     }
                                 </div>
                             </div>
@@ -149,7 +152,7 @@
     </div>
 </div>
 
-<div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="adminSeatPanel" style="border-radius: 30px 0 0 30px; width: 400px;">
+<div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="adminSeatPanel" style="border-radius: 30px 0 0 30px; width: 420px;">
     <div class="offcanvas-header border-bottom p-4">
         <h5 class="offcanvas-title fw-bold text-primary"><i class="bi bi-info-circle-fill me-2"></i>Керування місцем</h5>
         <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas"></button>
@@ -157,8 +160,11 @@
     <div class="offcanvas-body p-4 text-black">
         <div id="seat-info-content">
             <div class="text-center mb-4">
-                <div class="display-5 fw-bold text-dark" id="panel-seat-label">Ряд 0, Місце 0</div>
-                <span class="badge bg-light text-secondary border px-3 py-2 mt-2 fs-6" id="panel-seat-type">Категорія</span>
+                <div class="display-6 fw-bold text-dark" id="panel-seat-label">Ряд 0, Місце 0</div>
+                <div class="d-flex justify-content-center gap-2 mt-2">
+                    <span class="badge bg-light text-secondary border px-3 py-2 fs-6" id="panel-seat-type">Категорія</span>
+                    <span class="badge px-3 py-2 fs-6" id="panel-seat-status">Статус</span>
+                </div>
             </div>
 
             <div id="sold-info-section" class="d-none">
@@ -175,24 +181,31 @@
                     </div>
                     <hr class="my-2 opacity-25">
                     <div class="d-flex justify-content-between small py-2">
-                        <span class="text-muted">Дата транзакції:</span>
+                        <span class="text-muted" id="trans-date-label">Дата операції:</span>
                         <span class="fw-bold" id="trans-date">---</span>
                     </div>
                     <div class="d-flex justify-content-between py-2">
-                        <span class="text-muted">Ціна покупки:</span>
+                        <span class="text-muted">Ціна:</span>
                         <span class="fw-bold text-success fs-5" id="purchase-price">0 ₴</span>
                     </div>
                 </div>
-                <button class="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="cancelTicketAction()">
-                    <i class="bi bi-trash3 me-2"></i>СКАСУВАТИ КВИТОК
+
+                <div id="refund-history-box" class="alert alert-warning border-0 rounded-4 d-none small mt-3">
+                    <i class="bi bi-clock-history me-1"></i> <span id="refund-text"></span>
+                </div>
+
+                <button id="cancel-action-btn" class="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-sm mt-3" onclick="cancelTicketAction()">
+                    <i class="bi bi-x-circle me-2"></i>
+                    <span id="cancel-btn-text">СКАСУВАТИ</span>
                 </button>
             </div>
 
             <div id="free-info-section" class="d-none">
-                <div class="alert alert-info border-0 rounded-4 shadow-sm py-3 text-center">
-                    <i class="bi bi-check-circle-fill fs-1 d-block mb-2 text-success"></i>
-                    Це місце вільне
+                <div class="alert alert-success border-0 rounded-4 py-4 text-center">
+                    <i class="bi bi-check-circle-fill fs-1 d-block mb-2"></i>
+                    Місце доступне для продажу
                 </div>
+                <div id="refund-history-free" class="text-muted small text-center p-2 mt-2"></div>
             </div>
         </div>
     </div>
@@ -266,133 +279,90 @@
     }
 </style>
 <script>
-    let isLockMode = false;
-    let seatsToChange = [];
     let currentActiveSeatId = null;
 
-    function toggleAdminLockMode() {
-        const mainBtn = document.getElementById('admin-lock-btn');
-        const hallGrid = document.querySelector('.hall-layout');
-    
-        if (!isLockMode) {
-            isLockMode = true;
-            hallGrid.classList.add('hall-admin-active');
-            mainBtn.classList.replace('btn-dark', 'btn-warning');
-            mainBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Застосувати зміни';
-        } else {
-            if (seatsToChange.length > 0) {
-                applyBulkLock();
-            } else {
-                resetLockMode();
-            }
-        }
-    }
-
     function handleSeatClick(btn) {
-        const seatId = btn.dataset.seatId;
-
-        if (isLockMode) {
-            if (btn.classList.contains('is-taken')) {
-                alert("Неможливо заблокувати місце, на яке вже куплено квиток.");
-                return;
-            }
-
-            const index = seatsToChange.indexOf(seatId);
-            if (index > -1) {
-                seatsToChange.splice(index, 1);
-                btn.classList.remove('to-be-blocked');
-            } else {
-                seatsToChange.push(seatId);
-                btn.classList.add('to-be-blocked');
-            }
-            return;
-        }
-
-        currentActiveSeatId = seatId;
+        currentActiveSeatId = btn.dataset.seatId;
         const isTaken = btn.dataset.isTaken === "true";
         const info = JSON.parse(btn.dataset.info);
+    
+        // Беремо дані з атрибутів, які ми додали вище
+        const status = btn.dataset.status || "Вільне"; 
+        const refund = btn.dataset.refund;
 
         document.getElementById('panel-seat-label').innerText = `Ряд ${btn.dataset.row}, Місце ${btn.dataset.num}`;
         document.getElementById('panel-seat-type').innerText = btn.dataset.category;
+    
+        // ВСТАВЛЯЄМО ТЕКСТ СТАТУСУ (щоб не було undefined)
+        const statusBadge = document.getElementById('panel-seat-status');
+        if (statusBadge) {
+            statusBadge.innerText = status;
+            statusBadge.className = 'badge px-3 py-2 fs-6 ' + 
+                (status === "Оплачено" ? "bg-success" : (status === "Бронювання" ? "bg-info text-dark" : "bg-light text-muted border"));
+        }
 
         if (isTaken) {
             document.getElementById('sold-info-section').classList.remove('d-none');
             document.getElementById('free-info-section').classList.add('d-none');
-            
+        
+            // ЗАПОВНЮЄМО ДАНІ ПОКУПЦЯ
             document.getElementById('customer-name').innerText = info.name || "Гість";
             document.getElementById('customer-email').innerText = info.email || "не вказано";
             document.getElementById('purchase-price').innerText = info.price + " ₴";
             document.getElementById('trans-date').innerText = info.date || "---";
+
+            // Показ історії повернення, якщо вона є
+            const refundBox = document.getElementById('refund-history-box');
+            if (refund && refundBox) {
+                refundBox.classList.remove('d-none');
+                document.getElementById('refund-text').innerText = refund;
+            } else if (refundBox) {
+                refundBox.classList.add('d-none');
+            }
         } else {
             document.getElementById('sold-info-section').classList.add('d-none');
             document.getElementById('free-info-section').classList.remove('d-none');
+        
+            // Якщо місце вільне, але є історія повернення — показуємо її
+            const freeRefund = document.getElementById('refund-history-free');
+            if (freeRefund) {
+                freeRefund.innerText = refund || "";
+            }
         }
 
-        const bsPanel = new bootstrap.Offcanvas(document.getElementById('adminSeatPanel'));
-        bsPanel.show();
-    }
-
-    async function applyBulkLock() {
-        if (seatsToChange.length === 0) return;
-        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
-        const promises = seatsToChange.map(id => 
-            fetch(`/Admin/Sessions/ToggleBlockSeat?seatId=${id}`, {
-                method: 'POST',
-                headers: {
-                    'RequestVerificationToken': token,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-        );
-
-        try {
-            await Promise.all(promises);
-            location.reload();
-        } catch (error) {
-            console.error("Помилка:", error);
-            alert("Сталася помилка при збереженні.");
-        }
-    }
-
-    function resetLockMode() {
-        isLockMode = false;
-        seatsToChange = [];
-        document.getElementById('admin-lock-btn').classList.replace('btn-warning', 'btn-dark');
-        document.getElementById('admin-lock-btn').innerHTML = '<i class="bi bi-shield-lock me-2"></i>Увімкнути режим блокування';
-        document.querySelector('.hall-layout').classList.remove('hall-admin-active');
-        document.querySelectorAll('.to-be-blocked').forEach(el => el.classList.remove('to-be-blocked'));
+        new bootstrap.Offcanvas(document.getElementById('adminSeatPanel')).show();
     }
 
     async function cancelTicketAction() {
-        if (!confirm("Ви впевнені, що хочете скасувати цей квиток? Місце стане вільним.")) return;
+        // Підказка для адміна залежно від статусу (можна додати динаміку)
+        if (!confirm("Ви впевнені, що хочете анулювати цей квиток/бронювання? Місце стане вільним.")) return;
+    
+        const token = document.querySelector('#antiforgery-container input[name="__RequestVerificationToken"]').value;
+    
+        const params = new URLSearchParams();
+        params.append('seatId', currentActiveSeatId);
+        params.append('sessionId', '@Model.SessionId');
 
-        const tokenElement = document.querySelector('#antiforgery-container input[name="__RequestVerificationToken"]');
-        if (!tokenElement) return;
-        const token = tokenElement.value;
-        
         try {
-            const params = new URLSearchParams();
-            params.append('seatId', currentActiveSeatId);
-            params.append('sessionId', '@Model.SessionId');
-
             const response = await fetch(`/Admin/Sessions/CancelTicket`, {
                 method: 'POST',
                 headers: { 
                     'RequestVerificationToken': token,
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Content-Type': 'application/x-www-form-urlencoded'
                 },
                 body: params
             });
 
             if (response.ok) {
                 const result = await response.json();
-                if (result.success) location.reload(); 
-                else alert(result.message);
+                if (result.success) {
+                    location.reload(); // Оновлюємо сторінку, щоб побачити вільне місце
+                } else {
+                    alert("Помилка: " + result.message);
+                }
             }
         } catch (e) {
-            console.error(e);
+            console.error("Серверна помилка:", e);
         }
     }
 </script>
