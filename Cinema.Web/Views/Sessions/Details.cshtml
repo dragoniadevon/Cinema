@@ -4,8 +4,10 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = Model.MovieTitle;
 
-    var standardPrice = Model.Prices.FirstOrDefault(p => !p.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
-    var vipPrice = Model.Prices.FirstOrDefault(p => p.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
+    var standardPrice = Model.Prices.FirstOrDefault(p => !p.CategoryName.Contains("VIP",
+StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
+    var vipPrice = Model.Prices.FirstOrDefault(p => p.CategoryName.Contains("VIP",
+StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
 
     var hasStandard = Model.Seats.Any(s => !s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
     var hasVip = Model.Seats.Any(s => s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
@@ -14,14 +16,15 @@
 <div class="container mt-4">
     <div class="row g-4">
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm sticky-top" style="border-radius: 20px; top: 20px; background: transparent;">
+            <div class="card border-0 shadow-sm sticky-top"
+                 style="border-radius: 20px; top: 20px; background: transparent;">
                 <div class="poster-wrapper shadow-sm">
-                    <img src="@(string.IsNullOrEmpty(Model.Posterurl) ? "https://placehold.co/400x600?text=No+Poster" : Model.Posterurl)" 
-                         class="poster-img" 
-                         alt="@Model.MovieTitle">
-                    
+                    <img src="@(string.IsNullOrEmpty(Model.Posterurl) ? "https://placehold.co/400x600?text=No+Poster" : Model.Posterurl)"
+                         class="poster-img" alt="@Model.MovieTitle">
+
                     <div class="position-absolute top-0 end-0 m-3">
-                        <span class="badge bg-warning text-dark px-3 py-2 fw-bold shadow-sm">@Model.AgeRestriction</span>
+                        <span
+                        class="badge bg-warning text-dark px-3 py-2 fw-bold shadow-sm">@Model.AgeRestriction</span>
                     </div>
                 </div>
             </div>
@@ -30,15 +33,14 @@
         <div class="col-lg-8">
             <div class="ps-2 mb-4">
                 <div class="mb-3">
-                    <a asp-action="Index" 
-                       asp-route-cinemaId="@Model.CinemaId" 
-                       asp-route-date="@Model.StartTime.ToString("yyyy-MM-dd")" 
-                       class="btn btn-link text-decoration-none p-0 text-muted hover-dark">
+                    <a asp-action="Index" asp-route-cinemaId="@Model.CinemaId"
+                           asp-route-date="@Model.StartTime.ToString("yyyy-MM-dd")"
+                           class="btn btn-link text-decoration-none p-0 text-muted hover-dark">
                         <i class="bi bi-arrow-left-short fs-4"></i> Назад до розкладу
                     </a>
                 </div>
                 <h1 class="fw-bold text-dark mb-1 display-5">@Model.MovieTitle</h1>
-                
+
                 <div class="d-flex flex-wrap align-items-center gap-2 text-muted mb-1">
                     <i class="bi bi-geo-alt-fill text-primary"></i>
                     <span>@Model.CinemaCity, @Model.CinemaName</span>
@@ -94,30 +96,34 @@
                         @for (int r = 1; r <= Model.Rows; r++)
                         {
                             var rowSeats = Model.Seats.Where(s => s.Row == r).OrderBy(s => s.Number).ToList();
-                            var isVipRow = rowSeats.All(s => s.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase));
-            
+                            var isVipRow = rowSeats.All(s => s.CategoryName.Contains("VIP",
+                        StringComparison.OrdinalIgnoreCase));
+
                             <div class="seat-row @(isVipRow ? "vip-row-margin" : "")">
                                 <div class="seats-row-wrapper @(isVipRow ? "vip-style" : "standard-style")">
                                     @foreach (var seat in rowSeats)
                                     {
                                         var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
 
-                                        string seatTypeClass = seat.IsBlocked ? "is-blocked" : (seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard"));
+                                        string seatTypeClass = seat.IsBlocked ? "is-blocked" : (seat.IsTaken ? "is-taken" :
+                                (isVip ? "is-vip" : "is-standard"));
                                         bool isDisabled = seat.IsTaken || seat.IsBlocked;
 
                                         <button class="btn shadow-none seat-btn @seatTypeClass @(isVip ? "vip-size" : "")"
-                                                data-id="@seat.SeatId" 
-                                                data-row="@r" 
-                                                data-num="@seat.Number"
-                                                data-price="@(isVip ? vipPrice : standardPrice)"
-                                                @(isDisabled ? "disabled" : "")
+                                                data-id="@seat.SeatId" data-row="@r" data-num="@seat.Number"
+                                                data-price="@(isVip? vipPrice : standardPrice)"                                                @(isDisabled ? "disabled" : "")
                                                 title="@(seat.IsBlocked ? "Технічна перерва" : (seat.IsTaken ? "Зайнято" : $"Ряд {r}, Місце {seat.Number}"))">
-                                            
-                                            @if (seat.IsBlocked) {
+
+                                            @if (seat.IsBlocked)
+                                            {
                                                 <i class="bi bi-slash-circle"></i>
-                                            } else if (seat.IsTaken) {
+                                            }
+                                            else if (seat.IsTaken)
+                                            {
                                                 <i class="bi bi-x-lg"></i>
-                                            } else {
+                                            }
+                                            else
+                                            {
                                                 @seat.Number
                                             }
                                         </button>
@@ -132,14 +138,16 @@
     </div>
 </div>
 
-<button id="cart-fab" class="btn btn-warning shadow-lg d-none position-fixed animate__animated animate__bounceIn" 
+<button id="cart-fab" class="btn btn-warning shadow-lg d-none position-fixed animate__animated animate__bounceIn"
         style="bottom: 30px; right: 30px; width: 70px; height: 70px; border-radius: 50%; z-index: 1050;"
         onclick="toggleCart()">
     <i class="bi bi-cart3 fs-2"></i>
-    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">0</span>
+    <span id="cart-badge"
+          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">0</span>
 </button>
 
-<div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="cartOffcanvas" data-bs-backdrop="false" style="border-radius: 30px 0 0 30px; width: 380px;">
+<div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="cartOffcanvas" data-bs-backdrop="false"
+     style="border-radius: 30px 0 0 30px; width: 380px;">
     <div class="offcanvas-header border-bottom p-4 flex-column align-items-start">
         <div class="d-flex justify-content-between w-100 align-items-center">
             <h5 class="offcanvas-title fw-bold m-0"><i class="bi bi-ticket-perforated me-2"></i>Ваше замовлення</h5>
@@ -159,9 +167,19 @@
                 <span class="text-muted fw-bold fs-5">До оплати:</span>
                 <span class="fs-3 fw-bold text-success"><span id="cart-total">0</span> ₴</span>
             </div>
-            <button class="btn btn-warning btn-lg w-100 py-3 fw-bold rounded-pill shadow-sm hover-up">
-                ПЕРЕЙТИ ДО ОПЛАТИ <i class="bi bi-arrow-right-short ms-1 fs-4"></i>
-            </button>
+            <form asp-controller="Tickets" asp-action="Reserve" method="post" id="reserve-form">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="SessionId" value="@Model.SessionId" />
+
+                <div id="selected-seats-inputs"></div>
+
+                <button type="submit" class="btn btn-warning btn-lg w-100 py-3 fw-bold rounded-pill shadow-sm hover-up">
+                    ЗАБРОНЮВАТИ ТА ПЕРЕЙТИ ДО ОПЛАТИ
+                    <i class="bi bi-arrow-right-short ms-1 fs-4"></i>
+                </button>
+            </form>
         </div>
     </div>
 </div>
@@ -175,45 +193,187 @@
         overflow: hidden;
         border-radius: 20px;
         background-color: #f8f9fa;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
-    .poster-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
-    .poster-wrapper:hover .poster-img { transform: scale(1.05); }
+
+    .poster-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .poster-wrapper:hover .poster-img {
+        transform: scale(1.05);
+    }
 
     /* --- ЛЕГЕНДА --- */
-    .seat-legend { width: 32px; height: 26px; border-radius: 7px; }
-    .bg-standard, .is-standard { background-color: #6c757d !important; color: white; }
-    .bg-vip-green, .is-vip { background-color: #198754 !important; color: white; }
-    .price-value { font-size: 1.2rem; font-weight: 900; color: #000; }
+    .seat-legend {
+        width: 32px;
+        height: 26px;
+        border-radius: 7px;
+    }
+
+    .bg-standard,
+    .is-standard {
+        background-color: #6c757d !important;
+        color: white;
+    }
+
+    .bg-vip-green,
+    .is-vip {
+        background-color: #198754 !important;
+        color: white;
+    }
+
+    .price-value {
+        font-size: 1.2rem;
+        font-weight: 900;
+        color: #000;
+    }
 
     /* --- СХЕМА ЗАЛУ ТА МІСЦЯ --- */
-    .screen-curve { width: 80%; height: 5px; background: #343a40; border-radius: 50% / 100% 100% 0 0; }
-    .screen-text { font-size: 11px; font-weight: 800; letter-spacing: 6px; color: #495057; }
-    .hall-scroll-container { max-height: 550px; overflow: auto; padding: 5px 0; scrollbar-width: thin; }
-    .hall-layout { display: flex; flex-direction: column; align-items: center; min-width: max-content; padding: 20px 40px; }
-    .seat-row { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-    .seats-row-wrapper { display: flex; }
+    .screen-curve {
+        width: 80%;
+        height: 5px;
+        background: #343a40;
+        border-radius: 50% / 100% 100% 0 0;
+    }
+
+    .screen-text {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 6px;
+        color: #495057;
+    }
+
+    .hall-scroll-container {
+        max-height: 550px;
+        overflow: auto;
+        padding: 5px 0;
+        scrollbar-width: thin;
+    }
+
+    .hall-layout {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: max-content;
+        padding: 20px 40px;
+    }
+
+    .seat-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+    }
+
+    .seats-row-wrapper {
+        display: flex;
+    }
 
     /* Динамічні стилі для типів рядів */
-    .standard-style { gap: 8px; }
-    .vip-style { gap: 16px !important; }
-    .vip-row-margin { margin-bottom: 15px !important; }
-    
-    .seat-btn { 
-        width: 36px; height: 30px; border-radius: 7px; border: none; font-size: 13px; font-weight: bold; 
-        line-height: 30px; text-align: center; transition: all 0.2s ease; flex-shrink: 0; 
-        display: inline-flex; align-items: center; justify-content: center;
+    .standard-style {
+        gap: 8px;
     }
-    .vip-size { width: 44px !important; height: 34px !important; font-size: 15px !important; }
-    .is-taken { background-color: #e9ecef !important; color: #adb5bd !important; cursor: not-allowed; border: 1px solid #dee2e6 !important; }
-    .is-blocked { background-color: #212529 !important; color: #ffc107 !important; cursor: not-allowed; border: 1px solid #000 !important; }
-    .seat-btn:not(:disabled):hover { transform: translateY(-3px) scale(1.15); z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .seat-btn.selected { background-color: #ffc107 !important; color: #000 !important; transform: scale(1.1); box-shadow: 0 0 15px rgba(255,193,7,0.5); border: 2px solid #000 !important; }
-    .timer-minimal { font-size: 2.2rem; font-weight: 800; font-family: sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
-    .timer-urgent { animation: pulse-red 1s infinite; }
-    @@keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.7; transform: scale(1.05); } 100% { opacity: 1; } }
-    .cart-item { background: #f8f9fa; border-radius: 15px; padding: 15px; border: 1px solid #eee; }
-    .hover-up:hover { transform: translateY(-2px); transition: 0.3s; }
+
+    .vip-style {
+        gap: 16px !important;
+    }
+
+    .vip-row-margin {
+        margin-bottom: 15px !important;
+    }
+
+    .seat-btn {
+        width: 36px;
+        height: 30px;
+        border-radius: 7px;
+        border: none;
+        font-size: 13px;
+        font-weight: bold;
+        line-height: 30px;
+        text-align: center;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .vip-size {
+        width: 44px !important;
+        height: 34px !important;
+        font-size: 15px !important;
+    }
+
+    .is-taken {
+        background-color: #e9ecef !important;
+        color: #adb5bd !important;
+        cursor: not-allowed;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    .is-blocked {
+        background-color: #212529 !important;
+        color: #ffc107 !important;
+        cursor: not-allowed;
+        border: 1px solid #000 !important;
+    }
+
+    .seat-btn:not(:disabled):hover {
+        transform: translateY(-3px) scale(1.15);
+        z-index: 10;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .seat-btn.selected {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(255, 193, 7, 0.5);
+        border: 2px solid #000 !important;
+    }
+
+    .timer-minimal {
+        font-size: 2.2rem;
+        font-weight: 800;
+        font-family: sans-serif;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -1px;
+    }
+
+    .timer-urgent {
+        animation: pulse-red 1s infinite;
+    }
+
+    @@keyframes pulse-red {
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.7;
+            transform: scale(1.05);
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    .cart-item {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 15px;
+        border: 1px solid #eee;
+    }
+
+    .hover-up:hover {
+        transform: translateY(-2px);
+        transition: 0.3s;
+    }
 </style>
 
 <script>
@@ -227,7 +387,7 @@
         const cartBadge = document.getElementById('cart-badge');
         const timerContainer = document.getElementById('reservation-timer');
         const timerDisplay = document.getElementById('timer-display');
-        
+
         let selectedSeats = [];
         let reservationTimer = null;
         const RESERVATION_TIME = 10 * 60;
@@ -237,18 +397,18 @@
 
         function startTimer() {
             if (reservationTimer) return;
-            
+
             timeLeft = RESERVATION_TIME;
             timerContainer.classList.remove('d-none');
-            
+
             reservationTimer = setInterval(() => {
                 timeLeft--;
-    
+
                 let minutes = Math.floor(timeLeft / 60);
                 let seconds = timeLeft % 60;
-    
+
                 timerDisplay.innerText = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-    
+
                 if (timeLeft < 60) {
                     timerDisplay.classList.add('timer-urgent');
                 } else {
@@ -275,7 +435,7 @@
             });
             selectedSeats = [];
             updateUI();
-            
+
             if (cartEl.classList.contains('show')) {
                 bsOffcanvas.hide();
             }
@@ -291,12 +451,12 @@
                     removeSeat(id);
                 } else {
                     if (selectedSeats.length >= 6) {
-                        return; 
+                        return;
                     }
                     addSeat({
-                        id: id, 
-                        row: this.dataset.row, 
-                        num: this.dataset.num, 
+                        id: id,
+                        row: this.dataset.row,
+                        num: this.dataset.num,
                         price: parseFloat(this.dataset.price)
                     });
                 }
@@ -305,27 +465,27 @@
 
         function addSeat(seat) {
             if (selectedSeats.length === 0) startTimer();
-            
+
             selectedSeats.push(seat);
             const btn = document.querySelector(`[data-id="${seat.id}"]`);
             if (btn) btn.classList.add('selected');
-            
+
             updateUI();
-            
+
             if (!cartEl.classList.contains('show')) {
                 bsOffcanvas.show();
             }
         }
 
-        window.removeSeat = function(id) {
+        window.removeSeat = function (id) {
             const index = selectedSeats.findIndex(s => s.id === id);
             if (index > -1) {
                 selectedSeats.splice(index, 1);
                 const btn = document.querySelector(`[data-id="${id}"]`);
                 if (btn) btn.classList.remove('selected');
-                
+
                 updateUI();
-                
+
                 if (selectedSeats.length === 0) {
                     bsOffcanvas.hide();
                     stopTimer();
@@ -366,5 +526,26 @@
                 bsOffcanvas.hide();
             }
         });
+        const reserveForm = document.getElementById('reserve-form');
+        const seatInputsContainer = document.getElementById('selected-seats-inputs');
+
+        reserveForm.addEventListener('submit', function (e) {
+            if (selectedSeats.length === 0) {
+                e.preventDefault();
+                alert('Оберіть хоча б одне місце');
+                return;
+            }
+
+            seatInputsContainer.innerHTML = '';
+
+            selectedSeats.forEach(seat => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'SeatIds';
+                input.value = seat.id;
+                seatInputsContainer.appendChild(input);
+            });
+        });
+
     });
 </script>

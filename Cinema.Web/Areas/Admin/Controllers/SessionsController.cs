@@ -69,8 +69,7 @@ public class SessionsController : Controller
         else if (mode == "cancelled")
         {
             query = query.Where(s =>
-                (s.Isactive == false || s.Hall.Isactive == false) &&
-                (s.Endtime >= DateTime.Now || s.Tickets.Any(t => s.Isactive == false)));
+                s.Isactive == false || s.Hall.Isactive == false);
         }
         else
         {
@@ -95,7 +94,7 @@ public class SessionsController : Controller
         var sessions = await query.OrderByDescending(s => s.Starttime).ToListAsync();
 
         var model = sessions
-            .GroupBy(s => s.Starttime.ToLocalTime().Date)
+            .GroupBy(s => s.Starttime.Date)
             .OrderBy(g => g.Key)
             .Select(dateGroup => new SessionsByDateVm
             {
@@ -486,11 +485,11 @@ public class SessionsController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var session = await _context.Sessions
-            .Include(s => s.Movie)
-            .Include(s => s.Hall).ThenInclude(h => h.Cinema)
-            .Include(s => s.Tickets).ThenInclude(t => t.User)
-            .Include(s => s.Sessionprices).ThenInclude(sp => sp.Category)
-            .FirstOrDefaultAsync(s => s.Id == id);
+        .Include(s => s.Movie)
+        .Include(s => s.Hall).ThenInclude(h => h.Cinema)
+        .Include(s => s.Tickets).ThenInclude(t => t.User)
+        .Include(s => s.Sessionprices).ThenInclude(sp => sp.Category)
+        .FirstOrDefaultAsync(s => s.Id == id);
 
         if (session == null) return NotFound();
 
@@ -501,10 +500,19 @@ public class SessionsController : Controller
             .OrderBy(s => s.Rownumber).ThenBy(s => s.Seatnumber)
             .ToListAsync();
 
+        var now = DateTime.Now;
         var takenSeatIds = await _context.Tickets
-            .Where(t => t.Sessionid == id && !t.IsReturned)
+            .Where(t =>
+                t.Sessionid == id &&
+                (
+                    t.Status == (short)TicketStatus.Paid ||
+                    (t.Status == (short)TicketStatus.Reserved &&
+                     now <= t.Bookingtime.AddMinutes(10))
+                )
+            )
             .Select(t => t.Seatid)
             .ToListAsync();
+
 
         var vm = new SessionDetailsVm
         {
@@ -540,25 +548,55 @@ public class SessionsController : Controller
                 Price = sp.Price
             }).ToList(),
 
-            Seats = seats.Select(s => {
-                var ticket = session.Tickets.FirstOrDefault(t => t.Seatid == s.Id && !t.IsReturned);
+            Seats = seats.Select(s =>
+            {
+                var now = DateTime.Now;
+
+                // 1. Шукаємо АКТИВНИЙ квиток (оплачений або живе бронювання)
+                var activeTicket = session.Tickets.FirstOrDefault(t =>
+                    t.Seatid == s.Id &&
+                    (t.Status == (short)TicketStatus.Paid ||
+                    (t.Status == (short)TicketStatus.Reserved && now <= t.Bookingtime.AddMinutes(10))));
+
+                // 2. Шукаємо ОСТАННІЙ скасований квиток на це місце (для історії повернень)
+                var lastCancelled = session.Tickets
+    .Where(t => t.Seatid == s.Id && t.Status == (short)TicketStatus.Cancelled)
+    .OrderByDescending(t => t.Bookingtime)
+    .FirstOrDefault();
+
+                // Визначаємо тип скасованого квитка
+                string typeLabel = lastCancelled?.Price > 0 ? "Оплата" : "Бронь";
+
 
                 return new SeatDetailsVm
                 {
                     SeatId = s.Id,
                     Row = s.Rownumber ?? 0,
                     Number = s.Seatnumber ?? 0,
-                    IsTaken = ticket != null,
+                    IsTaken = activeTicket != null,
                     IsBlocked = s.IsBlocked,
                     CategoryName = s.Pricecategory?.Name ?? "Стандарт",
 
-                    Price = ticket?.Price ?? 0,
-                    CustomerName = ticket != null ? $"{ticket.User?.FirstName} {ticket.User?.LastName}" : null,
-                    CustomerEmail = ticket?.User?.Email,
-                    PurchaseDate = ticket?.Bookingtime
+                    // Дані для Offcanvas панелі
+                    Price = activeTicket?.Price ?? 0,
+                    CustomerName = activeTicket != null ? $"{activeTicket.User?.FirstName} {activeTicket.User?.LastName}" : null,
+                    CustomerEmail = activeTicket?.User?.Email,
+                    PurchaseDate = activeTicket?.Bookingtime,
+
+                    // Статус текстом
+                    StatusInfo = activeTicket?.Status switch
+                    {
+                        (short)TicketStatus.Paid => "Оплачено",
+                        (short)TicketStatus.Reserved => "Бронювання",
+                        _ => "Вільне"
+                    },
+
+                    // Інфо про повернення (якщо місце вільне, але був скасований квиток)
+                    RefundInfo = lastCancelled != null
+                    ? $"Попереднє замовлення ({typeLabel}): {lastCancelled.User?.FirstName} (Скасовано {lastCancelled.Bookingtime:dd.MM HH:mm})"
+                    : null
                 };
             }).ToList(),
-
             IsAdminView = true
         };
 
@@ -575,12 +613,17 @@ public class SessionsController : Controller
         try
         {
             var ticket = await _context.Tickets
-                .FirstOrDefaultAsync(t => t.Seatid == seatId && t.Sessionid == sessionId && !t.IsReturned);
+                .FirstOrDefaultAsync(t =>
+                    t.Seatid == seatId &&
+                    t.Sessionid == sessionId &&
+                    (t.Status == (short)TicketStatus.Paid || t.Status == (short)TicketStatus.Reserved));
 
             if (ticket == null)
                 return Json(new { success = false, message = "Активний квиток не знайдено." });
 
-            ticket.IsReturned = true;
+            ticket.Status = (short)TicketStatus.Cancelled;
+            // ✅ Оновлюємо час на момент натискання кнопки адміном
+            ticket.Bookingtime = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return Json(new { success = true });

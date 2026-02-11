@@ -83,11 +83,6 @@ public class AppDbContext
             .HasIndex(s => new { s.Hallid, s.Rownumber, s.Seatnumber })
             .IsUnique();
 
-        // Заборона подвійного продажу місця
-        modelBuilder.Entity<Ticket>()
-            .HasIndex(t => new { t.Sessionid, t.Seatid })
-            .IsUnique();
-
         modelBuilder.Entity<Movieactor>()
             .HasKey(ma => new { ma.Movieid, ma.Actorid });
 
@@ -100,10 +95,6 @@ public class AppDbContext
             .HasOne(ma => ma.Actor)
             .WithMany(a => a.Movieactors)
             .HasForeignKey(ma => ma.Actorid);
-
-        modelBuilder.Entity<Ticket>()
-            .HasIndex(t => new { t.Sessionid, t.Seatid })
-            .IsUnique();
 
         modelBuilder.Entity<Cinema>()
             .Property(c => c.Isactive)

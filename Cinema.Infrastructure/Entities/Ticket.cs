@@ -25,6 +25,4 @@ public partial class Ticket
 
     public virtual Payment? Payment { get; set; }
 
-    public bool IsReturned { get; set; } = false;
-
 }
