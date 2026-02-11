@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Оплата квитків";
     // Розраховуємо час закінчення броні для JS
-    var expiryTime = DateTime.UtcNow.AddMinutes(Model.MinutesLeft).ToString("yyyy-MM-ddTHH:mm:ssZ");
+    var expiryTime = DateTime.Now.AddMinutes(Model.MinutesLeft).ToString("yyyy-MM-ddTHH:mm:ss");
 }
 
 <div class="container mt-5">
@@ -133,30 +133,30 @@
 
 @section Scripts {
     <script>
-                (function () {
-                    const expiryDate = new Date("@expiryTime");
-                    const timerElement = document.getElementById("payment-timer");
+                    (function () {
+                        const expiryDate = new Date("@expiryTime");
+                        const timerElement = document.getElementById("payment-timer");
 
-                    function updateTimer() {
-                        const now = new Date();
-                        const diff = expiryDate - now;
+                        function updateTimer() {
+                            const now = new Date();
+                            const diff = expiryDate - now;
 
-                        if (diff <= 0) {
-                            timerElement.innerText = "00:00";
-                            timerElement.classList.replace("text-warning", "text-danger");
-                            // Можна додати автоматичний редирект, якщо час вийшов
-                            alert("Час оплати вичерпано. Ви будете перенаправлені до розкладу.");
-                            window.location.href = '@Url.Action("Index", "Sessions")';
-                            return;
+                            if (diff <= 0) {
+                                timerElement.innerText = "00:00";
+                                timerElement.classList.replace("text-warning", "text-danger");
+                                // Можна додати автоматичний редирект, якщо час вийшов
+                                alert("Час оплати вичерпано. Ви будете перенаправлені до розкладу.");
+                                window.location.href = '@Url.Action("Index", "Sessions")';
+                                return;
+                            }
+
+                            const m = Math.floor(diff / 60000);
+                            const s = Math.floor((diff % 60000) / 1000);
+                            timerElement.innerText = `${m}:${s.toString().padStart(2, '0')}`;
                         }
 
-                        const m = Math.floor(diff / 60000);
-                        const s = Math.floor((diff % 60000) / 1000);
-                        timerElement.innerText = `${m}:${s.toString().padStart(2, '0')}`;
-                    }
-
-                    updateTimer();
-                    setInterval(updateTimer, 1000);
-                })();
+                        updateTimer();
+                        setInterval(updateTimer, 1000);
+                    })();
     </script>
 }

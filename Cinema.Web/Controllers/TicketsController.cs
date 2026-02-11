@@ -44,13 +44,16 @@ public class TicketsController : Controller
         if (session == null)
             return NotFound();
 
-        var categoryId = session.Hall?.Halltype == 2 ? 2 : 1;
+        var seats = await _db.Seats
+            .Where(s => request.SeatIds.Contains(s.Id))
+            .ToListAsync();
 
-        var sessionPrice = await _db.Sessionprices.FirstOrDefaultAsync(sp =>
-            sp.Sessionid == request.SessionId &&
-            sp.Categoryid == categoryId);
+        var sessionPrices = await _db.Sessionprices
+            .Where(sp => sp.Sessionid == request.SessionId)
+            .ToListAsync();
 
-        if (sessionPrice == null)
+
+        if (sessionPrices == null)
         {
             TempData["Error"] = "Для цього сеансу не задано ціну.";
             return RedirectToAction("Details", "Sessions", new { id = request.SessionId });
@@ -83,19 +86,25 @@ public class TicketsController : Controller
                 return RedirectToAction("Details", "Sessions", new { id = request.SessionId });
             }
 
-            // 🆕 2. Створюємо квитки
-            foreach (var seatId in request.SeatIds)
+            foreach (var seat in seats)
             {
+                var price = sessionPrices
+                    .FirstOrDefault(sp => sp.Categoryid == seat.Pricecategoryid);
+
+                if (price == null)
+                    throw new Exception("Не знайдено ціну для категорії місця");
+
                 _db.Tickets.Add(new Ticket
                 {
                     Userid = user.Id,
                     Sessionid = request.SessionId,
-                    Seatid = seatId,
-                    Price = sessionPrice.Price,
+                    Seatid = seat.Id,
+                    Price = price.Price,
                     Status = (short)TicketStatus.Reserved,
                     Bookingtime = now
                 });
             }
+
 
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
