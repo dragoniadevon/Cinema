@@ -53,13 +53,77 @@ namespace Cinema.Web.Controllers
                 ActiveTickets = tickets.Where(t =>
                     (t.Status == (short)TicketStatus.Paid && t.Session.Endtime > now) ||
                     (t.Status == (short)TicketStatus.Reserved && now <= t.Bookingtime.AddMinutes(10))
-    ).ToList(),
+                )
+                .Select(t => new ActiveTicketVm
+                {
+                    TicketId = t.Id,
+                    MovieTitle = t.Session.Movie!.Title,
+                    CinemaName = t.Session.Hall!.Cinema!.Name,
+                    CinemaCity = t.Session.Hall.Cinema.City,
+                    HallName = t.Session.Hall.Name,
+                    StartTime = t.Session.Starttime,
+                    EndTime = t.Session.Endtime,
+                    Row = t.Seat!.Rownumber ?? 0,
+                    Seat = t.Seat.Seatnumber ?? 0,
+                    Price = t.Price,
+                    IsReserved = t.Status == (short)TicketStatus.Reserved,
+                    CanReturn = t.Status == (short)TicketStatus.Paid && t.Session.Starttime > now,
+                    BookingTime = t.Bookingtime
+                })
+                .ToList(),
+
 
                 // Історія: Скасовані АБО Оплачені, де сеанс вже завершився
                 HistoryTickets = tickets.Where(t =>
                     t.Status == (short)TicketStatus.Cancelled ||
                     (t.Status == (short)TicketStatus.Paid && t.Session.Endtime <= now)
-    ).ToList()
+                )
+                .Select(t =>
+                {
+                    string actionText;
+                    string badgeClass;
+                    DateTime actionTime;
+
+                    if (t.Status == (short)TicketStatus.Cancelled)
+                    {
+                        if (t.Payment != null)
+                        {
+                            actionText = "🔄 Квиток повернено";
+                            badgeClass = "bg-warning-subtle text-warning";
+                        }
+                        else
+                        {
+                            actionText = "❌ Бронювання скасовано";
+                            badgeClass = "bg-danger-subtle text-danger";
+                        }
+
+                        actionTime = t.Bookingtime;
+                    }
+                    else
+                    {
+                        actionText = "🎬 Сеанс завершився";
+                        badgeClass = "bg-secondary-subtle text-secondary";
+                        actionTime = t.Session.Endtime;
+                    }
+
+                    return new HistoryTicketVm
+                    {
+                        TicketId = t.Id,
+                        MovieTitle = t.Session.Movie!.Title,
+                        CinemaName = t.Session.Hall!.Cinema!.Name,
+                        CinemaCity = t.Session.Hall.Cinema.City,
+                        HallName = t.Session.Hall.Name,
+                        StartTime = t.Session.Starttime,
+                        Row = t.Seat!.Rownumber ?? 0,
+                        Seat = t.Seat.Seatnumber ?? 0,
+                        Price = t.Price,
+                        ActionText = actionText,
+                        BadgeClass = badgeClass,
+                        ActionTime = actionTime
+                    };
+                })
+                .ToList()
+
             };
 
             return View(vm);
@@ -116,6 +180,7 @@ namespace Cinema.Web.Controllers
                 return RedirectToAction("Login", "Account");
 
             var ticket = await _context.Tickets
+                .Include(t => t.Session)
                 .FirstOrDefaultAsync(t => t.Id == id && t.Userid == uid);
 
             if (ticket == null)
