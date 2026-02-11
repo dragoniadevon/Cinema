@@ -239,7 +239,7 @@
                                                         }
                                                     }
                                                     <span class="badge @badgeClass rounded-pill mb-1">@actionText</span>
-                                                    <small class="d-block text-muted" style="font-size: 0.75rem;">🕒 @actionTime</small>
+                                                    <small class="d-block text-muted" style="font-size: 0.75rem;">🕒 @ticket.Bookingtime.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small>
                                                     <small class="d-block text-dark fw-bold mt-1">@ticket.Price.ToString("N2") ₴</small>
                                                 </div>
                                             </div>

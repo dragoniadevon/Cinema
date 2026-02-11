@@ -49,16 +49,17 @@ namespace Cinema.Web.Controllers
             {
                 User = user,
 
+                // Активні: Оплачені, де сеанс ще не закінчився АБО Бронь, яка ще діє
                 ActiveTickets = tickets.Where(t =>
-                    (t.Status == (short)TicketStatus.Paid) ||
-                    (t.Status == (short)TicketStatus.Reserved &&
-                     now <= t.Bookingtime.AddMinutes(10))
-                ).ToList(),
+                    (t.Status == (short)TicketStatus.Paid && t.Session.Endtime > now) ||
+                    (t.Status == (short)TicketStatus.Reserved && now <= t.Bookingtime.AddMinutes(10))
+    ).ToList(),
 
+                // Історія: Скасовані АБО Оплачені, де сеанс вже завершився
                 HistoryTickets = tickets.Where(t =>
                     t.Status == (short)TicketStatus.Cancelled ||
-                    t.Session.Starttime.ToUniversalTime() < now
-                ).ToList()
+                    (t.Status == (short)TicketStatus.Paid && t.Session.Endtime <= now)
+    ).ToList()
             };
 
             return View(vm);
@@ -128,6 +129,7 @@ namespace Cinema.Web.Controllers
             }
 
             ticket.Status = (short)TicketStatus.Cancelled;
+            ticket.Bookingtime = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             TempData["TicketReturned"] = true;
@@ -151,6 +153,7 @@ namespace Cinema.Web.Controllers
             foreach (var ticket in expiredTickets)
             {
                 ticket.Status = (short)TicketStatus.Cancelled;
+                ticket.Bookingtime = DateTime.UtcNow;
             }
 
             await _context.SaveChangesAsync();

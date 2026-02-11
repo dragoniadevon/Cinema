@@ -485,11 +485,11 @@ public class SessionsController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var session = await _context.Sessions
-            .Include(s => s.Movie)
-            .Include(s => s.Hall).ThenInclude(h => h.Cinema)
-            .Include(s => s.Tickets).ThenInclude(t => t.User)
-            .Include(s => s.Sessionprices).ThenInclude(sp => sp.Category)
-            .FirstOrDefaultAsync(s => s.Id == id);
+        .Include(s => s.Movie)
+        .Include(s => s.Hall).ThenInclude(h => h.Cinema)
+        .Include(s => s.Tickets).ThenInclude(t => t.User)
+        .Include(s => s.Sessionprices).ThenInclude(sp => sp.Category)
+        .FirstOrDefaultAsync(s => s.Id == id);
 
         if (session == null) return NotFound();
 
@@ -550,16 +550,22 @@ public class SessionsController : Controller
 
             Seats = seats.Select(s =>
             {
-                // Отримуємо квиток, тільки якщо його ID є у списку реально зайнятих місць
-                var isSeatActuallyTaken = takenSeatIds.Contains(s.Id);
+                var now = DateTime.UtcNow;
 
-                var ticket = session.Tickets.FirstOrDefault(t =>
-                t.Seatid == s.Id &&
-                (
-                    t.Status == (short)TicketStatus.Paid ||
-                    (t.Status == (short)TicketStatus.Reserved &&
-                    DateTime.UtcNow <= t.Bookingtime.AddMinutes(10))
-                ));
+                // 1. Шукаємо АКТИВНИЙ квиток (оплачений або живе бронювання)
+                var activeTicket = session.Tickets.FirstOrDefault(t =>
+                    t.Seatid == s.Id &&
+                    (t.Status == (short)TicketStatus.Paid ||
+                    (t.Status == (short)TicketStatus.Reserved && now <= t.Bookingtime.AddMinutes(10))));
+
+                // 2. Шукаємо ОСТАННІЙ скасований квиток на це місце (для історії повернень)
+                var lastCancelled = session.Tickets
+    .Where(t => t.Seatid == s.Id && t.Status == (short)TicketStatus.Cancelled)
+    .OrderByDescending(t => t.Bookingtime)
+    .FirstOrDefault();
+
+                // Визначаємо тип скасованого квитка
+                string typeLabel = lastCancelled?.Price > 0 ? "Оплата" : "Бронь";
 
 
                 return new SeatDetailsVm
@@ -567,17 +573,30 @@ public class SessionsController : Controller
                     SeatId = s.Id,
                     Row = s.Rownumber ?? 0,
                     Number = s.Seatnumber ?? 0,
-                    IsTaken = isSeatActuallyTaken, // Тепер це значення базується на вашій новій логіці
+                    IsTaken = activeTicket != null,
                     IsBlocked = s.IsBlocked,
                     CategoryName = s.Pricecategory?.Name ?? "Стандарт",
 
-                    Price = ticket?.Price ?? 0,
-                    CustomerName = ticket != null ? $"{ticket.User?.FirstName} {ticket.User?.LastName}" : null,
-                    CustomerEmail = ticket?.User?.Email,
-                    PurchaseDate = ticket?.Bookingtime
+                    // Дані для Offcanvas панелі
+                    Price = activeTicket?.Price ?? 0,
+                    CustomerName = activeTicket != null ? $"{activeTicket.User?.FirstName} {activeTicket.User?.LastName}" : null,
+                    CustomerEmail = activeTicket?.User?.Email,
+                    PurchaseDate = activeTicket?.Bookingtime,
+
+                    // Статус текстом
+                    StatusInfo = activeTicket?.Status switch
+                    {
+                        (short)TicketStatus.Paid => "Оплачено",
+                        (short)TicketStatus.Reserved => "Бронювання",
+                        _ => "Вільне"
+                    },
+
+                    // Інфо про повернення (якщо місце вільне, але був скасований квиток)
+                    RefundInfo = lastCancelled != null
+                    ? $"Попереднє замовлення ({typeLabel}): {lastCancelled.User?.FirstName} (Скасовано {lastCancelled.Bookingtime.ToLocalTime():dd.MM HH:mm})"
+                    : null
                 };
             }).ToList(),
-
             IsAdminView = true
         };
 
@@ -594,18 +613,17 @@ public class SessionsController : Controller
         try
         {
             var ticket = await _context.Tickets
-            .FirstOrDefaultAsync(t =>
-                t.Seatid == seatId &&
-                t.Sessionid == sessionId &&
-                (
-                    t.Status == (short)TicketStatus.Paid ||
-                    t.Status == (short)TicketStatus.Reserved
-                ));
+                .FirstOrDefaultAsync(t =>
+                    t.Seatid == seatId &&
+                    t.Sessionid == sessionId &&
+                    (t.Status == (short)TicketStatus.Paid || t.Status == (short)TicketStatus.Reserved));
 
             if (ticket == null)
                 return Json(new { success = false, message = "Активний квиток не знайдено." });
 
             ticket.Status = (short)TicketStatus.Cancelled;
+            // ✅ Оновлюємо час на момент натискання кнопки адміном
+            ticket.Bookingtime = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
             return Json(new { success = true });
