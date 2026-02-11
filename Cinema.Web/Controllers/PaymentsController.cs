@@ -52,7 +52,7 @@ public class PaymentsController : Controller
             return RedirectToAction("Index", "Profile");
 
         // 1. ПЕРЕВІРКА НА ЗАСТАРІЛУ БРОНЬ
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var expired = tickets.Any(t => t.Status == (short)TicketStatus.Reserved && now > t.Bookingtime.AddMinutes(10));
 
         if (expired)
@@ -74,7 +74,7 @@ public class PaymentsController : Controller
             return RedirectToAction("OrderConfirmation", "Tickets", new { ticketIds = ticketIds });
         }
 
-        var minBookingTime = tickets.Any() ? tickets.Min(t => t.Bookingtime) : DateTime.UtcNow;
+        var minBookingTime = tickets.Any() ? tickets.Min(t => t.Bookingtime) : DateTime.Now;
 
         var vm = new PaymentVm
         {
@@ -121,7 +121,7 @@ public class PaymentsController : Controller
                     return RedirectToAction("Index", "Profile");
                 }
 
-                var now = DateTime.UtcNow;
+                var now = DateTime.Now;
 
                 foreach (var ticket in tickets)
                 {

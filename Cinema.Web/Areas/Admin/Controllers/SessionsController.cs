@@ -94,7 +94,7 @@ public class SessionsController : Controller
         var sessions = await query.OrderByDescending(s => s.Starttime).ToListAsync();
 
         var model = sessions
-            .GroupBy(s => s.Starttime.ToLocalTime().Date)
+            .GroupBy(s => s.Starttime.Date)
             .OrderBy(g => g.Key)
             .Select(dateGroup => new SessionsByDateVm
             {
@@ -500,7 +500,7 @@ public class SessionsController : Controller
             .OrderBy(s => s.Rownumber).ThenBy(s => s.Seatnumber)
             .ToListAsync();
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var takenSeatIds = await _context.Tickets
             .Where(t =>
                 t.Sessionid == id &&
@@ -550,7 +550,7 @@ public class SessionsController : Controller
 
             Seats = seats.Select(s =>
             {
-                var now = DateTime.UtcNow;
+                var now = DateTime.Now;
 
                 // 1. Шукаємо АКТИВНИЙ квиток (оплачений або живе бронювання)
                 var activeTicket = session.Tickets.FirstOrDefault(t =>
@@ -593,7 +593,7 @@ public class SessionsController : Controller
 
                     // Інфо про повернення (якщо місце вільне, але був скасований квиток)
                     RefundInfo = lastCancelled != null
-                    ? $"Попереднє замовлення ({typeLabel}): {lastCancelled.User?.FirstName} (Скасовано {lastCancelled.Bookingtime.ToLocalTime():dd.MM HH:mm})"
+                    ? $"Попереднє замовлення ({typeLabel}): {lastCancelled.User?.FirstName} (Скасовано {lastCancelled.Bookingtime:dd.MM HH:mm})"
                     : null
                 };
             }).ToList(),
@@ -623,7 +623,7 @@ public class SessionsController : Controller
 
             ticket.Status = (short)TicketStatus.Cancelled;
             // ✅ Оновлюємо час на момент натискання кнопки адміном
-            ticket.Bookingtime = DateTime.UtcNow;
+            ticket.Bookingtime = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return Json(new { success = true });

@@ -34,7 +34,7 @@ namespace Cinema.Web.Controllers
             if (user == null) return RedirectToAction("Login", "Account");
 
             var userId = user.Id;
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
 
             var tickets = await _context.Tickets
                 .Include(t => t.Payment)
@@ -121,15 +121,23 @@ namespace Cinema.Web.Controllers
             if (ticket == null)
                 return NotFound();
 
-            // Повернути можна тільки оплачені квитки
+            // Повернути можна тільки оплачений квиток
             if (ticket.Status != (short)TicketStatus.Paid)
             {
                 TempData["Error"] = "Можна повернути лише оплачений квиток.";
                 return RedirectToAction("Index");
             }
 
+            // ❗ НОВА ПЕРЕВІРКА — якщо сеанс вже почався
+            if (DateTime.Now >= ticket.Session.Starttime)
+            {
+                TempData["Error"] = "Сеанс вже розпочався. Повернення неможливе.";
+                return RedirectToAction("Index");
+            }
+
+
             ticket.Status = (short)TicketStatus.Cancelled;
-            ticket.Bookingtime = DateTime.UtcNow;
+            ticket.Bookingtime = DateTime.Now;
             await _context.SaveChangesAsync();
 
             TempData["TicketReturned"] = true;
@@ -139,7 +147,7 @@ namespace Cinema.Web.Controllers
 
         private async Task CleanupExpiredReservations()
         {
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
 
             var expiredTickets = await _context.Tickets
                 .Where(t =>
@@ -153,7 +161,7 @@ namespace Cinema.Web.Controllers
             foreach (var ticket in expiredTickets)
             {
                 ticket.Status = (short)TicketStatus.Cancelled;
-                ticket.Bookingtime = DateTime.UtcNow;
+                ticket.Bookingtime = DateTime.Now;
             }
 
             await _context.SaveChangesAsync();

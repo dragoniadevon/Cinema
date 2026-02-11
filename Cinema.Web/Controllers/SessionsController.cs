@@ -90,7 +90,7 @@ namespace Cinema.Web.Controllers
             var sessions = await finalQuery.OrderBy(s => s.Starttime).ToListAsync();
 
             var model = sessions
-                .GroupBy(s => s.Starttime.ToLocalTime().Date)
+                .GroupBy(s => s.Starttime.Date)
                 .OrderBy(g => g.Key)
                 .Select(dateGroup => new SessionsByDateVm
                 {
@@ -174,7 +174,7 @@ namespace Cinema.Web.Controllers
                 .ThenBy(s => s.Seatnumber)
                 .ToListAsync();
 
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             var takenSeatIds = await _context.Tickets
                 .Where(t =>
                     t.Sessionid == id &&
@@ -256,7 +256,7 @@ namespace Cinema.Web.Controllers
         }
         private async Task CleanupExpiredReservationsForSession(int sessionId)
         {
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
 
             var expiredTickets = await _context.Tickets
                 .Where(t =>

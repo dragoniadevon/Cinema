@@ -56,7 +56,7 @@ public class TicketsController : Controller
             return RedirectToAction("Details", "Sessions", new { id = request.SessionId });
         }
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         using var transaction = await _db.Database.BeginTransactionAsync();
         try
@@ -186,6 +186,7 @@ public class TicketsController : Controller
         }
 
         ticket.Status = (short)TicketStatus.Cancelled;
+        ticket.Bookingtime = DateTime.Now;
         // Обов'язково скидаємо час бронювання або залишаємо для історії
         await _db.SaveChangesAsync();
 

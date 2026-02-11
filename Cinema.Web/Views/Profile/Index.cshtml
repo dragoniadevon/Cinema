@@ -101,7 +101,7 @@
                             <div class="tab-pane fade show active" id="active">
                                 @foreach (var ticket in Model.ActiveTickets)
                                 {
-                                    var expiryTime = ticket.Bookingtime.AddMinutes(10).ToString("yyyy-MM-ddTHH:mm:ssZ");
+                                    var expiryTime = ticket.Bookingtime.AddMinutes(10).ToString("yyyy-MM-ddTHH:mm:ss");
                                     
                                     <div class="card mb-3 ticket-card border-0 shadow-sm @(ticket.Status == (short)TicketStatus.Reserved ? "reserved" : "paid")">
                                         <div class="card-body">
@@ -178,7 +178,7 @@
 
                                             <script>
                                                 (function () {
-                                                    const targetDate = new Date("@ticket.Session.Starttime.ToString("yyyy-MM-ddTHH:mm:ssZ")");
+                                                    const targetDate = new Date("@ticket.Session.Starttime.ToString("yyyy-MM-ddTHH:mm:ss")");
                                                     const countdownElement = document.getElementById("countdown-@ticket.Id");
 
                                                     function updateCountdown() {
@@ -216,30 +216,31 @@
                                                         string actionTime;
                                                         string badgeClass;
 
-                                                        if (ticket.Status == (short)TicketStatus.Cancelled)
+                                                       if (ticket.Status == (short)TicketStatus.Cancelled)
                                                         {
-                                                            if (ticket.Payment != null && ticket.Payment.Paymentdate.HasValue)
+                                                            if (ticket.Payment != null)
                                                             {
                                                                 actionText = "🔄 Квиток повернено";
-                                                                actionTime = ticket.Payment.Paymentdate.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
                                                                 badgeClass = "bg-warning-subtle text-warning";
                                                             }
                                                             else
                                                             {
                                                                 actionText = "❌ Бронювання скасовано";
-                                                                actionTime = ticket.Bookingtime.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
                                                                 badgeClass = "bg-danger-subtle text-danger";
                                                             }
+
+                                                            actionTime = ticket.Bookingtime.ToString("dd.MM.yyyy HH:mm");
                                                         }
+
                                                         else
                                                         {
-                                                            actionText = "🎬 Сеанс відбувся";
-                                                            actionTime = ticket.Session.Starttime.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
+                                                            actionText = "🎬 Сеанс завершився";
+                                                            actionTime = ticket.Session.Endtime.ToString("dd.MM.yyyy HH:mm");
                                                             badgeClass = "bg-secondary-subtle text-secondary";
                                                         }
                                                     }
                                                     <span class="badge @badgeClass rounded-pill mb-1">@actionText</span>
-                                                    <small class="d-block text-muted" style="font-size: 0.75rem;">🕒 @ticket.Bookingtime.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small>
+                                                    <small class="d-block text-muted" style="font-size: 0.75rem;">@actionTime</small>
                                                     <small class="d-block text-dark fw-bold mt-1">@ticket.Price.ToString("N2") ₴</small>
                                                 </div>
                                             </div>
