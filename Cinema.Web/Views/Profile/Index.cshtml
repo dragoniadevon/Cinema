@@ -203,6 +203,39 @@
                                                     }
                                                 </div>
 
+                                                <p id="countdown-@ticket.TicketId"   class="text-primary fw-bold mb-2"
+                                                   style="font-size: 0.85rem;"></p>
+
+                                                <script>
+                                                                                            (function () {
+                                                                                                const targetDate = new Date("@ticket.StartTime.ToString("yyyy-MM-ddTHH:mm:ss")");
+                                                                                                const el = document.getElementById("countdown-@ticket.TicketId");
+
+                                                                                                if (!el) return;
+
+                                                                                                function update() {
+                                                                                                    const now = new Date();
+                                                                                                    const diff = targetDate - now;
+
+                                                                                                    if (diff <= 0) {
+                                                                                                        el.innerText = "🎬 Сеанс вже почався!";
+                                                                                                        return;
+                                                                                                    }
+
+                                                                                                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                                                                                    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                                                                                                    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+                                                                                                    el.innerText =
+                                                                                                        `⏳ До початку: ${days}д. ${hours}г. ${minutes}хв.`;
+                                                                                                }
+
+                                                                                                update();
+                                                                                                setInterval(update, 60000);
+                                                                                            })();
+                                                </script>
+
+
                                                 <div class="text-end">
                                                     <h4 class="fw-bold mb-0 text-dark">
                                                         @ticket.Price.ToString("N2") ₴
