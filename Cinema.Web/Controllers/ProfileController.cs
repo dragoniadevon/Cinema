@@ -109,13 +109,13 @@ namespace Cinema.Web.Controllers
                                 if (t.Payment != null)
                                 {
                                     // Була оплата, яку довелось повернути через адміна
-                                    actionText = "⚠️ Квиток повернуто (закриття залу)";
+                                    actionText = "⚠️ Квиток повернуто (з тех. причин, приносимо вибачення)";
                                     badgeClass = "bg-danger-subtle text-danger";
                                 }
                                 else
                                 {
                                     // Була просто бронь, яку зняли через скасування сеансу
-                                    actionText = "🚫 Бронь скасована (закриття залу)";
+                                    actionText = "🚫 Бронь скасована (з тех. причин, приносимо вибачення)";
                                     badgeClass = "bg-dark-subtle text-muted";
                                 }
                             }
