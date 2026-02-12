@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Оплата квитків";
     // Розраховуємо час закінчення броні для JS
-    var expiryTime = DateTime.Now.AddMinutes(Model.MinutesLeft).ToString("yyyy-MM-ddTHH:mm:ss");
+    var expiryTime = Model.ExpiryTime.ToString("yyyy-MM-ddTHH:mm:ss");
 }
 
 <div class="container mt-5">
@@ -43,21 +43,40 @@
 
                     <h5 class="fw-bold mb-3 text-secondary">Ваше замовлення:</h5>
 
-                    <div class="list-group list-group-flush border rounded-4 mb-4 overflow-hidden">
+                    <div class="list-group list-group-flush border rounded-4 mb-4 overflow-hidden shadow-sm">
                         @foreach (var ticket in Model.Tickets)
                         {
-                            <div class="list-group-item py-3 px-4 bg-white">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="fw-bold mb-1 text-dark">🎬 @ticket.MovieTitle</h6>
-                                        <p class="mb-0 text-muted small">
-                                            Ряд <span class="text-dark fw-bold">@ticket.Row</span>,
-                                            Місце <span class="text-dark fw-bold">@ticket.SeatNumber</span>
-                                        </p>
+                            <div class="list-group-item py-3 px-4 bg-white border-bottom">
+                                <div class="row align-items-center">
+
+                                    <div class="col-md-6 border-md-end mb-3 mb-md-0">
+                                        <h6 class="fw-bold mb-1 text-dark fs-5">🎬 @ticket.MovieTitle</h6>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-geo-alt-fill text-danger"></i>
+                                            @ticket.CinemaCity • @ticket.CinemaName • @ticket.HallName
+                                        </div>
                                     </div>
-                                    <div class="text-end">
+
+                                    <div class="col-md-4 mb-3 mb-md-0 ps-md-4">
+                                        <div class="d-flex flex-column gap-1">
+                                            <span class="small text-muted">
+                                                <i class="bi bi-calendar-event me-1"></i>
+                                                <b>@ticket.SessionStart.ToString("dd.MM.yyyy")</b> о
+                                                <b>@ticket.SessionStart.ToString("HH:mm")</b>
+                                            </span>
+                                            <span class="small text-dark">
+                                                <i class="bi bi-person-badge me-1"></i>
+                                                Ряд <b class="text-primary">@ticket.Row</b>, Місце <b
+                                                class="text-primary">@ticket.SeatNumber</b>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-2 text-md-end">
+                                        <div class="small text-muted text-uppercase fw-bold tiny-text d-md-none">Ціна</div>
                                         <span class="fs-5 fw-bold text-dark">@ticket.Price.ToString("N2") ₴</span>
                                     </div>
+
                                 </div>
                             </div>
                         }
@@ -74,24 +93,37 @@
                         </div>
                     </div>
 
-                    <form asp-action="Confirm" method="post">
-                        @Html.AntiForgeryToken()
+                    <div class="d-flex flex-column align-items-center gap-3"> @* Змінено з d-grid на d-flex з центруванням *@
 
-                        @foreach (var ticket in Model.Tickets)
-                        {
-                            <input type="hidden" name="ticketIds" value="@ticket.TicketId" />
-                        }
+                        <form asp-action="Confirm" method="post" class="w-100 text-center"> @* Додано text-center *@
+                            @Html.AntiForgeryToken()
 
-                        <div class="d-grid gap-3">
-                            <button type="submit" class="btn btn-success btn-lg py-3 fw-bold rounded-4 shadow-sm">
+                            @foreach (var ticket in Model.Tickets)
+                            {
+                                <input type="hidden" name="ticketIds" value="@ticket.TicketId" />
+                            }
+
+                            <button type="submit" class="btn btn-success btn-lg py-3 fw-bold rounded-4 shadow-sm px-5">
+                                @* Додано px-5 для ширини *@
                                 ПІДТВЕРДИТИ ТА ОПЛАТИТИ ✅
                             </button>
-                            <a asp-controller="Profile" asp-action="Index"
-                                   class="btn btn-outline-secondary py-2 border-0 rounded-4">
-                                Скасувати та повернутися до профілю
-                            </a>
-                        </div>
-                    </form>
+                        </form>
+
+                        <form asp-action="CancelPendingPayment" method="post" class="w-100 text-center"> @* Додано text-center *@
+                            @Html.AntiForgeryToken()
+
+                            @foreach (var ticket in Model.Tickets)
+                            {
+                                <input type="hidden" name="ticketIds" value="@ticket.TicketId" />
+                            }
+
+                            <button type="submit" class="btn btn-outline-secondary py-2 border-0 rounded-4">
+                                Скасувати бронювання та повернутися до профілю
+                            </button>
+                        </form>
+
+                    </div>
+
                 </div>
             </div>
 
@@ -133,30 +165,43 @@
 
 @section Scripts {
     <script>
-                    (function () {
-                        const expiryDate = new Date("@expiryTime");
-                        const timerElement = document.getElementById("payment-timer");
+                                                            (function () {
+                                                                const expiryDate = new Date("@expiryTime");
+                                                                const timerElement = document.getElementById("payment-timer");
 
-                        function updateTimer() {
-                            const now = new Date();
-                            const diff = expiryDate - now;
+                                                                let isExpired = false;
 
-                            if (diff <= 0) {
-                                timerElement.innerText = "00:00";
-                                timerElement.classList.replace("text-warning", "text-danger");
-                                // Можна додати автоматичний редирект, якщо час вийшов
-                                alert("Час оплати вичерпано. Ви будете перенаправлені до розкладу.");
-                                window.location.href = '@Url.Action("Index", "Sessions")';
-                                return;
-                            }
+                                                                function updateTimer() {
+                                                                    if (isExpired) return;
 
-                            const m = Math.floor(diff / 60000);
-                            const s = Math.floor((diff % 60000) / 1000);
-                            timerElement.innerText = `${m}:${s.toString().padStart(2, '0')}`;
-                        }
+                                                                    const now = new Date();
+                                                                    const diff = expiryDate - now;
 
-                        updateTimer();
-                        setInterval(updateTimer, 1000);
-                    })();
+                                                                    if (diff <= 0) {
+                                                                        isExpired = true;
+
+                                                                        timerElement.innerText = "00:00";
+                                                                        timerElement.classList.replace("text-warning", "text-danger");
+
+                                                                        clearInterval(interval);
+
+                                                                        setTimeout(() => {
+                                                                            alert("Час оплати вичерпано. Ви будете перенаправлені до розкладу.");
+                                                                            window.location.href = '@Url.Action("Index", "Sessions")';
+                                                                        }, 300);
+
+                                                                        return;
+                                                                    }
+
+                                                                    const m = Math.floor(diff / 60000);
+                                                                    const s = Math.floor((diff % 60000) / 1000);
+
+                                                                    timerElement.innerText =
+                                                                        `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                                                                }
+
+                                                                updateTimer();
+                                                                const interval = setInterval(updateTimer, 1000);
+                                                            })();
     </script>
 }

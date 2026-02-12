@@ -9,7 +9,7 @@ public class PaymentVm
 
     public decimal TotalAmount { get; set; }
 
-    public int MinutesLeft { get; set; }
+    public DateTime ExpiryTime { get; set; }
 }
 
 public class TicketPaymentVm
@@ -18,9 +18,16 @@ public class TicketPaymentVm
 
     public string MovieTitle { get; set; } = "";
 
-    public int Row { get; set; }
+    public string CinemaCity { get; set; } = "";
 
+    public string CinemaName { get; set; } = "";
+    public string HallName { get; set; } = "";
+
+    public DateTime SessionStart { get; set; }
+
+    public int Row { get; set; }
     public int SeatNumber { get; set; }
 
     public decimal Price { get; set; }
 }
+

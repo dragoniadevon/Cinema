@@ -151,6 +151,9 @@ public class TicketsController : Controller
             .Include(t => t.Seat)
             .Include(t => t.Session)
                 .ThenInclude(s => s.Movie)
+            .Include(t => t.Session)
+                .ThenInclude(s => s.Hall)
+                    .ThenInclude(h => h.Cinema)
             .Where(t =>
                 ids.Contains(t.Id) &&
                 t.Userid == user.Id &&
@@ -160,16 +163,25 @@ public class TicketsController : Controller
         if (!tickets.Any())
             return RedirectToAction("Index", "Profile");
 
+        var sessionId = tickets.First().Sessionid;
+
         var vm = new OrderConfirmationVm
         {
+            SessionId = sessionId,
+
             Tickets = tickets.Select(t => new TicketConfirmationItemVm
             {
                 TicketId = t.Id,
                 MovieTitle = t.Session.Movie.Title,
+                CinemaCity = t.Session.Hall.Cinema.City,
+                CinemaName = t.Session.Hall.Cinema.Name,
+                HallName = t.Session.Hall.Name,
+                SessionStart = t.Session.Starttime,
                 Row = t.Seat.Rownumber ?? 0,
                 Seat = t.Seat.Seatnumber ?? 0,
                 Price = t.Price
             }).ToList()
+
         };
 
         return View(vm);
