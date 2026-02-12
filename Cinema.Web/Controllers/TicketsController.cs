@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Cinema.Infrastructure.Entities;
+using Cinema.Infrastructure.Entities.Enums;
 using Cinema.Web.Models.Tickets;
 
 
@@ -176,6 +177,9 @@ public class TicketsController : Controller
                 CinemaCity = t.Session.Hall.Cinema.City,
                 CinemaName = t.Session.Hall.Cinema.Name,
                 HallName = t.Session.Hall.Name,
+                Format = t.Session.Format != null
+                ? (SessionFormat)t.Session.Format
+                : null,
                 SessionStart = t.Session.Starttime,
                 Row = t.Seat.Rownumber ?? 0,
                 Seat = t.Seat.Seatnumber ?? 0,

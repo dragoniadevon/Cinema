@@ -87,6 +87,9 @@ public class PaymentsController : Controller
                 CinemaName = t.Session.Hall.Cinema.Name,
                 CinemaCity = t.Session.Hall.Cinema.City,
                 HallName = t.Session.Hall.Name,
+                Format = t.Session.Format != null
+                ? (SessionFormat)t.Session.Format
+                : null,
                 SessionStart = t.Session.Starttime,
                 Row = t.Seat.Rownumber ?? 0,
                 SeatNumber = t.Seat.Seatnumber ?? 0,

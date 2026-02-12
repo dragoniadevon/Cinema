@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cinema.Infrastructure.Entities.Enums;
 
 namespace Cinema.Web.Models.Payments;
 
@@ -22,6 +23,8 @@ public class TicketPaymentVm
 
     public string CinemaName { get; set; } = "";
     public string HallName { get; set; } = "";
+
+    public SessionFormat? Format { get; set; }
 
     public DateTime SessionStart { get; set; }
 
