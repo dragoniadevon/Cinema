@@ -5,7 +5,7 @@
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Керування розкладом";
-    var now = DateTime.UtcNow;
+    var now = DateTime.Now;
 }
 
 <div class="container mt-4">
@@ -85,30 +85,30 @@
     }
     else 
     {
-        IEnumerable<global::Cinema.Web.Models.Sessions.SessionsByDateVm> sortedModel;
+            bool pastSectionStarted = false; // Маркер для лінії відокремлення
 
-        if (ViewBag.CurrentMode == "cancelled")
-        {
-            var futureCancelled = Model.Where(d => d.Date >= DateTime.Today).OrderBy(d => d.Date);
-            var pastCancelled = Model.Where(d => d.Date < DateTime.Today).OrderByDescending(d => d.Date);
-            sortedModel = futureCancelled.Concat(pastCancelled);
-        }
-        else if (ViewBag.CurrentMode == "past")
-        {
-            sortedModel = Model.OrderByDescending(d => d.Date);
-        }
-        else
-        {
-            sortedModel = Model.OrderBy(d => d.Date);
-        }
-
-        foreach (var dateGroup in sortedModel)
+        @foreach (var dateGroup in Model)
         {
             var isPast = dateGroup.Date < DateTime.Today;
-            var applyOpacity = (ViewBag.CurrentMode == "cancelled" && isPast);
 
-            <div class="date-section mb-5 p-3 bg-white rounded shadow-sm border @(applyOpacity ? "opacity-50" : "")">
-                <h3 class="py-2 mb-4 border-bottom fw-bold d-flex justify-content-between align-items-center @(applyOpacity ? "text-muted" : "text-secondary")">
+            @* ЛІНІЯ ВІДОКРЕМЛЕННЯ: якщо ми в режимі "Скасовані" і переходимо від майбутніх до минулих дат *@
+            @if (ViewBag.CurrentMode == "cancelled" && isPast && !pastSectionStarted)
+            {
+                pastSectionStarted = true;
+                <div class="col-12 my-5">
+                    <div class="d-flex align-items-center">
+                        <hr class="flex-grow-1 border-secondary opacity-25">
+                        <span class="mx-3 fw-bold text-muted small text-uppercase" style="letter-spacing: 2px;">
+                            📜 Історія попередніх скасувань
+                        </span>
+                        <hr class="flex-grow-1 border-secondary opacity-25">
+                    </div>
+                </div>
+            }
+
+            @* Прибрано applyOpacity: тепер картки завжди яскраві *@
+            <div class="date-section mb-5 p-3 bg-white rounded shadow-sm border">
+                <h3 class="py-2 mb-4 border-bottom fw-bold d-flex justify-content-between align-items-center @(isPast ? "text-muted" : "text-secondary")">
                     <span>📅 @dateGroup.Date.ToString("dd MMMM yyyy, dddd")</span>
                 </h3>
 
@@ -144,8 +144,7 @@
 
                                     <div class="col-7">
                                         <div class="card-body d-flex flex-column h-100 p-3"> 
-                                            <h6 class="card-title fw-bold text-dark mb-1 text-truncate-2">@firstMovie.Title</h6>
-                                            <p class="small text-muted mb-2">
+                                                <h5 class="card-title fw-bold text-dark mb-1 text-truncate-2" style="font-size: 1.25rem;">@firstMovie.Title</h5>                                            <p class="small text-muted mb-2">
                                                 <i class="bi bi-clock-history me-1"></i>@firstMovie.Duration хв.
                                             </p>
 
@@ -153,41 +152,82 @@
                                                 @foreach (var cinemaItem in movieGroup)
                                                 {
                                                     <div class="mb-3">
-                                                        <div class="cinema-label text-dark mb-1" style="font-size: 0.7rem; line-height: 1.2;">
+                                                        <div class="cinema-label text-dark mb-1" style="font-size: 0.9rem; line-height: 1.2;">
                                                             <i class="bi bi-geo-alt text-primary"></i> 
-                                                            <strong>@cinemaItem.CinemaName</strong>
+                                                            <strong>@cinemaItem.CinemaName (@cinemaItem.Movie.Sessions.First().Hall.Cinema.City)</strong>
                                                         </div>
                                                         <div class="d-flex flex-wrap gap-1">
                                                             @foreach (var session in cinemaItem.Movie.Sessions)
                                                             {
-                                                                @* Обчислюємо наявність реально активних квитків *@
-                                                                var hasActiveTickets = session.Tickets.Any(t =>
-                                                                        t.Status == (short)TicketStatus.Paid ||
-                                                                        (t.Status == (short)TicketStatus.Reserved &&
-                                                                        now <= t.Bookingtime.AddMinutes(10))
-                                                                    );
+                                                                @* Визначаємо колір кнопки часу *@
+                                                                string btnColorClass = "text-dark";
+                                                                if (session.PaidCount > 0) btnColorClass = "text-info";
+                                                                else if (session.RefundedCount > 0 || session.CancelledResCount > 0) btnColorClass = "text-danger";
+
                                                                 <div class="dropdown">
-                                                                    <button class="btn btn-sm border-0 p-1 fw-bold session-minimal-btn dropdown-toggle 
-                                                                            @((session.Isactive ?? false) ? (hasActiveTickets ? "text-info" : "text-dark") : "text-danger")" 
-                                                                            type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                                                    <button class="btn btn-sm border-0 p-1 fw-black session-minimal-btn dropdown-toggle @btnColorClass" 
+                                                                            type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.1rem;">
                                                                         @session.Starttime.ToString("HH:mm")
+                                                                        @if (session.PaidCount > 0 && (session.RefundedCount > 0 || session.CancelledResCount > 0))
+                                                                        {
+                                                                            <sup class="text-danger" style="font-size: 0.7rem;">*</sup>
+                                                                        }
                                                                     </button>
-                                                                    <ul class="dropdown-menu shadow-lg border-0 rounded-4 p-2">
+        
+                                                                    <ul class="dropdown-menu shadow-lg border-0 rounded-4 p-2" style="min-width: 220px;">
                                                                         <li class="px-3 py-1 small border-bottom mb-2 text-muted">
                                                                             Зал: <strong>@session.Hall?.Name</strong><br/>
                                                                             Формат: <strong>@(session.Format == 2 ? "3D" : "2D")</strong>
                                                                         </li>
-                                                                        <li><a asp-action="Details" asp-route-id="@session.Id" class="dropdown-item rounded-3">👁️ Деталі сеансу</a></li>
+            
+                                                                        @if (session.PaidCount > 0)
+                                                                        {
+                                                                            <li class="px-3 py-1 d-flex justify-content-between align-items-center small">
+                                                                                <span>✅ Оплачено:</span> <span class="badge bg-info rounded-pill">@session.PaidCount</span>
+                                                                            </li>
+                                                                        }
+            
+                                                                        @if (session.RefundedCount > 0)
+                                                                        {
+                                                                            <li class="px-3 py-1 d-flex justify-content-between align-items-center small">
+                                                                                <span class="text-warning">🔄 Повернено:</span> <span class="badge bg-warning text-dark rounded-pill">@session.RefundedCount</span>
+                                                                            </li>
+                                                                        }
+
+                                                                        @if (session.CancelledResCount > 0)
+                                                                        {
+                                                                            <li class="px-3 py-1 d-flex justify-content-between align-items-center small">
+                                                                                <span class="text-danger">❌ Ск. броней:</span> <span class="badge bg-danger rounded-pill">@session.CancelledResCount</span>
+                                                                            </li>
+                                                                        }
+
+                                                                        <li class="border-top mt-2 pt-2">
+                                                                            <a asp-action="Details" asp-route-id="@session.Id" class="dropdown-item rounded-3 small mb-1">👁️ Деталі сеансу</a>
+
                                                                         @if (ViewBag.CurrentMode == "active")
                                                                         {
-                                                                            if (!session.Tickets.Any())
+                                                                            if (session.ActiveTicketsCount == 0)
                                                                             {
-                                                                                <li><a asp-action="Edit" asp-route-id="@session.Id" class="dropdown-item rounded-3">✏️ Редагувати</a></li>
-                                                                                <li><button class="dropdown-item rounded-3 text-danger" data-bs-toggle="modal" data-bs-target="#deleteSessionModal" data-id="@session.Id" data-info="@session.Starttime.ToString("HH:mm") - @firstMovie.Title">🗑️ Видалити</button></li>
+                                                                                <li><a asp-action="Edit" asp-route-id="@session.Id" class="dropdown-item rounded-3 small mb-1">✏️ Редагувати</a></li>
+                                                                                <li>
+                                                                                    <button class="dropdown-item rounded-3 small text-danger" 
+                                                                                            data-bs-toggle="modal" data-bs-target="#deleteSessionModal" 
+                                                                                            data-id="@session.Id" 
+                                                                                            data-info="@session.Starttime.ToString("HH:mm") - @firstMovie.Title">
+                                                                                        🗑️ Видалити сеанс
+                                                                                    </button>
+                                                                                </li>
                                                                             }
                                                                             else
                                                                             {
-                                                                                <li><button class="dropdown-item rounded-3 text-warning" data-bs-toggle="modal" data-bs-target="#cancelSessionModal" data-id="@session.Id" data-info="@session.Starttime.ToString("HH:mm") - @firstMovie.Title">🚫 Скасувати</button></li>
+                                                                                <li>
+                                                                                    <button class="dropdown-item rounded-3 small text-warning" 
+                                                                                            data-bs-toggle="modal" data-bs-target="#cancelSessionModal" 
+                                                                                            data-id="@session.Id" 
+                                                                                            data-info="@session.Starttime.ToString("HH:mm") - @firstMovie.Title">
+                                                                                        🚫 Скасувати сеанс
+                                                                                    </button>
+                                                                                </li>
                                                                             }
                                                                         }
                                                                     </ul>
@@ -206,6 +246,20 @@
                 </div>
             </div>
         }
+    }
+    @if (ViewBag.HasNextPage == true)
+    {
+        <div class="text-center my-5 pb-5">
+            <a href="@Url.Action("Index", new { 
+                mode = ViewBag.CurrentMode, 
+                city = ViewBag.SelectedCity, 
+                cinemaId = ViewBag.SelectedCinema, 
+                date = ViewBag.SelectedDate, 
+                page = (int)ViewBag.Page + 1 
+            })" class="btn btn-outline-primary btn-lg rounded-pill px-5 shadow-sm">
+                <i class="bi bi-arrow-down-circle me-2"></i> Показати наступні 5 днів
+            </a>
+        </div>
     }
 </div>
 
@@ -370,4 +424,7 @@
         min-height: 100%;
         object-fit: cover;
     }
+    .badge { font-size: 0.65rem; padding: 0.35em 0.65em; }
+    .bi-cash-stack { font-size: 0.7rem; vertical-align: top; margin-left: 2px; }
+    .text-warning { color: #ffc107 !important; }
 </style>
