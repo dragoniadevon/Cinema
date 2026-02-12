@@ -109,41 +109,90 @@ StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
                             <div class="seat-row @(isVipRow ? "vip-row-margin" : "")">
                                 <div class="seats-row-wrapper @(isVipRow ? "vip-style" : "standard-style")">
                                     @foreach (var seat in rowSeats)
-                                    {
-                                        var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
-                                        string seatTypeClass = seat.IsTaken ? "is-taken" : (isVip ? "is-vip" : "is-standard");
-                                        if (seat.IsBlocked) seatTypeClass = "is-blocked";
+                {
+                    var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
+                    // ✅ ПЕРЕВІРКА: чи було саме повернення ОПЛАТИ (ігноруємо скасовані броні)
+                    var wasPreviouslyPaid = !string.IsNullOrEmpty(seat.RefundInfo) && seat.RefundInfo.Contains("Оплата");
+    
+                    string seatTypeClass = "is-standard";
+                    if (seat.IsBlocked) seatTypeClass = "is-blocked";
+                    else if (seat.IsTaken) 
+                    {
+                        if (seat.StatusInfo == "Бронювання") 
+                        {
+                            // Якщо зараз бронь + в історії було повернення ОПЛАТИ
+                            seatTypeClass = wasPreviouslyPaid ? "is-reserved-refunded" : "is-reserved";
+                        }
+                        else if (seat.StatusInfo == "Оплачено") 
+                        {
+                            // ✅ Якщо зараз оплачено + в історії було повернення ОПЛАТИ -> Червоний
+                            seatTypeClass = wasPreviouslyPaid ? "was-refunded-bought" : "is-taken";
+                        }
+                    }
+                    else if (isVip) seatTypeClass = "is-vip";
 
-                                        <button type="button"
-                                                class="seat-btn admin-mode @seatTypeClass @(isVip ? "vip-size" : "")"
-                                                data-seat-id="@seat.SeatId"                            data-row="@r"                               data-num="@seat.Number"
-                                                data-category="@seat.CategoryName"
-                                                data-is-taken="@seat.IsTaken.ToString().ToLower()"      @* ОЦІ ДВА РЯДКИ ВАЖЛИВІ *@
-                                                data-status="@seat.StatusInfo"                data-refund="@seat.RefundInfo"
-                                                data-info='{"name":"@seat.CustomerName", "email":"@seat.CustomerEmail", "price":"@seat.Price", "date":"@seat.PurchaseDate?.ToString("dd.MM.yyyy HH:mm")"}'
-                                                onclick="handleSeatClick(this)">
-                                            @if (seat.IsBlocked)
-                                            {
-                                                <i class="bi bi-tools"></i>
-                                            }
-                                            else if (seat.IsTaken)
-                                            {
+                    <button type="button"
+                            class="seat-btn admin-mode @seatTypeClass @(isVip ? "vip-size" : "")"
+                            data-seat-id="@seat.SeatId" 
+                            data-row="@r" 
+                            data-num="@seat.Number"
+                            data-category="@seat.CategoryName"
+                            data-is-taken="@seat.IsTaken.ToString().ToLower()"
+                            data-status="@seat.StatusInfo" 
+                            data-refund="@seat.RefundInfo"
+                            data-info='{"name":"@seat.CustomerName", "email":"@seat.CustomerEmail", "price":"@seat.Price", "date":"@seat.PurchaseDate?.ToString("dd.MM.yyyy HH:mm")"}'
+                            onclick="handleSeatClick(this)">
 
-                                                <i class="bi bi-person-badge"></i>
-                                            }
-                                            else
-                                            {
-
-                                                @seat.Number
-                                            }
-                                        </button>
-                                    }
+                        @if (seat.IsBlocked)
+                        {
+                            <i class="bi bi-tools"></i>
+                        }
+                        else if (seat.IsTaken)
+                        {
+                            <i class="bi @(seat.StatusInfo == "Бронювання" ? "bi-bookmark-fill" : "bi-person-badge")"></i>
+                        }
+                        @* ✅ Стрілочка тільки якщо була ОПЛАТА, яку повернули, і місце ЗАРАЗ вільне *@
+                        else if (wasPreviouslyPaid)
+                        {
+                            <i class="bi bi-arrow-counterclockwise text-warning"></i>
+                        }
+                        else
+                        {
+                            @seat.Number
+                        }
+                    </button>
+                }
                                 </div>
                             </div>
                         }
                     </div>
                 </div>
-
+                <div class="d-flex justify-content-center gap-4 mb-4 flex-wrap border-bottom pb-4 text-black">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="seat-legend is-taken d-flex align-items-center justify-content-center"><i class="bi bi-person-badge"></i></div>
+                        <span class="small">Куплено</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="seat-legend d-flex align-items-center justify-content-center" style="background-color: #fff3cd;"><i class="bi bi-arrow-counterclockwise text-warning"></i></div>
+                        <span class="small">Повернено</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="seat-legend is-reserved d-flex align-items-center justify-content-center"><i class="bi bi-bookmark-fill"></i></div>
+                        <span class="small">Заброньовано</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="seat-legend was-refunded-bought d-flex align-items-center justify-content-center"><i class="bi bi-person-badge"></i></div>
+                        <span class="small">Повернено + Куплено</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="seat-legend is-reserved-refunded d-flex align-items-center justify-content-center"><i class="bi bi-bookmark-fill"></i></div>
+                        <span class="small">Повернено + Заброньовано</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="seat-legend is-blocked d-flex align-items-center justify-content-center"><i class="bi bi-tools"></i></div>
+                        <span class="small">Зламане місце</span>
+                    </div>
+                </div>
                 <div class="mt-4 pt-3 border-top d-flex justify-content-around text-center">
                     <div>
                         <div class="text-muted small fw-bold text-uppercase">Зайнято</div>
@@ -364,6 +413,45 @@ StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
 
     .seat-btn:active {
         transform: scale(0.9);
+    }
+
+
+    .is-reserved {
+        background-color: #0dcaf0 !important;
+        color: white !important;
+        border: 1px solid #0baccc !important;
+    }
+
+    /* Місце вільне, але було повернення оплати - Жовтуватий фон */
+    /* Додаємо селектор :not(.is-taken), щоб колір зникав, коли місце купують */
+    .seat-btn:not(.is-taken):not(.is-blocked):has(.bi-arrow-counterclockwise) {
+        background-color: #fff3cd !important;
+        border: 1px solid #ffeeba !important;
+        color: #856404 !important;
+    }
+
+    .bi-arrow-counterclockwise {
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+
+    .bi-bookmark-fill {
+        font-size: 0.9rem;
+    }
+    .was-refunded-bought {
+        background-color: #dc3545 !important;
+        color: white !important;
+        border: 1px solid #a71d2a !important;
+    }
+
+    /* Повернено + Заброньовано знову - БЛАКИТНИЙ ФОН + ЧЕРВОНА ІКОНКА */
+    .is-reserved-refunded {
+        background-color: #0dcaf0 !important; /* Блакитний фон */
+        color: #dc3545 !important;           /* Червона іконка */
+    }
+
+    .is-reserved-refunded .bi-bookmark-fill {
+        color: #dc3545 !important;
     }
 </style>
 <script>
