@@ -401,28 +401,34 @@
         border: 1px solid #eee !important;
     }
     .hover-card {
-        min-height: 230px;
+        height: 100%; /* Картка займає всю висоту колонки сітки */
         display: flex;
-        flex-direction: row;
-        height: 100%;
+        flex-direction: column;
     }
+    .hover-card .row.g-0 {
+        flex-grow: 1; /* Ряд розтягується на всю висоту картки */
+    }
+    /* Обмежуємо висоту контентної частини, щоб картки не розповзалися */
     .cinema-sessions-list {
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        max-height: 140px !important;
-        padding-right: 8px;
-        margin-top: 5px;
+        flex-grow: 1;
+        overflow-y: auto;
+        max-height: 180px; /* Фіксована висота для списку сеансів */
+        min-height: 180px; /* Гарантує, що всі картки будуть однакового розміру */
+        padding-right: 5px;
     }
+
+    /* Стилізація скроллбару всередині картки */
     .cinema-sessions-list::-webkit-scrollbar {
-        width: 3px;
+        width: 4px;
     }
     .cinema-sessions-list::-webkit-scrollbar-thumb {
-        background: #ced4da;
+        background: #e9ecef;
         border-radius: 10px;
     }
     .poster-zoom {
-        min-height: 100%;
         object-fit: cover;
+        height: 100% !important;
+        min-height: 100%;
     }
     .badge { font-size: 0.65rem; padding: 0.35em 0.65em; }
     .bi-cash-stack { font-size: 0.7rem; vertical-align: top; margin-left: 2px; }
