@@ -85,13 +85,12 @@
     }
     else 
     {
-            bool pastSectionStarted = false; // Маркер для лінії відокремлення
+            bool pastSectionStarted = false;
 
         @foreach (var dateGroup in Model)
         {
             var isPast = dateGroup.Date < DateTime.Today;
 
-            @* ЛІНІЯ ВІДОКРЕМЛЕННЯ: якщо ми в режимі "Скасовані" і переходимо від майбутніх до минулих дат *@
             @if (ViewBag.CurrentMode == "cancelled" && isPast && !pastSectionStarted)
             {
                 pastSectionStarted = true;
@@ -106,7 +105,6 @@
                 </div>
             }
 
-            @* Прибрано applyOpacity: тепер картки завжди яскраві *@
             <div class="date-section mb-5 p-3 bg-white rounded shadow-sm border">
                 <h3 class="py-2 mb-4 border-bottom fw-bold d-flex justify-content-between align-items-center @(isPast ? "text-muted" : "text-secondary")">
                     <span>📅 @dateGroup.Date.ToString("dd MMMM yyyy, dddd")</span>
@@ -159,7 +157,6 @@
                                                         <div class="d-flex flex-wrap gap-1">
                                                             @foreach (var session in cinemaItem.Movie.Sessions)
                                                             {
-                                                                @* Визначаємо колір кнопки часу *@
                                                                 string btnColorClass = "text-dark";
                                                                 if (session.PaidCount > 0) btnColorClass = "text-info";
                                                                 else if (session.RefundedCount > 0 || session.CancelledResCount > 0) btnColorClass = "text-danger";
