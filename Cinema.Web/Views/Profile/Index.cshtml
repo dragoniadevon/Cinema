@@ -264,8 +264,9 @@
                                 <div id="history-visible-list">
                                     @foreach (var ticket in initialTickets)
                                     {
-                                        <div
-                                            class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card">
+                                       @* В циклі історії *@
+                                        <div class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card 
+                                             @(ticket.ActionText.Contains("закриття") ? "border-start border-danger border-4" : "")">
                                             <div class="card-body p-0">
                                                 <div class="row g-0 align-items-center" style="min-height: 100px;">
                                                     <div class="col-md-5 p-3">
@@ -312,7 +313,9 @@
                                         <div id="history-hidden-list" style="display: none;">
                                             @foreach (var ticket in hiddenTickets)
                                             {
-                                            <div class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card">
+                                            @* В циклі історії *@
+                                            <div class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card 
+                                                 @(ticket.ActionText.Contains("закриття") ? "border-start border-danger border-4" : "")">
                                                 <div class="card-body p-0">
                                                     <div class="row g-0 align-items-center" style="min-height: 100px;">
                                                         <div class="col-md-5 p-3">
