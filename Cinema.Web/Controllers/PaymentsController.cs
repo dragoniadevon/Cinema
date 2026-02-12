@@ -41,6 +41,8 @@ public class PaymentsController : Controller
         var tickets = await _db.Tickets
             .Include(t => t.Seat)
             .Include(t => t.Session).ThenInclude(s => s.Movie)
+            .Include(t => t.Session).ThenInclude(s => s.Hall).ThenInclude(h => h.Cinema)
+
             .Where(t =>
                 ids.Contains(t.Id) &&
                 t.Userid == user.Id &&
@@ -82,13 +84,18 @@ public class PaymentsController : Controller
             {
                 TicketId = t.Id,
                 MovieTitle = t.Session.Movie.Title,
+                CinemaName = t.Session.Hall.Cinema.Name,
+                CinemaCity = t.Session.Hall.Cinema.City,
+                HallName = t.Session.Hall.Name,
+                SessionStart = t.Session.Starttime,
                 Row = t.Seat.Rownumber ?? 0,
                 SeatNumber = t.Seat.Seatnumber ?? 0,
                 Price = t.Price
             }).ToList(),
 
+
             TotalAmount = tickets.Sum(t => t.Price),
-            MinutesLeft = Math.Max(0, 10 - (int)(now - minBookingTime).TotalMinutes)
+            ExpiryTime = minBookingTime.AddMinutes(10)
         };
 
         return View(vm);
@@ -156,4 +163,35 @@ public class PaymentsController : Controller
             }
         }
     }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelPendingPayment(List<int> ticketIds)
+    {
+        if (ticketIds == null || !ticketIds.Any())
+            return RedirectToAction("Index", "Profile");
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Challenge();
+
+        var tickets = await _db.Tickets
+            .Where(t =>
+                ticketIds.Contains(t.Id) &&
+                t.Userid == user.Id &&
+                t.Status == (short)TicketStatus.Reserved)
+            .ToListAsync();
+
+        if (tickets.Any())
+        {
+            foreach (var ticket in tickets)
+                ticket.Status = (short)TicketStatus.Cancelled;
+
+            await _db.SaveChangesAsync();
+        }
+
+        return RedirectToAction("Index", "Profile");
+    }
+
 }
