@@ -69,10 +69,10 @@ public class HomeController : Controller
         var sessions = await _db.Sessions
             .Include(s => s.Sessionprices)
             .Where(s => s.Movieid == movieId &&
-                        s.Hall.Cinemaid == cinemaId &&
-                        s.Isactive == true &&
-                        s.Starttime.Date == selectedDate.Date &&
-                        s.Starttime > now)
+                s.Hall.Cinemaid == cinemaId &&
+                s.Isactive == true &&
+                s.Starttime.Date == selectedDate.Date &&
+                s.Starttime > now.AddMinutes(-15))
             .OrderBy(s => s.Starttime)
             .Select(s => new {
                 sessionId = s.Id,
