@@ -24,11 +24,8 @@
         }
     </div>
 
-    @* --- ФІЛЬТР ДАТ --- *@
-    @* --- ФІЛЬТР ДАТ --- *@
     <div class="mx-auto mb-4" style="max-width: 750px;">
         <div class="d-flex flex-wrap align-items-center justify-content-center gap-2">
-            @* Виводимо перші 7 доступних дат *@
             @foreach (var date in availableDates.Take(7))
             {
                 var dateValue = date.ToString("yyyy-MM-dd");
@@ -43,10 +40,8 @@
                 </a>
             }
 
-            @* Кнопка Dropdown для решти дат *@
             @if (availableDates.Count > 7)
             {
-                // Знаходимо, чи обрана дата є серед тих, що в списку "Інші"
                 var activeExtraDate = availableDates.Skip(7).FirstOrDefault(d => d.ToString("yyyy-MM-dd") == selectedDateStr);
                 var hasActiveExtra = activeExtraDate != default(DateTime);
 
@@ -57,13 +52,11 @@
                     
                         @if (hasActiveExtra)
                         {
-                            @* Якщо вибрана дата з розширеного списку, показуємо її дані на кнопці *@
                             <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem; opacity: 0.9;">@activeExtraDate.ToString("ddd")</span>
                             <span class="fw-bold" style="font-size: 0.95rem;">@activeExtraDate.ToString("dd.MM")</span>
                         }
                         else
                         {
-                            @* Якщо вибрана дата з перших семи, показуємо стандартний вигляд *@
                             <span class="text-uppercase mb-1 fw-bolder" style="font-size: 0.55rem; opacity: 0.7;">Інші</span>
                             <i class="bi bi-calendar-plus" style="font-size: 1rem;"></i>
                         }

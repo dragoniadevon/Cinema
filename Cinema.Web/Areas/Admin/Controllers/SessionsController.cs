@@ -61,7 +61,6 @@ public class SessionsController : Controller
             .Include(s => s.Tickets).ThenInclude(t => t.Payment)
             .AsQueryable();
 
-        // 1. Базова фільтрація за режимами
         if (mode == "past")
         {
             var pastQuery = query.Where(s =>
@@ -86,7 +85,7 @@ public class SessionsController : Controller
                 (s.Endtime < now && !s.Tickets.Any(t => t.Status == (short)TicketStatus.Paid))
             );
         }
-        else // mode == "active"
+        else
         {
             query = query.Where(s =>
                 s.Isactive == true &&
@@ -96,14 +95,12 @@ public class SessionsController : Controller
             );
         }
 
-        // 2. Фільтри за містом/кінотеатром/датою
         if (!string.IsNullOrEmpty(city)) query = query.Where(s => s.Hall.Cinema.City == city);
         if (cinemaId.HasValue) query = query.Where(s => s.Hall.Cinemaid == cinemaId.Value);
         if (date.HasValue) query = query.Where(s => s.Starttime.Date == date.Value.Date);
 
         var sessions = await query.ToListAsync();
 
-        // 3. Групування та СОРТУВАННЯ (виносимо логіку з View)
         var dateGroups = sessions.GroupBy(s => s.Starttime.Date).ToList();
 
         IEnumerable<IGrouping<DateTime, Session>> sortedGroups;
@@ -113,21 +110,18 @@ public class SessionsController : Controller
         }
         else if (mode == "cancelled")
         {
-            // Майбутні скасовані (ближчі до сьогодні) + Минулі скасовані (від нових до старих)
             var future = dateGroups.Where(g => g.Key >= now.Date).OrderBy(g => g.Key);
             var past = dateGroups.Where(g => g.Key < now.Date).OrderByDescending(g => g.Key);
             sortedGroups = future.Concat(past);
         }
         else
-        { // past
+        {
             sortedGroups = dateGroups.OrderByDescending(g => g.Key);
         }
 
-        // 4. Пагінація
         int pageSize = 5;
         var pagedGroups = sortedGroups.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
-        // 5. Формування моделі
         var model = pagedGroups.Select(dateGroup => new SessionsByDateVm
         {
             Date = dateGroup.Key,
@@ -168,7 +162,6 @@ public class SessionsController : Controller
                 }).ToList()
         }).ToList();
 
-        // 6. ViewBags
         ViewBag.Cities = await _context.Cinemas.Where(c => c.Isactive).Select(c => c.City).Distinct().OrderBy(c => c).ToListAsync();
         ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive).ToListAsync();
         ViewBag.Page = page;
@@ -352,7 +345,6 @@ public class SessionsController : Controller
         return View(model);
     }
 
-    // GET: Admin/Sessions/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(EditSessionViewModel model)
@@ -444,29 +436,25 @@ public class SessionsController : Controller
     }
 
 
-    // ================= CANCEL =================
     // ================= CANCEL (Скасування сеансу адміном) =================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(int id)
     {
-        // Завантажуємо сеанс разом із квитками
         var session = await _context.Sessions
             .Include(s => s.Tickets)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (session == null) return NotFound();
 
-        // 1. Робимо сеанс неактивним
         session.Isactive = false;
 
-        // 2. Скасовуємо всі квитки на цей сеанс (і оплати, і броні)
         if (session.Tickets.Any())
         {
             foreach (var ticket in session.Tickets.Where(t => t.Status != (short)TicketStatus.Cancelled))
             {
                 ticket.Status = (short)TicketStatus.Cancelled;
-                ticket.Bookingtime = DateTime.Now; // Фіксуємо час скасування
+                ticket.Bookingtime = DateTime.Now;
             }
         }
 
@@ -586,19 +574,16 @@ public class SessionsController : Controller
             {
                 var now = DateTime.Now;
 
-                // 1. Шукаємо АКТИВНИЙ квиток (оплачений або живе бронювання)
                 var activeTicket = session.Tickets.FirstOrDefault(t =>
                     t.Seatid == s.Id &&
                     (t.Status == (short)TicketStatus.Paid ||
                     (t.Status == (short)TicketStatus.Reserved && now <= t.Bookingtime.AddMinutes(10))));
 
-                // 2. Шукаємо ОСТАННІЙ скасований квиток на це місце (для історії повернень)
                 var lastCancelled = session.Tickets
-    .Where(t => t.Seatid == s.Id && t.Status == (short)TicketStatus.Cancelled)
-    .OrderByDescending(t => t.Bookingtime)
-    .FirstOrDefault();
+                    .Where(t => t.Seatid == s.Id && t.Status == (short)TicketStatus.Cancelled)
+                    .OrderByDescending(t => t.Bookingtime)
+                    .FirstOrDefault();
 
-                // Визначаємо тип скасованого квитка
                 string typeLabel = lastCancelled?.Price > 0 ? "Оплата" : "Бронь";
 
 
@@ -611,13 +596,11 @@ public class SessionsController : Controller
                     IsBlocked = s.IsBlocked,
                     CategoryName = s.Pricecategory?.Name ?? "Стандарт",
 
-                    // Дані для Offcanvas панелі
                     Price = activeTicket?.Price ?? 0,
                     CustomerName = activeTicket != null ? $"{activeTicket.User?.FirstName} {activeTicket.User?.LastName}" : null,
                     CustomerEmail = activeTicket?.User?.Email,
                     PurchaseDate = activeTicket?.Bookingtime,
 
-                    // Статус текстом
                     StatusInfo = activeTicket?.Status switch
                     {
                         (short)TicketStatus.Paid => "Оплачено",
@@ -625,7 +608,6 @@ public class SessionsController : Controller
                         _ => "Вільне"
                     },
 
-                    // Інфо про повернення (якщо місце вільне, але був скасований квиток)
                     RefundInfo = lastCancelled != null
                     ? $"Попереднє замовлення ({typeLabel}): {lastCancelled.User?.FirstName} (Скасовано {lastCancelled.Bookingtime:dd.MM HH:mm})"
                     : null
@@ -656,7 +638,6 @@ public class SessionsController : Controller
                 return Json(new { success = false, message = "Активний квиток не знайдено." });
 
             ticket.Status = (short)TicketStatus.Cancelled;
-            // ✅ Оновлюємо час на момент натискання кнопки адміном
             ticket.Bookingtime = DateTime.Now;
 
             await _context.SaveChangesAsync();
@@ -680,6 +661,23 @@ public class SessionsController : Controller
 
         seat.IsBlocked = !seat.IsBlocked;
 
+        if (seat.IsBlocked)
+        {
+            var now = DateTime.Now;
+
+            var ticketsToCancel = await _context.Tickets
+                .Include(t => t.Session)
+                .Where(t => t.Seatid == seatId &&
+                            t.Session.Starttime >= now &&
+                            t.Status != (short)TicketStatus.Cancelled)
+                .ToListAsync();
+
+            foreach (var ticket in ticketsToCancel)
+            {
+                ticket.Status = (short)TicketStatus.Cancelled;
+                ticket.Bookingtime = now;
+            }
+        }
         await _context.SaveChangesAsync();
         return Json(new { success = true, isBlocked = seat.IsBlocked });
     }
