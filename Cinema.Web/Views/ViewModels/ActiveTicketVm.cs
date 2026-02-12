@@ -1,3 +1,5 @@
+using Cinema.Infrastructure.Entities.Enums;
+
 namespace Cinema.Web.ViewModels
 {
     public class ActiveTicketVm
@@ -8,6 +10,7 @@ namespace Cinema.Web.ViewModels
         public string CinemaName { get; set; } = "";
         public string CinemaCity { get; set; } = "";
         public string HallName { get; set; } = "";
+        public SessionFormat? Format { get; set; }
 
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
