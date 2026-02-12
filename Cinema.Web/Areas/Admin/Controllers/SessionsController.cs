@@ -49,119 +49,135 @@ public class SessionsController : Controller
     }
 
     // ================= INDEX =================
-    public async Task<IActionResult> Index(int? cinemaId, string city, DateTime? date, string mode = "active")
+    public async Task<IActionResult> Index(int? cinemaId, string city, DateTime? date, string mode = "active", int page = 1)
     {
         mode = string.IsNullOrEmpty(mode) ? "active" : mode;
         ViewBag.CurrentMode = mode;
+        var now = DateTime.Now;
 
         var query = _context.Sessions
             .Include(s => s.Movie)
             .Include(s => s.Hall).ThenInclude(h => h.Cinema)
-            .Include(s => s.Tickets)
+            .Include(s => s.Tickets).ThenInclude(t => t.Payment)
             .AsQueryable();
 
+        // 1. Базова фільтрація за режимами
         if (mode == "past")
         {
-            query = query.Where(s =>
+            var pastQuery = query.Where(s =>
                 s.Isactive == true &&
-                s.Endtime < DateTime.Now);
+                s.Endtime < now &&
+                s.Tickets.Any(t => t.Status == (short)TicketStatus.Paid));
+
+            if (!date.HasValue)
+            {
+                var limitDate = now.AddDays(-30);
+                pastQuery = pastQuery.Where(s => s.Starttime >= limitDate);
+                ViewBag.ArchiveInfo = "Показано сеанси за останні 30 днів. Для пошуку старіших використовуйте фільтр дати.";
+            }
+            query = pastQuery;
         }
         else if (mode == "cancelled")
         {
             query = query.Where(s =>
-                s.Isactive == false || s.Hall.Isactive == false);
+                s.Isactive == false ||
+                s.Hall.Isactive == false ||
+                (s.Starttime < now.AddMinutes(-20) && !s.Tickets.Any(t => t.Status == (short)TicketStatus.Paid)) ||
+                (s.Endtime < now && !s.Tickets.Any(t => t.Status == (short)TicketStatus.Paid))
+            );
         }
-        else
+        else // mode == "active"
         {
             query = query.Where(s =>
                 s.Isactive == true &&
                 s.Hall.Isactive == true &&
-                s.Endtime >= DateTime.Now);
+                s.Endtime >= now &&
+                !(s.Starttime < now.AddMinutes(-20) && !s.Tickets.Any(t => t.Status == (short)TicketStatus.Paid))
+            );
         }
 
-        if (!string.IsNullOrEmpty(city))
-        {
-            query = query.Where(s => s.Hall.Cinema.City == city);
-        }
-
-        if (cinemaId.HasValue)
-        {
-            query = query.Where(s => s.Hall.Cinemaid == cinemaId.Value);
-        }
-
+        // 2. Фільтри за містом/кінотеатром/датою
+        if (!string.IsNullOrEmpty(city)) query = query.Where(s => s.Hall.Cinema.City == city);
+        if (cinemaId.HasValue) query = query.Where(s => s.Hall.Cinemaid == cinemaId.Value);
         if (date.HasValue) query = query.Where(s => s.Starttime.Date == date.Value.Date);
 
-        var sessions = await query.OrderByDescending(s => s.Starttime).ToListAsync();
+        var sessions = await query.ToListAsync();
 
-        var model = sessions
-            .GroupBy(s => s.Starttime.Date)
-            .OrderBy(g => g.Key)
-            .Select(dateGroup => new SessionsByDateVm
-            {
-                Date = dateGroup.Key,
-                Cinemas = dateGroup
-                    .Where(s => s.Hall?.Cinema != null)
-                    .GroupBy(s => s.Hall.Cinemaid)
-                    .OrderBy(g => g.First().Hall.Cinema.Name)
-                    .Select(cinemaGroup => new SessionsByCinemaVm
-                    {
-                        CinemaId = cinemaGroup.Key ?? 0,
-                        CinemaName = cinemaGroup.First().Hall.Cinema.Name,
-                        Movies = cinemaGroup
-                            .Where(s => s.Movie != null)
-                            .GroupBy(s => s.Movieid)
-                            .OrderBy(g => g.First().Movie.Title)
-                            .Select(movieGroup =>
+        // 3. Групування та СОРТУВАННЯ (виносимо логіку з View)
+        var dateGroups = sessions.GroupBy(s => s.Starttime.Date).ToList();
+
+        IEnumerable<IGrouping<DateTime, Session>> sortedGroups;
+        if (mode == "active")
+        {
+            sortedGroups = dateGroups.OrderBy(g => g.Key);
+        }
+        else if (mode == "cancelled")
+        {
+            // Майбутні скасовані (ближчі до сьогодні) + Минулі скасовані (від нових до старих)
+            var future = dateGroups.Where(g => g.Key >= now.Date).OrderBy(g => g.Key);
+            var past = dateGroups.Where(g => g.Key < now.Date).OrderByDescending(g => g.Key);
+            sortedGroups = future.Concat(past);
+        }
+        else
+        { // past
+            sortedGroups = dateGroups.OrderByDescending(g => g.Key);
+        }
+
+        // 4. Пагінація
+        int pageSize = 5;
+        var pagedGroups = sortedGroups.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        // 5. Формування моделі
+        var model = pagedGroups.Select(dateGroup => new SessionsByDateVm
+        {
+            Date = dateGroup.Key,
+            Cinemas = dateGroup
+                .GroupBy(s => s.Hall.Cinemaid)
+                .OrderBy(g => g.First().Hall.Cinema.Name)
+                .Select(cinemaGroup => new SessionsByCinemaVm
+                {
+                    CinemaId = cinemaGroup.Key ?? 0,
+                    CinemaName = cinemaGroup.First().Hall.Cinema.Name,
+                    Movies = cinemaGroup
+                        .GroupBy(s => s.Movieid)
+                        .OrderBy(g => g.First().Movie.Title)
+                        .Select(movieGroup => new SessionsByMovieVm
+                        {
+                            MovieId = movieGroup.Key ?? 0,
+                            Title = movieGroup.First().Movie.Title,
+                            Duration = movieGroup.First().Movie.Duration,
+                            Agerating = movieGroup.First().Movie.Agerating switch
                             {
-                                var firstSession = movieGroup.First();
-
-                                return new SessionsByMovieVm
-                                {
-                                    MovieId = movieGroup.Key ?? 0,
-                                    Title = firstSession.Movie.Title,
-                                    Duration = firstSession.Movie.Duration,
-                                    Agerating = firstSession.Movie.Agerating switch
-                                    {
-                                        AgeRating.G => "0+",
-                                        AgeRating.PG => "6+",
-                                        AgeRating.PG13 => "12+",
-                                        AgeRating.R => "16+",
-                                        AgeRating.NC17 => "18+",
-                                        _ => "0+"
-                                    },
-                                    // ✅ ПЕРЕТВОРЕННЯ ФОРМАТУ В 2D / 3D
-                                    Format = (SessionFormat)firstSession.Format switch
-                                    {
-                                        SessionFormat.TwoD => "2D",
-                                        SessionFormat.ThreeD => "3D",
-                                        _ => firstSession.Format.ToString()
-                                    },
-                                    Sessions = movieGroup.OrderBy(s => s.Starttime).ToList()
-                                };
+                                AgeRating.G => "0+",
+                                AgeRating.PG => "6+",
+                                AgeRating.PG13 => "12+",
+                                AgeRating.R => "16+",
+                                AgeRating.NC17 => "18+",
+                                _ => "0+"
+                            },
+                            Format = (SessionFormat)movieGroup.First().Format == SessionFormat.ThreeD ? "3D" : "2D",
+                            Sessions = movieGroup.OrderBy(s => s.Starttime).Select(s => {
+                                var tks = s.Tickets.ToList();
+                                s.PaidCount = tks.Count(t => t.Status == (short)TicketStatus.Paid);
+                                s.RefundedCount = tks.Count(t => t.Status == (short)TicketStatus.Cancelled && t.Payment?.Status == (short)PaymentStatus.Paid);
+                                s.CancelledResCount = tks.Count(t => t.Status == (short)TicketStatus.Cancelled && t.Payment?.Status != (short)PaymentStatus.Paid);
+                                s.ActiveTicketsCount = tks.Count(t => t.Status != (short)TicketStatus.Cancelled);
+                                return s;
                             }).ToList()
-                    }).ToList()
-            })
-            .Where(d => d.Cinemas.Any())
-            .ToList();
+                        }).ToList()
+                }).ToList()
+        }).ToList();
 
-        ViewBag.Cities = await _context.Cinemas
-            .Where(c => c.Isactive == true)
-            .Select(c => c.City)
-            .Distinct()
-            .OrderBy(c => c)
-            .ToListAsync();
-
-        ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive == true).ToListAsync();
-
+        // 6. ViewBags
+        ViewBag.Cities = await _context.Cinemas.Where(c => c.Isactive).Select(c => c.City).Distinct().OrderBy(c => c).ToListAsync();
+        ViewBag.Cinemas = await _context.Cinemas.Where(c => c.Isactive).ToListAsync();
+        ViewBag.Page = page;
+        ViewBag.HasNextPage = dateGroups.Count > page * pageSize;
         ViewBag.SelectedCity = city;
         ViewBag.SelectedCinema = cinemaId;
         ViewBag.SelectedDate = date?.ToString("yyyy-MM-dd");
 
-        foreach (var d in model)
-        {
-            d.IsAdminView = true;
-        }
-
+        foreach (var d in model) d.IsAdminView = true;
         return View(model);
     }
 
@@ -429,15 +445,33 @@ public class SessionsController : Controller
 
 
     // ================= CANCEL =================
+    // ================= CANCEL (Скасування сеансу адміном) =================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(int id)
     {
-        var session = await _context.Sessions.FindAsync(id);
+        // Завантажуємо сеанс разом із квитками
+        var session = await _context.Sessions
+            .Include(s => s.Tickets)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
         if (session == null) return NotFound();
 
+        // 1. Робимо сеанс неактивним
         session.Isactive = false;
+
+        // 2. Скасовуємо всі квитки на цей сеанс (і оплати, і броні)
+        if (session.Tickets.Any())
+        {
+            foreach (var ticket in session.Tickets.Where(t => t.Status != (short)TicketStatus.Cancelled))
+            {
+                ticket.Status = (short)TicketStatus.Cancelled;
+                ticket.Bookingtime = DateTime.Now; // Фіксуємо час скасування
+            }
+        }
+
         await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Сеанс скасовано, всі квитки повернуто клієнтам.";
 
         return RedirectToAction(nameof(Index));
     }

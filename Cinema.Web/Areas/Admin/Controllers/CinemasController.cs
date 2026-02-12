@@ -151,11 +151,15 @@ public class CinemasController : Controller
                     if (session.Tickets.Any())
                     {
                         session.Isactive = false;
+                        foreach (var ticket in session.Tickets.Where(t => t.Status != (short)TicketStatus.Cancelled))
+                        {
+                            ticket.Status = (short)TicketStatus.Cancelled;
+                            ticket.Bookingtime = DateTime.Now;
+                        }
                     }
                     else
                     {
                         _context.Sessionprices.RemoveRange(session.Sessionprices);
-
                         _context.Sessions.Remove(session);
                     }
                 }
@@ -163,7 +167,7 @@ public class CinemasController : Controller
         }
 
         await _context.SaveChangesAsync();
-        TempData["Success"] = cinema.Isactive ? "Кінотеатр відновлено!" : "Кінотеатр та порожні сеанси видалено.";
+        TempData["Success"] = cinema.Isactive ? "Кінотеатр відновлено!" : "Кінотеатр архівовано. Квитки на майбутні сеанси повернуто.";
         return RedirectToAction(nameof(Index));
     }
 }

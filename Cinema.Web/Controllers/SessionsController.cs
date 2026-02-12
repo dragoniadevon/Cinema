@@ -28,6 +28,7 @@ namespace Cinema.Web.Controllers
             var baseQuery = _context.Sessions
                 .AsNoTracking()
                 .Include(s => s.Hall).ThenInclude(h => h.Cinema)
+                .Include(s => s.Tickets).ThenInclude(t => t.Payment)
                 .AsQueryable();
 
             if (mode == "past")
@@ -35,7 +36,10 @@ namespace Cinema.Web.Controllers
             else if (mode == "cancelled")
                 baseQuery = baseQuery.Where(s => s.Isactive == false || (s.Hall != null && s.Hall.Isactive == false));
             else
-                baseQuery = baseQuery.Where(s => s.Isactive == true && (s.Hall != null && s.Hall.Isactive == true) && s.Endtime >= DateTime.Now);
+                baseQuery = baseQuery.Where(s =>
+                     s.Isactive == true &&
+                     (s.Hall != null && s.Hall.Isactive == true) &&
+                     s.Starttime >= DateTime.Now.AddMinutes(-15));
 
             if (!string.IsNullOrEmpty(city))
                 baseQuery = baseQuery.Where(s => s.Hall.Cinema.City == city);

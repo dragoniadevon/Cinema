@@ -57,7 +57,10 @@ public class MoviesController : Controller
         var sessionsQuery = _context.Sessions
             .Include(s => s.Hall).ThenInclude(h => h.Cinema)
             .Include(s => s.Sessionprices)
-            .Where(s => s.Movieid == id && s.Isactive == true && s.Starttime.Date == filterDate.Date && s.Starttime > now);
+            .Where(s => s.Movieid == id &&
+                s.Isactive == true &&
+                s.Starttime.Date == filterDate.Date &&
+                s.Starttime > now.AddMinutes(-15));
 
         if (!string.IsNullOrEmpty(currentCity))
         {

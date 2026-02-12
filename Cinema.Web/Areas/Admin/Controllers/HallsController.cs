@@ -192,24 +192,23 @@ public class HallsController : Controller
 
         hall.Isactive = !hall.Isactive;
 
-        // Якщо ми архівуємо зал
         if (!hall.Isactive)
         {
-            // Обробляємо ТІЛЬКИ майбутні сеанси
-            var futureSessions = hall.Sessions
-                .Where(s => s.Starttime >= DateTime.Now)
-                .ToList();
+            var futureSessions = hall.Sessions.Where(s => s.Starttime >= DateTime.Now).ToList();
 
             foreach (var session in futureSessions)
             {
                 if (session.Tickets.Any())
                 {
-                    // Є квитки — лише деактивуємо (для повернення коштів)
                     session.Isactive = false;
+                    foreach (var ticket in session.Tickets.Where(t => t.Status != (short)TicketStatus.Cancelled))
+                    {
+                        ticket.Status = (short)TicketStatus.Cancelled;
+                        ticket.Bookingtime = DateTime.Now;
+                    }
                 }
                 else
                 {
-                    // Немає квитків — видаляємо ціни та сам сеанс
                     _context.Sessionprices.RemoveRange(session.Sessionprices);
                     _context.Sessions.Remove(session);
                 }
@@ -217,7 +216,7 @@ public class HallsController : Controller
         }
 
         await _context.SaveChangesAsync();
-        TempData["Success"] = hall.Isactive ? "Зал відновлено!" : "Зал архівовано, порожні сеанси видалено.";
-        return RedirectToAction("Index", "Cinemas"); // Повертаємо на список кінотеатрів
+        TempData["Success"] = hall.Isactive ? "Зал відновлено!" : "Зал архівовано. Оплачені квитки повернуто клієнтам.";
+        return RedirectToAction("Index", "Cinemas");
     }
 }

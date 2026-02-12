@@ -16,6 +16,7 @@ public class PosterCarouselViewComponent : ViewComponent
     public async Task<IViewComponentResult> InvokeAsync(int? cinemaId)
     {
         var now = DateTime.Now;
+        var cutoffTime = now.AddMinutes(-15);
 
         var movies = await _db.Movies
             .Include(m => m.Sessions)
@@ -24,7 +25,7 @@ public class PosterCarouselViewComponent : ViewComponent
                 .ThenInclude(s => s.Hall)
             .Where(m => m.Sessions.Any(s =>
                 s.Isactive == true &&
-                s.Starttime > now &&
+                s.Starttime > cutoffTime &&
                 (!cinemaId.HasValue || s.Hall.Cinemaid == cinemaId)))
             .ToListAsync();
 
@@ -52,7 +53,7 @@ public class PosterCarouselViewComponent : ViewComponent
             TodaySessions = m.Sessions
                 .Where(s => s.Isactive == true &&
                             s.Starttime.Date == now.Date &&
-                            s.Starttime > now &&
+                            s.Starttime > cutoffTime &&
                             (!cinemaId.HasValue || s.Hall.Cinemaid == cinemaId))
                 .OrderBy(s => s.Starttime)
                 .Select(s => new HomeSessionVm
