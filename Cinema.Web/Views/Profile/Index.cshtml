@@ -264,8 +264,9 @@
                                 <div id="history-visible-list">
                                     @foreach (var ticket in initialTickets)
                                     {
-                                        <div
-                                            class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card">
+                                       @* В циклі історії *@
+                                        <div class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card 
+                                             @(ticket.ActionText.Contains("тех.") ? "border-start border-danger border-4" : "")">
                                             <div class="card-body p-0">
                                                 <div class="row g-0 align-items-center" style="min-height: 100px;">
                                                     <div class="col-md-5 p-3">
@@ -293,12 +294,17 @@
                                                         <div class="mt-1 fw-bold text-primary">@ticket.Price.ToString("N2")
                                                             ₴</div>
                                                         </div>
-                                                        <div class="col-md-4 p-3 text-center text-md-end">
-                                                            <span
-                                                            class="badge @ticket.BadgeClass rounded-pill px-3 py-2 mb-2">@ticket.ActionText</span>
-                                                            <div class="small text-muted">
-                                                                <i class="bi bi-clock-history"></i>
-                                                                @ticket.ActionTime.ToString("dd.MM.yyyy HH:mm")
+                                                        <div class="col-md-4 d-flex flex-column justify-content-center align-items-md-end">
+                                                            <div class="d-flex flex-column align-items-md-end w-100">
+                                                                <span class="badge @ticket.BadgeClass rounded-3 px-3 py-2 text-wrap"
+                                                                    style="max-width: 260px; line-height: 1.4; text-align: right; padding-right: 0px;">
+                                                                    @ticket.ActionText
+                                                                </span>
+
+                                                                <div class="small text-muted text-end w-100" style="max-width: 260px; padding-right: 16px;">
+                                                                    <i class="bi bi-clock-history"></i>
+                                                                    @ticket.ActionTime.ToString("dd.MM.yyyy HH:mm")
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -312,7 +318,9 @@
                                         <div id="history-hidden-list" style="display: none;">
                                             @foreach (var ticket in hiddenTickets)
                                             {
-                                            <div class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card">
+                                            @* В циклі історії *@
+                                            <div class="card mb-3 border-0 shadow-sm bg-white rounded-4 overflow-hidden history-card 
+                                                 @(ticket.ActionText.Contains("тех.") ? "border-start border-danger border-4" : "")">
                                                 <div class="card-body p-0">
                                                     <div class="row g-0 align-items-center" style="min-height: 100px;">
                                                         <div class="col-md-5 p-3">
@@ -345,18 +353,24 @@
                                                                 ₴
                                                             </div>
                                                         </div>
-                                                        <div class="col-md-4 p-3 text-center text-md-end">
-                                                            <span class="badge @ticket.BadgeClass rounded-pill px-3 py-2 mb-2">@ticket.ActionText</span>
-                                                            <div class="small text-muted">
-                                                                <i class="bi bi-clock-history"></i>
-                                                                @ticket.ActionTime.ToString("dd.MM.yyyy HH:mm")
+                                                        <div class="col-md-4 d-flex flex-column justify-content-center align-items-md-end">
+                                                            <div class="d-flex flex-column align-items-md-end w-100">
+                                                                <span class="badge @ticket.BadgeClass rounded-3 px-3 py-2 text-wrap"
+                                                                    style="max-width: 260px; line-height: 1.4; text-align: right; padding-right: 0px;">
+                                                                    @ticket.ActionText
+                                                                </span>
+
+                                                                <div class="small text-muted text-end w-100" style="max-width: 260px; padding-right: 16px;">
+                                                                    <i class="bi bi-clock-history"></i>
+                                                                    @ticket.ActionTime.ToString("dd.MM.yyyy HH:mm")
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         }
-                                    </div>
+                                        </div>
 
                                         <div class="text-center mt-4 mb-2">
                                             <button id="btn-show-more"
@@ -431,7 +445,7 @@
         }
 
         .bi {
-            margin-right: 4px;
+            margin-right: 0px;
             vertical-align: baseline;
         }
     </style>

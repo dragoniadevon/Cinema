@@ -86,63 +86,79 @@ namespace Cinema.Web.Controllers
 
                 // Історія: Скасовані АБО Оплачені, де сеанс вже завершився
                 HistoryTickets = tickets
-                .Where(t =>
-                    t.Status == (short)TicketStatus.Cancelled ||
-                    (t.Status == (short)TicketStatus.Paid && t.Session.Endtime <= now)
-                )
-                .OrderByDescending(t =>
-                    t.Status == (short)TicketStatus.Cancelled
-                        ? t.Bookingtime
-                        : t.Session.Endtime
-                )
-                .Select(t =>
-                {
-                    string actionText;
-                    string badgeClass;
-                    DateTime actionTime;
-
-                    if (t.Status == (short)TicketStatus.Cancelled)
+                    .Where(t =>
+                        t.Status == (short)TicketStatus.Cancelled ||
+                        (t.Status == (short)TicketStatus.Paid && t.Session.Endtime <= now)
+                    )
+                    .OrderByDescending(t =>
+                        t.Status == (short)TicketStatus.Cancelled ? t.Bookingtime : t.Session.Endtime
+                    )
+                    .Select(t =>
                     {
-                        if (t.Payment != null)
+                        string actionText;
+                        string badgeClass;
+                        DateTime actionTime;
+
+                        if (t.Status == (short)TicketStatus.Cancelled)
                         {
-                            actionText = "🔄 Квиток повернено";
-                            badgeClass = "bg-warning-subtle text-warning";
+                            // Перевіряємо, чи сеанс скасовано адміном
+                            bool isSessionCancelled = t.Session.Isactive == false;
+
+                            if (isSessionCancelled)
+                            {
+                                if (t.Payment != null)
+                                {
+                                    // Була оплата, яку довелось повернути через адміна
+                                    actionText = "⚠️ Квиток повернуто (з тех. причин, приносимо вибачення)";
+                                    badgeClass = "bg-danger-subtle text-danger";
+                                }
+                                else
+                                {
+                                    // Була просто бронь, яку зняли через скасування сеансу
+                                    actionText = "🚫 Бронь скасована (з тех. причин, приносимо вибачення)";
+                                    badgeClass = "bg-dark-subtle text-muted";
+                                }
+                            }
+                            else if (t.Payment != null)
+                            {
+                                // Користувач сам повернув квиток
+                                actionText = "🔄 Квиток повернуто (Вами)";
+                                badgeClass = "bg-warning-subtle text-warning";
+                            }
+                            else
+                            {
+                                // Користувач сам скасував бронь або вона прострочена
+                                actionText = "❌ Бронювання скасовано";
+                                badgeClass = "bg-dark-subtle text-muted";
+                            }
+
+                            actionTime = t.Bookingtime;
                         }
                         else
                         {
-                            actionText = "❌ Бронювання скасовано";
-                            badgeClass = "bg-danger-subtle text-danger";
+                            actionText = "🎬 Сеанс завершився";
+                            badgeClass = "bg-secondary-subtle text-secondary";
+                            actionTime = t.Session.Endtime;
                         }
 
-                        actionTime = t.Bookingtime;
-                    }
-                    else
-                    {
-                        actionText = "🎬 Сеанс завершився";
-                        badgeClass = "bg-secondary-subtle text-secondary";
-                        actionTime = t.Session.Endtime;
-                    }
-
-                    return new HistoryTicketVm
-                    {
-                        TicketId = t.Id,
-                        MovieTitle = t.Session.Movie!.Title,
-                        CinemaName = t.Session.Hall!.Cinema!.Name,
-                        CinemaCity = t.Session.Hall.Cinema.City,
-                        HallName = t.Session.Hall.Name,
-                        Format = t.Session.Format != null
-                        ? (SessionFormat)t.Session.Format
-                        : null,
-                        StartTime = t.Session.Starttime,
-                        Row = t.Seat!.Rownumber ?? 0,
-                        Seat = t.Seat.Seatnumber ?? 0,
-                        Price = t.Price,
-                        ActionText = actionText,
-                        BadgeClass = badgeClass,
-                        ActionTime = actionTime
-                    };
-                })
-                .ToList()
+                        return new HistoryTicketVm
+                        {
+                            TicketId = t.Id,
+                            MovieTitle = t.Session.Movie!.Title,
+                            CinemaName = t.Session.Hall!.Cinema!.Name,
+                            CinemaCity = t.Session.Hall.Cinema.City,
+                            HallName = t.Session.Hall.Name,
+                            Format = t.Session.Format != null ? (SessionFormat)t.Session.Format : null,
+                            StartTime = t.Session.Starttime,
+                            Row = t.Seat!.Rownumber ?? 0,
+                            Seat = t.Seat.Seatnumber ?? 0,
+                            Price = t.Price,
+                            ActionText = actionText,
+                            BadgeClass = badgeClass,
+                            ActionTime = actionTime
+                        };
+                    })
+                    .ToList()
 
             };
 
