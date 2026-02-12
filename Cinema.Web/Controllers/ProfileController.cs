@@ -43,7 +43,6 @@ namespace Cinema.Web.Controllers
                 .Include(t => t.Session).ThenInclude(s => s.Hall).ThenInclude(h => h.Cinema)
                 .Include(t => t.Seat)
                 .Where(t => t.Userid == userId)
-                .OrderByDescending(t => t.Bookingtime)
                 .ToListAsync();
 
             var vm = new ProfileViewModel
@@ -51,11 +50,19 @@ namespace Cinema.Web.Controllers
                 User = user,
 
                 // Активні: Оплачені, де сеанс ще не закінчився АБО Бронь, яка ще діє
-                ActiveTickets = tickets.Where(t =>
+                ActiveTickets = tickets
+                .Where(t =>
                     (t.Status == (short)TicketStatus.Paid && t.Session.Endtime > now) ||
                     (t.Status == (short)TicketStatus.Reserved && now <= t.Bookingtime.AddMinutes(10))
                 )
+                .OrderByDescending(t => t.Status == (short)TicketStatus.Reserved) // 1️⃣ броні зверху
+                .ThenBy(t =>
+                    t.Status == (short)TicketStatus.Reserved
+                        ? t.Bookingtime.AddMinutes(10)
+                        : t.Session.Starttime
+                )
                 .Select(t => new ActiveTicketVm
+
                 {
                     TicketId = t.Id,
                     MovieTitle = t.Session.Movie!.Title,
@@ -78,9 +85,15 @@ namespace Cinema.Web.Controllers
 
 
                 // Історія: Скасовані АБО Оплачені, де сеанс вже завершився
-                HistoryTickets = tickets.Where(t =>
+                HistoryTickets = tickets
+                .Where(t =>
                     t.Status == (short)TicketStatus.Cancelled ||
                     (t.Status == (short)TicketStatus.Paid && t.Session.Endtime <= now)
+                )
+                .OrderByDescending(t =>
+                    t.Status == (short)TicketStatus.Cancelled
+                        ? t.Bookingtime
+                        : t.Session.Endtime
                 )
                 .Select(t =>
                 {
