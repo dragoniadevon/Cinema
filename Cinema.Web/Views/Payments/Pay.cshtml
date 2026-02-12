@@ -1,4 +1,5 @@
 @model PaymentVm
+@using global::Cinema.Infrastructure.Entities.Enums
 
 @{
     ViewData["Title"] = "Оплата квитків";
@@ -50,7 +51,12 @@
                                 <div class="row align-items-center">
 
                                     <div class="col-md-6 border-md-end mb-3 mb-md-0">
-                                        <h6 class="fw-bold mb-1 text-dark fs-5">🎬 @ticket.MovieTitle</h6>
+                                        <h6 class="fw-bold mb-1 text-dark fs-5">🎬 @ticket.MovieTitle
+                                            (@if (ticket.Format != null)
+                                            {
+                                                @(ticket.Format == SessionFormat.TwoD ? "2D" : "3D")
+                                            })
+                                        </h6>
                                         <div class="text-muted small">
                                             <i class="bi bi-geo-alt-fill text-danger"></i>
                                             @ticket.CinemaCity • @ticket.CinemaName • @ticket.HallName
@@ -165,43 +171,43 @@
 
 @section Scripts {
     <script>
-                                                            (function () {
-                                                                const expiryDate = new Date("@expiryTime");
-                                                                const timerElement = document.getElementById("payment-timer");
+                                                                    (function () {
+                                                                        const expiryDate = new Date("@expiryTime");
+                                                                        const timerElement = document.getElementById("payment-timer");
 
-                                                                let isExpired = false;
+                                                                        let isExpired = false;
 
-                                                                function updateTimer() {
-                                                                    if (isExpired) return;
+                                                                        function updateTimer() {
+                                                                            if (isExpired) return;
 
-                                                                    const now = new Date();
-                                                                    const diff = expiryDate - now;
+                                                                            const now = new Date();
+                                                                            const diff = expiryDate - now;
 
-                                                                    if (diff <= 0) {
-                                                                        isExpired = true;
+                                                                            if (diff <= 0) {
+                                                                                isExpired = true;
 
-                                                                        timerElement.innerText = "00:00";
-                                                                        timerElement.classList.replace("text-warning", "text-danger");
+                                                                                timerElement.innerText = "00:00";
+                                                                                timerElement.classList.replace("text-warning", "text-danger");
 
-                                                                        clearInterval(interval);
+                                                                                clearInterval(interval);
 
-                                                                        setTimeout(() => {
-                                                                            alert("Час оплати вичерпано. Ви будете перенаправлені до розкладу.");
-                                                                            window.location.href = '@Url.Action("Index", "Sessions")';
-                                                                        }, 300);
+                                                                                setTimeout(() => {
+                                                                                    alert("Час оплати вичерпано. Ви будете перенаправлені до розкладу.");
+                                                                                    window.location.href = '@Url.Action("Index", "Sessions")';
+                                                                                }, 300);
 
-                                                                        return;
-                                                                    }
+                                                                                return;
+                                                                            }
 
-                                                                    const m = Math.floor(diff / 60000);
-                                                                    const s = Math.floor((diff % 60000) / 1000);
+                                                                            const m = Math.floor(diff / 60000);
+                                                                            const s = Math.floor((diff % 60000) / 1000);
 
-                                                                    timerElement.innerText =
-                                                                        `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                                                                }
+                                                                            timerElement.innerText =
+                                                                                `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                                                                        }
 
-                                                                updateTimer();
-                                                                const interval = setInterval(updateTimer, 1000);
-                                                            })();
+                                                                        updateTimer();
+                                                                        const interval = setInterval(updateTimer, 1000);
+                                                                    })();
     </script>
 }

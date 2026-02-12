@@ -1,3 +1,4 @@
+using Cinema.Infrastructure.Entities.Enums;
 public class OrderConfirmationVm
 {
     public int SessionId { get; set; }
@@ -12,6 +13,7 @@ public class TicketConfirmationItemVm
     public string CinemaCity { get; set; } = "";
     public string CinemaName { get; set; } = "";
     public string HallName { get; set; } = "";
+    public SessionFormat? Format { get; set; }
 
     public DateTime SessionStart { get; set; }
 

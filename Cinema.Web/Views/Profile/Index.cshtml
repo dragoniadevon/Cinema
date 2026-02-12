@@ -3,7 +3,7 @@
 
 @{
     ViewData["Title"] = "Мій кабінет";
-    var nowUtc = DateTime.UtcNow;
+    var now = DateTime.Now;
 }
 
 <div class="container mt-5">
@@ -111,7 +111,15 @@
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start mb-3">
                                                 <div>
-                                                    <h5 class="fw-bold text-dark mb-1">@ticket.MovieTitle</h5>
+                                                    <h5 class="fw-bold text-dark mb-1">
+                                                        @ticket.MovieTitle
+
+                                                        (@if (ticket.Format != null)
+                                                        {
+                                                            @(ticket.Format == SessionFormat.TwoD ? "2D" : "3D")
+                                                        }
+                                                        )
+                                                    </h5>
                                                     <p class="text-muted mb-0 small">
                                                         <i class="bi bi-geo-alt"></i> @ticket.CinemaName • @ticket.HallName
                                                     </p>
@@ -262,7 +270,13 @@
                                             <div class="card-body p-0">
                                                 <div class="row g-0 align-items-center" style="min-height: 100px;">
                                                     <div class="col-md-5 p-3">
-                                                        <h6 class="fw-bold mb-1 text-dark">🎬 @ticket.MovieTitle</h6>
+                                                        <h6 class="fw-bold mb-1 text-dark">🎬 @ticket.MovieTitle
+                                                            (@if (ticket.Format != null)
+                                                            {
+                                                                @(ticket.Format == SessionFormat.TwoD ? "2D" : "3D")
+                                                            }
+                                                            )
+                                                        </h6>
                                                         <div class="text-muted small">
                                                             <i class="bi bi-geo-alt"></i> @ticket.CinemaCity •
                                                             @ticket.CinemaName
@@ -305,7 +319,13 @@
                                                     <div class="card-body p-0">
                                                         <div class="row g-0 align-items-center" style="min-height: 100px;">
                                                             <div class="col-md-5 p-3">
-                                                                <h6 class="fw-bold mb-1 text-dark">🎬 @ticket.MovieTitle</h6>
+                                                                <h6 class="fw-bold mb-1 text-dark">🎬 @ticket.MovieTitle
+                                                                    (@if (ticket.Format != null)
+                                                                    {
+                                                                        @(ticket.Format == SessionFormat.TwoD ? "2D" : "3D")
+                                                                    }
+                                                                    )
+                                                                </h6>
                                                                 <small
                                                                 class="text-muted">@ticket.StartTime.ToString("dd.MM.yyyy")</small>
                                                             </div>

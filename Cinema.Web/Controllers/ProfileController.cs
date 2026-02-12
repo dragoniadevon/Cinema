@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 using Cinema.Infrastructure.Entities;
+using Cinema.Infrastructure.Entities.Enums;
 using Cinema.Web.ViewModels;
 
 namespace Cinema.Web.Controllers
@@ -61,6 +62,9 @@ namespace Cinema.Web.Controllers
                     CinemaName = t.Session.Hall!.Cinema!.Name,
                     CinemaCity = t.Session.Hall.Cinema.City,
                     HallName = t.Session.Hall.Name,
+                    Format = t.Session.Format != null
+                    ? (SessionFormat)t.Session.Format
+                    : null,
                     StartTime = t.Session.Starttime,
                     EndTime = t.Session.Endtime,
                     Row = t.Seat!.Rownumber ?? 0,
@@ -113,6 +117,9 @@ namespace Cinema.Web.Controllers
                         CinemaName = t.Session.Hall!.Cinema!.Name,
                         CinemaCity = t.Session.Hall.Cinema.City,
                         HallName = t.Session.Hall.Name,
+                        Format = t.Session.Format != null
+                        ? (SessionFormat)t.Session.Format
+                        : null,
                         StartTime = t.Session.Starttime,
                         Row = t.Seat!.Rownumber ?? 0,
                         Seat = t.Seat.Seatnumber ?? 0,
