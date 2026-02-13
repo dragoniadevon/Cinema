@@ -49,13 +49,12 @@ namespace Cinema.Web.Controllers
             {
                 User = user,
 
-                // Активні: Оплачені, де сеанс ще не закінчився АБО Бронь, яка ще діє
                 ActiveTickets = tickets
                 .Where(t =>
                     (t.Status == (short)TicketStatus.Paid && t.Session.Endtime > now) ||
                     (t.Status == (short)TicketStatus.Reserved && now <= t.Bookingtime.AddMinutes(10))
                 )
-                .OrderByDescending(t => t.Status == (short)TicketStatus.Reserved) // 1️⃣ броні зверху
+                .OrderByDescending(t => t.Status == (short)TicketStatus.Reserved)
                 .ThenBy(t =>
                     t.Status == (short)TicketStatus.Reserved
                         ? t.Bookingtime.AddMinutes(10)
@@ -101,33 +100,28 @@ namespace Cinema.Web.Controllers
 
                         if (t.Status == (short)TicketStatus.Cancelled)
                         {
-                            // Перевіряємо, чи сеанс скасовано адміном
                             bool isSessionCancelled = t.Session.Isactive == false;
 
                             if (isSessionCancelled)
                             {
                                 if (t.Payment != null)
                                 {
-                                    // Була оплата, яку довелось повернути через адміна
                                     actionText = "⚠️ Квиток повернуто (з тех. причин, приносимо вибачення)";
                                     badgeClass = "bg-danger-subtle text-danger";
                                 }
                                 else
                                 {
-                                    // Була просто бронь, яку зняли через скасування сеансу
                                     actionText = "🚫 Бронь скасована (з тех. причин, приносимо вибачення)";
                                     badgeClass = "bg-dark-subtle text-muted";
                                 }
                             }
                             else if (t.Payment != null)
                             {
-                                // Користувач сам повернув квиток
                                 actionText = "🔄 Квиток повернуто (Вами)";
                                 badgeClass = "bg-warning-subtle text-warning";
                             }
                             else
                             {
-                                // Користувач сам скасував бронь або вона прострочена
                                 actionText = "❌ Бронювання скасовано";
                                 badgeClass = "bg-dark-subtle text-muted";
                             }
