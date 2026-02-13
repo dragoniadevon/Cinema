@@ -111,7 +111,6 @@ StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
                                     @foreach (var seat in rowSeats)
                 {
                     var isVip = seat.CategoryName.Contains("VIP", StringComparison.OrdinalIgnoreCase);
-                    // ✅ ПЕРЕВІРКА: чи було саме повернення ОПЛАТИ (ігноруємо скасовані броні)
                     var wasPreviouslyPaid = !string.IsNullOrEmpty(seat.RefundInfo) && seat.RefundInfo.Contains("Оплата");
     
                     string seatTypeClass = "is-standard";
@@ -120,12 +119,10 @@ StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
                     {
                         if (seat.StatusInfo == "Бронювання") 
                         {
-                            // Якщо зараз бронь + в історії було повернення ОПЛАТИ
                             seatTypeClass = wasPreviouslyPaid ? "is-reserved-refunded" : "is-reserved";
                         }
                         else if (seat.StatusInfo == "Оплачено") 
                         {
-                            // ✅ Якщо зараз оплачено + в історії було повернення ОПЛАТИ -> Червоний
                             seatTypeClass = wasPreviouslyPaid ? "was-refunded-bought" : "is-taken";
                         }
                     }
@@ -151,7 +148,6 @@ StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
                         {
                             <i class="bi @(seat.StatusInfo == "Бронювання" ? "bi-bookmark-fill" : "bi-person-badge")"></i>
                         }
-                        @* ✅ Стрілочка тільки якщо була ОПЛАТА, яку повернули, і місце ЗАРАЗ вільне *@
                         else if (wasPreviouslyPaid)
                         {
                             <i class="bi bi-arrow-counterclockwise text-warning"></i>
@@ -499,7 +495,6 @@ StringComparison.OrdinalIgnoreCase))?.Price ?? 0;
             document.getElementById('sold-info-section').classList.add('d-none');
             document.getElementById('free-info-section').classList.remove('d-none');
 
-            // Якщо місце вільне, але є історія повернення — показуємо її
             const freeRefund = document.getElementById('refund-history-free');
             if (freeRefund) {
                 freeRefund.innerText = refund || "";

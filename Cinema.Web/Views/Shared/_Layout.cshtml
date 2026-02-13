@@ -29,8 +29,8 @@
                     <ul class="navbar-nav ms-auto align-items-center gap-2">
 
                         <li class="nav-item me-lg-2">
-                            <button id="cityCinemaLabel"                              class="btn-select-location shadow-sm d-flex align-items-center"
-                                    data-bs-toggle="modal"      data-bs-target="#cityCinemaModal">
+                            <button id="cityCinemaLabel" class="btn-select-location shadow-sm d-flex align-items-center"
+                                    data-bs-toggle="modal" data-bs-target="#cityCinemaModal">
                                 <i class="bi bi-geo-alt-fill me-2 text-primary"></i> Обрати місто
                             </button>
                         </li>
@@ -42,7 +42,7 @@
 
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center user-badge" href="#"
-                                       id="userDropdown"     role="button"         data-bs-toggle="dropdown">
+                                       id="userDropdown" role="button" data-bs-toggle="dropdown">
                                     @if (!string.IsNullOrEmpty(avatarPath))
                                     {
                                     }
@@ -51,7 +51,7 @@
 
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2 mt-2">
                                     <li>
-                                        <a class="dropdown-item rounded-3 mb-1"                           asp-controller="Profile"          asp-action="Index">
+                                        <a class="dropdown-item rounded-3 mb-1" asp-controller="Profile" asp-action="Index">
                                             👤 Мій профіль
                                         </a>
                                     </li>
@@ -59,7 +59,7 @@
                                     @if (User.IsInRole("Admin"))
                                     {
                                         <li>
-                                            <a class="dropdown-item rounded-3 mb-1"     asp-controller="Admin"                    asp-action="Index">
+                                            <a class="dropdown-item rounded-3 mb-1" asp-controller="Admin" asp-action="Index">
                                                 🛠 Адмін-панель
                                             </a>
                                         </li>
@@ -70,7 +70,7 @@
                                     </li>
 
                                     <li>
-                                        <form asp-controller="Account"    asp-action="Logout"                  method="post"                                 class="m-0 p-0">
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0 p-0">
                                             @Html.AntiForgeryToken()
                                             <button type="submit"
                                                     class="dropdown-item rounded-3 text-danger d-flex align-items-center">
@@ -84,7 +84,7 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="btn btn-primary shadow-sm px-4 fw-bold"                        asp-controller="Account"
+                                <a class="btn btn-primary shadow-sm px-4 fw-bold" asp-controller="Account"
                                        asp-action="Login">
                                     Увійти
                                 </a>

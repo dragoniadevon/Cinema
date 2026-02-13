@@ -28,7 +28,7 @@ public class SessionDetailsVm
     // === Місця ===
     public List<SeatDetailsVm> Seats { get; set; } = new();
 
-    // ✅ НОВЕ: ціни
+    // === Ціни ===
     public List<SessionPriceVm> Prices { get; set; } = new();
 
     public bool IsAdminView { get; set; }
@@ -49,15 +49,13 @@ public class SeatDetailsVm
     public int Row { get; set; }
     public int Number { get; set; }
     public bool IsTaken { get; set; }
-    public bool IsBlocked { get; set; } // Нове: для технічних несправностей
+    public bool IsBlocked { get; set; }
     public string CategoryName { get; set; } = "Стандарт";
-    public decimal Price { get; set; } // Нове: ціна цього конкретного місця
-
-    // Додаткові дані для адміна при кліку
+    public decimal Price { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerEmail { get; set; }
     public DateTime? PurchaseDate { get; set; }
-    public string? StatusInfo { get; set; } // Для "Оплачено" / "Бронювання"
-    public string? RefundInfo { get; set; } // Для інформації про скасування
+    public string? StatusInfo { get; set; }
+    public string? RefundInfo { get; set; }
 
 }
